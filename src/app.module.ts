@@ -1,0 +1,44 @@
+import { Module } from '@nestjs/common';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
+import { UsersModule } from './users/users.module';
+import { AuthModule } from './auth/auth.module';
+import { MessagesModule } from './messages/messages.module';
+import { NotesModule } from './notes/notes.module';
+import { FlashCardsModule } from './flash-cards/flash-cards.module';
+import { ConfigModule } from '@nestjs/config';
+//import { PerfilModule } from './perfil/perfil.module';
+import { ExamsModule } from './exams/exams.module';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { JwtModule } from '@nestjs/jwt';
+import { GroqModule } from './groq/groq.module';
+
+@Module({
+  imports: [
+    UsersModule,
+    AuthModule,
+    MessagesModule,
+    NotesModule,
+    FlashCardsModule,
+    ExamsModule,
+    TypeOrmModule.forRoot({
+      type: 'postgres',
+      host: process.env.DB_HOST,
+      port: 5432,
+      username: 'postgres',
+      password: 'juniorxf',
+      database: process.env.DB_NAME,
+      entities: [__dirname + '/**/*.entity{.ts,.js}'],
+      synchronize: true,
+    }),
+    JwtModule.register({
+      secret: process.env.JWT_SECRET,
+      signOptions: { expiresIn: '1h' },
+    }),
+    ConfigModule.forRoot({ isGlobal: true }),
+    GroqModule,
+  ],
+  controllers: [AppController],
+  providers: [AppService],
+})
+export class AppModule {}

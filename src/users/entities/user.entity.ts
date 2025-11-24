@@ -1,0 +1,65 @@
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  OneToMany,
+  OneToOne,
+} from 'typeorm';
+
+//import { Perfil } from '../../perfil/entities/perfil.entity';
+import { Message } from '../../messages/entities/message.entity';
+import { Flashcard } from '../../flash-cards/entities/flash-card.entity';
+import { Note } from '../../notes/entities/note.entity';
+import { Exam } from 'src/exams/entities/exam.entity';
+import { Chat } from 'src/messages/entities/chat.entity';
+
+@Entity()
+export class User {
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @Column()
+  email: string;
+
+  @Column()
+  password: string;
+
+  @Column({ nullable: true })
+  name: string;
+
+  @Column({ unique: true, nullable: true })
+  googleId: string;
+
+  @Column({ default: false })
+  emailVerified: boolean;
+
+  @Column({ nullable: true })
+  avatar: string;
+
+  @Column({ default: false })
+  pendingDeletion: boolean;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  deletionDate: Date;
+
+  @OneToMany(() => Chat, (chat) => chat.user)
+  chats: Chat[];
+
+  @OneToMany(() => Message, (message) => message.user)
+  messages: Message[];
+
+  //@OneToOne(() => Perfil, (perfil) => perfil.user)
+  //perfiles: Perfil;
+
+  @OneToMany(() => Flashcard, (flash) => flash.user)
+  flashcards: Flashcard[];
+
+  @OneToMany(() => Exam, (exam) => exam.user)
+  exams: Exam[];
+
+  @OneToMany(() => Note, (note) => note.user)
+  notes: Note[];
+
+  //@OneToMany(() => UserIp, (ip) => ip.user)
+  //userIps: UserIp[];
+}
