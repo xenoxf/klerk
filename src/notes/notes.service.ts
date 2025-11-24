@@ -33,6 +33,9 @@ export class NotesService {
 Eres un generador de notas académico. 
 Crea exactamente ${numberOfNotes} secciones de notas.
 Nivel de detalle: "${levelOfDetail}".
+si nivel de detalle es "breve", las secciones deben ser breves y concisas.
+si nivel de detalle es "medio", las secciones deben tener explicaciones claras y ejemplos.
+si nivel de detalle es "alto", las secciones deben ser exhaustivas, con análisis profundos y múltiples ejemplos.
 
 ${tema ? `Tema principal: ${tema}` : ""}
 ${textoReferencia ? `Texto de referencia:\n${textoReferencia}` : ""}
@@ -51,6 +54,8 @@ Formato EXACTO del JSON:
 
 {
   "title": "Titulo general de la nota",
+  "levelOfDetail": "breve | medio | alto",
+  "numberOfSections": número,
   "contents": [
     {
       "title": "Título de sección",
