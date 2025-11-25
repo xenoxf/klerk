@@ -25,7 +25,7 @@ import { GroqModule } from './groq/groq.module';
       password: process.env.DB_PASS,
       database: process.env.DB_NAME,
       ssl: {
-        rejectUnauthorized: true,
+        rejectUnauthorized: false,
       },
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
       synchronize: true,
