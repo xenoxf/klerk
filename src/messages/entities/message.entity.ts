@@ -31,6 +31,9 @@ export class Message {
   @Column()
   userId: number;
 
+  @Column()
+  chatId: number;
+
   @ManyToOne(() => User, (user) => user.messages)
   user: User;
 

@@ -23,8 +23,8 @@ export class Flashcard {
   @Column({ nullable: true })
   hint: string;
 
-  @Column()
-  difficulty: number;
+  @Column({ type: 'text' })
+  difficulty: string;
 
   @Column('simple-array')
   tags: string[];

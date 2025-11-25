@@ -14,12 +14,12 @@ export class MessagesService {
     @InjectRepository(Chat) private readonly chatRepo: Repository<Chat>,
   ) {}
 
-  async sendMessage(prompt: string, userId: number) {
+  async sendMessage(prompt: string, userId: number, chatId?: number) {
     // generar respuesta de la IA
     const response = await this.groqService.chat(prompt);
 
     // buscar chat existente para el usuario
-    let chat = await this.chatRepo.findOne({ where: { userId } });
+    let chat = await this.chatRepo.findOne({ where: {id: chatId, userId} });
 
     // si no existe, crear nuevo chat y pedirle a la IA que genere un título
     if (!chat) {
@@ -36,6 +36,8 @@ export class MessagesService {
       response: response,
       userId: userId,
       chat: chat,
+      chatId: chat.id,
+      numberMessageOfChat: (await this.messageRepo.count({ where: { chatId: chat.id } })) + 1,
     });
     await this.messageRepo.save(newMessage);
 

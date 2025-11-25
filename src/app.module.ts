@@ -15,12 +15,8 @@ import { GroqModule } from './groq/groq.module';
 
 @Module({
   imports: [
-    UsersModule,
-    AuthModule,
-    MessagesModule,
-    NotesModule,
-    FlashCardsModule,
-    ExamsModule,
+    ConfigModule.forRoot({ isGlobal: true }), // ✅ PRIMERO SIEMPRE
+
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: process.env.DB_HOST,
@@ -34,14 +30,20 @@ import { GroqModule } from './groq/groq.module';
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
       synchronize: true,
     }),
+
+    UsersModule,
+    AuthModule,
+    MessagesModule,
+    NotesModule,
+    FlashCardsModule,
+    ExamsModule,
     JwtModule.register({
       secret: process.env.JWT_SECRET,
       signOptions: { expiresIn: '1h' },
     }),
-    ConfigModule.forRoot({ isGlobal: true }),
     GroqModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule { }
+export class AppModule {}
