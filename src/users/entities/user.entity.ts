@@ -21,20 +21,23 @@ export class User {
   @Column()
   email: string;
 
-  @Column()
+  @Column({nullable: true})
   password: string;
 
   @Column({ nullable: true })
   name: string;
 
+  @Column()
+  provider: string;
+
   @Column({ unique: true, nullable: true })
-  googleId: string;
+  providerId: string;
 
   @Column({ default: false })
   emailVerified: boolean;
 
   @Column({ nullable: true })
-  avatar: string;
+  picture: string;
 
   @Column({ default: false })
   pendingDeletion: boolean;

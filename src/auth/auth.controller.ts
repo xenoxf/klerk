@@ -1,13 +1,15 @@
-import { Controller, Post, Body, Get, Query } from '@nestjs/common';
+import { Controller, Post, Body, Get, Query, Req, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { CreateAuthDto } from './dto/create-auth.dto';
 import { LoginAuthDto } from './dto/login-auth.dto';
+import { GoogleAuthGuard } from 'src/common/guards/google-auth/google-auth.guard';
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   /**
+   * 
    * 1️⃣ Pre-registro: se envía el email pero NO se crea usuario
    */
   @Post('pre-register')
@@ -37,5 +39,28 @@ export class AuthController {
   @Post('login')
   login(@Body() dto: LoginAuthDto) {
     return this.authService.login(dto);
+  }
+
+  // ------------------------------------------------------------
+  // 🚀 GOOGLE AUTH
+  // ------------------------------------------------------------
+
+  /**
+   * 5️⃣ Redirige a Google (no retorna nada)
+   */
+  @Get('google')
+  @UseGuards(GoogleAuthGuard)
+  async googleAuth() {
+    return;
+  }
+
+  /**
+   * 6️⃣ Callback desde Google
+   */
+  @Get('google/callback')
+  @UseGuards(GoogleAuthGuard)
+  async googleCallback(@Req() req) {
+    // req.user viene del validate() del GoogleStrategy
+    return this.authService.loginWithGoogle(req.user);
   }
 }
