@@ -1,15 +1,23 @@
-import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsString, IsNumber, IsOptional, IsIn, Min, Max } from 'class-validator';
 
-export class CreateFlashCardDto {
+export class GenerateFlashcardsDto {
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  front: string;
-
-  @IsString()
-  @IsNotEmpty()
-  back: string;
+  topic?: string;
 
   @IsOptional()
   @IsString()
-  description?: string;
+  referenceText?: string;
+
+  @IsNumber()
+  @Min(1)
+  @Max(50)
+  numberOfCards: number;
+
+  @IsString()
+  @IsIn(['fácil', 'medio', 'difícil'])
+  difficulty: 'fácil' | 'medio' | 'difícil';
+
+  @IsNumber()
+  userId: number;
 }

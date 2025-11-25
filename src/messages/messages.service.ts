@@ -16,14 +16,14 @@ export class MessagesService {
 
   async sendMessage(prompt: string, userId: number, chatId?: number) {
     // generar respuesta de la IA
-    const response = await this.groqService.chat(prompt);
+    const response = await this.groqService.chatMessage(prompt);
 
     // buscar chat existente para el usuario
     let chat = await this.chatRepo.findOne({ where: {id: chatId, userId} });
 
     // si no existe, crear nuevo chat y pedirle a la IA que genere un título
     if (!chat) {
-      const title = await this.groqService.chat(
+      const title = await this.groqService.chatMessage(
         `Genera un título corto y descriptivo para un chat cuya primera interacción es: "${prompt}"`,
       );
       chat = this.chatRepo.create({ title, userId });

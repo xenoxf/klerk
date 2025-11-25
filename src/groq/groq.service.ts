@@ -10,7 +10,7 @@ export class GroqService {
     apiKey: process.env.GROQ_API_KEY,
   });
 
-  async chat(prompt: string) {
+  async chatMessage(prompt: string) {
     try {
       const completion = await this.groq.chat.completions.create({
         model: 'llama-3.3-70b-versatile',
@@ -82,4 +82,129 @@ Reglas:
       };
     }
   }
+    // ============================================================
+  // 🔥 FUNCIÓN ESPECIAL PARA FLASHCARDS
+  // ============================================================
+  async generateFlashcards(prompt: string) {
+    try {
+      const completion = await this.groq.chat.completions.create({
+        model: 'llama-3.3-70b-versatile',
+
+        messages: [
+          {
+            role: 'system',
+            content: `
+Eres un asistente experto en generar flashcards.
+Responde SIEMPRE con JSON válido y limpio.
+
+FORMATO OBLIGATORIO:
+{
+  "cards": [
+    {
+      "front": "pregunta corta",
+      "back": "respuesta larga",
+      "difficulty": "fácil" | "medio" | "difícil"
+    }
+  ]
+}
+
+REGLAS:
+- Nada fuera del JSON.
+- Prohibido usar markdown.
+- Prohibido usar backticks.
+- Prohibido agregar mensajes adicionales.
+- Si no puedes generar JSON, devuelve un error (pero aún en JSON).
+`,
+          },
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+
+        temperature: 0.25,
+        max_tokens: 4096,
+      });
+
+      const raw = completion.choices[0].message.content?.trim() ?? '';
+
+      // Intento de parseo directo
+      try {
+        return JSON.parse(raw);
+      } catch (err) {}
+
+      // Si viene con basura -> intento extraer el JSON interno
+      const match = raw.match(/\{[\s\S]*\}/);
+      if (match) {
+        try {
+          return JSON.parse(match[0]);
+        } catch (err) {}
+      }
+
+      // Último recurso -> retorno estandarizado
+      return {
+        error: true,
+        message: 'La IA devolvió un JSON inválido.',
+        raw,
+      };
+    } catch (error) {
+      return {
+        error: true,
+        message: 'Error llamando a Groq para flashcards.',
+        detail: error.message,
+      };
+    }
+  }
+
+  async chat(prompt: string) {
+    try {
+      const completion = await this.groq.chat.completions.create({
+        model: 'llama-3.3-70b-versatile',
+
+        // Mensajes para obligar JSON limpio
+        messages: [
+          {
+            role: 'system',
+            content: "Eres un asistente de estudio",
+          },
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+
+        // Hace que la salida sea JSON más limpio
+        temperature: 0.3,
+        max_tokens: 4096,
+      });
+
+      const raw = completion.choices[0].message.content;
+
+      // Intentar parsear JSON
+      try {
+        return JSON.parse(raw);
+      } catch (err) {
+        return {
+          type: 'answer',
+          success: false,
+          content: {
+            explanation: 'El modelo devolvió un JSON inválido.',
+            code: null,
+            raw,
+          },
+        };
+      }
+    } catch (error) {
+      return {
+        type: 'answer',
+        success: false,
+        content: {
+          explanation: 'Error llamando a Groq.',
+          code: null,
+          error: error.message,
+        },
+      };
+    }
+  }
+
 }
