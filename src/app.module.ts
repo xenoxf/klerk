@@ -15,20 +15,24 @@ import { GroqModule } from './groq/groq.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }), // ✅ PRIMERO SIEMPRE
+    ConfigModule.forRoot({ isGlobal: true }),
 
-    TypeOrmModule.forRoot({
-      type: 'postgres',
-      host: process.env.DB_HOST,
-      port: Number(process.env.DB_PORT),
-      username: process.env.DB_USER,
-      password: process.env.DB_PASS,
-      database: process.env.DB_NAME,
-      ssl: {
-        rejectUnauthorized: Boolean(process.env.SSL),
-      },
-      entities: [__dirname + '/**/*.entity{.ts,.js}'],
-      synchronize: true,
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: (config: ConfigService) => ({
+        type: 'postgres',
+        host: config.get('DB_HOST'),
+        port: config.get('DB_PORT'),
+        username: config.get('DB_USER'),
+        password: config.get('DB_PASS'),
+        database: config.get('DB_NAME'),
+        ssl: config.get('SSL') === 'true'
+          ? { rejectUnauthorized: false }
+          : false,
+        autoLoadEntities: true,
+        synchronize: true, // ❗ solo en desarrollo
+      }),
+      inject: [ConfigService],
     }),
 
     UsersModule,
@@ -37,10 +41,6 @@ import { GroqModule } from './groq/groq.module';
     NotesModule,
     FlashCardsModule,
     ExamsModule,
-    JwtModule.register({
-      secret: process.env.JWT_SECRET,
-      signOptions: { expiresIn: '1h' },
-    }),
     GroqModule,
   ],
   controllers: [AppController],
