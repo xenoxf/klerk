@@ -6,7 +6,7 @@ import { AuthModule } from './auth/auth.module';
 import { MessagesModule } from './messages/messages.module';
 import { NotesModule } from './notes/notes.module';
 import { FlashCardsModule } from './flash-cards/flash-cards.module';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 //import { PerfilModule } from './perfil/perfil.module';
 import { ExamsModule } from './exams/exams.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -26,9 +26,8 @@ import { GroqModule } from './groq/groq.module';
         username: config.get('DB_USER'),
         password: config.get('DB_PASS'),
         database: config.get('DB_NAME'),
-        ssl: config.get('SSL') === 'true'
-          ? { rejectUnauthorized: false }
-          : false,
+        ssl:
+          config.get('SSL') === 'true' ? { rejectUnauthorized: false } : false,
         autoLoadEntities: true,
         synchronize: true, // ❗ solo en desarrollo
       }),
