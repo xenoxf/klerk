@@ -4,31 +4,26 @@ import { ApiKeyGuard } from './common/guards/api-key/api-key.guard';
 import { AllExceptionsFilter } from './common/filters/all-exceptions/all-exceptions.filter';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, {
-    cors: {
-      origin: [
-        'http://localhost:3000', // Dev local
-        'https://learnyosv07.vercel.app', // Tu front en Vercel
-      ],
-      methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-      credentials: true,
-      allowedHeaders:
-        'Content-Type, Authorization, X-Requested-With, x-api-key',
-      preflightContinue: false,
-      optionsSuccessStatus: 204,
-    },
+  const app = await NestFactory.create(AppModule);
+
+  app.enableCors({
+    origin: ['http://localhost:3000', 'https://learnyosv07.vercel.app'],
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    credentials: true,
+    allowedHeaders: 'Content-Type, Authorization, X-Requested-With, x-api-key',
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
   });
 
   const showStack = process.env.NODE_ENV !== 'production';
 
-  // Filtro global de errores
   app.useGlobalFilters(new AllExceptionsFilter(showStack));
 
-  // Guard global (compatible con OPTIONS)
+  // 👇 Ahora sí ignorará preflight
   app.useGlobalGuards(new ApiKeyGuard());
 
-  // Iniciar servidor
-  await app.listen(process.env.PORT ?? 3000);
+  // 👇 Render NECESITA este host
+  await app.listen(process.env.PORT ?? 3000, '0.0.0.0');
 }
 
 bootstrap();
