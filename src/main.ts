@@ -7,9 +7,8 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     cors: {
       origin: [
-        'http://localhost:5173',
-        'https://klerk-front.vercel.app',
-        'https://tu-dominio-que-uses.com',
+        'http://localhost:3000', // Dev local
+        'https://learnyosv07.vercel.app', // Tu front en Vercel
       ],
       methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
       credentials: true,
@@ -20,14 +19,15 @@ async function bootstrap() {
     },
   });
 
-  // Mostrar stacktrace solo en desarrollo
   const showStack = process.env.NODE_ENV !== 'production';
 
-  // Registrar filtros y guards ANTES de iniciar el servidor
+  // Filtro global de errores
   app.useGlobalFilters(new AllExceptionsFilter(showStack));
+
+  // Guard global (compatible con OPTIONS)
   app.useGlobalGuards(new ApiKeyGuard());
 
-  // Arrancar servidor
+  // Iniciar servidor
   await app.listen(process.env.PORT ?? 3000);
 }
 
