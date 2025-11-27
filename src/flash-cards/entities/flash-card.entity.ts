@@ -7,7 +7,7 @@ import {
   CreateDateColumn,
 } from 'typeorm';
 
-import { User } from '../../users/entities/user.entity';
+import { Card } from './card.entity';
 
 @Entity()
 export class Flashcard {
@@ -45,8 +45,8 @@ export class Flashcard {
   numCard: number;
 
   @Column()
-  userId: number;
+  cardId: number;
 
-  @ManyToOne(() => User, (user) => user.flashcards)
-  user: User;
+  @ManyToOne(() => Card, (card) => card.flashcards, { onDelete: 'CASCADE' })
+  card: Card;
 }

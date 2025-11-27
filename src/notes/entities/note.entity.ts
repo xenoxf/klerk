@@ -31,9 +31,6 @@ export class Note {
   @CreateDateColumn()
   createdAt: Date;
 
-  @UpdateDateColumn()
-  updatedAt: Date;
-
   @Column()
   userId: number;
 

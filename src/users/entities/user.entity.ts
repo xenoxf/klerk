@@ -12,6 +12,7 @@ import { Flashcard } from '../../flash-cards/entities/flash-card.entity';
 import { Note } from '../../notes/entities/note.entity';
 import { Exam } from 'src/exams/entities/exam.entity';
 import { Chat } from 'src/messages/entities/chat.entity';
+import { Card } from 'src/flash-cards/entities/card.entity';
 
 @Entity()
 export class User {
@@ -54,8 +55,8 @@ export class User {
   //@OneToOne(() => Perfil, (perfil) => perfil.user)
   //perfiles: Perfil;
 
-  @OneToMany(() => Flashcard, (flash) => flash.user)
-  flashcards: Flashcard[];
+  @OneToMany(() => Card, (card) => card.user)
+  cards: Card[];
 
   @OneToMany(() => Exam, (exam) => exam.user)
   exams: Exam[];
