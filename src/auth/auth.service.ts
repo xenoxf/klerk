@@ -39,10 +39,18 @@ export class AuthService {
       },
       { expiresIn: '15m' },
     );
+    try {
+      await this.mailService.sendVerificationEmail(dto.email, token);
+    }
+    catch (err) {
+      throw new InternalServerErrorException({
+        message: 'No se pudo enviar el correo de verificación.',
+        emailSent: false,
+      });
+    }
 
-    await this.mailService.sendVerificationEmail(dto.email, token);
-
-    return { message: 'Te enviamos un correo para verificar tu email.' };
+    
+    return { message: 'Te enviamos un correo para verificar tu email.', emailSent: true };
   }
 
   /**
@@ -115,9 +123,11 @@ export class AuthService {
 
     return {
       token,
-      email: user.email,
-      name: user.name,
-      sub: user.id,
+      user: {
+        email: user.email,
+        name: user.name,
+        sub: user.id,
+      }
     };
   }
 
@@ -133,37 +143,38 @@ export class AuthService {
   /**
  * 5️⃣ Login con Google (datos vienen desde GoogleStrategy → req.user)
  */
-async loginWithGoogle(googleUser: any) {
-  // googleUser viene desde GoogleStrategy:
-  // { id, email, name, picture, provider, providerId }
+  async loginWithGoogle(googleUser: any) {
+    // googleUser viene desde GoogleStrategy:
+    // { id, email, name, picture, provider, providerId }
 
-  let user = await this.usersService.findByEmail(googleUser.email);
+    let user = await this.usersService.findByEmail(googleUser.email);
 
-  // Si no existe lo creamos automáticamente
-  if (!user) {
-    user = await this.usersService.createGoogle({
-      email: googleUser.email,
-      name: googleUser.name,
-      picture: googleUser.picture,
-      provider: 'google',
-      providerId: googleUser.providerId,
-      emailVerified: true,
+    // Si no existe lo creamos automáticamente
+    if (!user) {
+      user = await this.usersService.createGoogle({
+        email: googleUser.email,
+        name: googleUser.name,
+        picture: googleUser.picture,
+        provider: 'google',
+        providerId: googleUser.providerId,
+        emailVerified: true,
+      });
+    }
+
+    // Generar token
+    const token = this.jwtService.sign({
+      sub: user.id,
+      email: user.email,
     });
+
+    return {
+      token,
+        email: user.email,
+        name: user.name,
+        picture: user.picture,
+        sub: user.id,
+      
+    };
   }
-
-  // Generar token
-  const token = this.jwtService.sign({
-    sub: user.id,
-    email: user.email,
-  });
-
-  return {
-    token,
-    email: user.email,
-    name: user.name,
-    picture: user.picture,
-    sub: user.id,
-  };
-}
 
 }

@@ -22,12 +22,8 @@ export class Message {
   @Column()
   response: string;
 
-  @CreateDateColumn()
-  fechaDeEnvioUser: Date;
-
-  @CreateDateColumn()
-  fechaDeEnvioBot: Date;
-
+  @CreateDateColumn({type: 'timestamptz'})
+  createAt: Date;
   @Column()
   userId: number;
 

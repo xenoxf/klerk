@@ -29,9 +29,9 @@ export class MailService {
 
     try {
       await this.transporter.sendMail({
-        from: process.env.MAIL_FROM || 'no-reply@tuapp.com',
+        from: process.env.MAIL_USER,
         to: email,
-        subject: 'Verifica tu correo',
+        subject: 'Correo de verificacion',
         html,
       });
 

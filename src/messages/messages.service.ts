@@ -41,7 +41,7 @@ export class MessagesService {
     });
     await this.messageRepo.save(newMessage);
 
-    return { response, chatId: (chat as any).id, message: newMessage };
+    return { response, chatId: (chat as any).id, content: newMessage };
   }
 
   getChatById(userId: number, id: number) {
