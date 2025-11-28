@@ -2,17 +2,16 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
-  ManyToOne,
-  OneToMany,
   CreateDateColumn,
   UpdateDateColumn,
+  OneToMany,
+  ManyToOne,
 } from 'typeorm';
 
-import { User } from '../../users/entities/user.entity';
 import { ExamQuestion } from './examQuestion.entity';
-import { text } from 'stream/consumers';
+import { User } from 'src/users/entities/user.entity';
 
-@Entity()
+@Entity('exams')
 export class Exam {
   @PrimaryGeneratedColumn()
   id: number;
@@ -20,14 +19,14 @@ export class Exam {
   @Column()
   title: string;
 
+  @Column({ nullable: true })
+  description?: string;
+
   @Column({ default: 0 })
-  nota: number;
+  totalQuestions: number;
 
-  @Column({ type: 'text' })
-  difficulty: string;
-
-  @Column({ default: 1 })
-  numberOfQuestions: number;
+  @Column({ nullable: true })
+  score?: number;
 
   @CreateDateColumn()
   createdAt: Date;
@@ -35,12 +34,12 @@ export class Exam {
   @UpdateDateColumn()
   updatedAt: Date;
 
-  @Column({ nullable: false })
-  userId: number;
+  @Column({ nullable: true })
+  userId?: number;
 
   @ManyToOne(() => User, (user) => user.exams)
   user: User;
 
-  @OneToMany(() => ExamQuestion, (q) => q.exam, { cascade: true })
+  @OneToMany(() => ExamQuestion, (exam) => exam.exam)
   questions: ExamQuestion[];
 }

@@ -1,14 +1,6 @@
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  OneToMany,
-  OneToOne,
-} from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
 
 //import { Perfil } from '../../perfil/entities/perfil.entity';
-import { Message } from '../../messages/entities/message.entity';
-import { Flashcard } from '../../flash-cards/entities/flash-card.entity';
 import { Note } from '../../notes/entities/note.entity';
 import { Exam } from 'src/exams/entities/exam.entity';
 import { Chat } from 'src/messages/entities/chat.entity';
@@ -22,7 +14,7 @@ export class User {
   @Column()
   email: string;
 
-  @Column({nullable: true})
+  @Column({ nullable: true })
   password: string;
 
   @Column({ nullable: true })
@@ -48,9 +40,6 @@ export class User {
 
   @OneToMany(() => Chat, (chat) => chat.user)
   chats: Chat[];
-
-  @OneToMany(() => Message, (message) => message.user)
-  messages: Message[];
 
   //@OneToOne(() => Perfil, (perfil) => perfil.user)
   //perfiles: Perfil;

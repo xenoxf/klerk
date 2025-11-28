@@ -1,17 +1,16 @@
+import { User } from 'src/users/entities/user.entity';
 import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
-  ManyToOne,
-  OneToMany,
-  UpdateDateColumn,
   CreateDateColumn,
+  UpdateDateColumn,
+  OneToMany,
+  ManyToOne,
 } from 'typeorm';
+import { FlashCard } from './flash-card.entity';
 
-import { User } from '../../users/entities/user.entity';
-import { Flashcard } from './flash-card.entity';
-
-@Entity()
+@Entity('cards')
 export class Card {
   @PrimaryGeneratedColumn()
   id: number;
@@ -20,7 +19,7 @@ export class Card {
   title: string;
 
   @Column({ nullable: true })
-  description: string;
+  description?: string;
 
   @Column({ default: 0 })
   totalCards: number;
@@ -28,11 +27,8 @@ export class Card {
   @Column({ default: 0 })
   reviewedCards: number;
 
-  @Column({ type: 'timestamptz', nullable: true })
-  lastReviewDate: Date;
-
-  @Column({ default: false })
-  isArchived: boolean;
+  @Column({ nullable: true })
+  lastReviewDate?: Date;
 
   @CreateDateColumn()
   createdAt: Date;
@@ -40,12 +36,12 @@ export class Card {
   @UpdateDateColumn()
   updatedAt: Date;
 
-  @Column()
-  userId: number;
+  @Column({ nullable: true })
+  userId?: number;
 
-  @ManyToOne(() => User, (user) => user.cards, { onDelete: 'CASCADE' })
+  @OneToMany(() => FlashCard, (cards) => cards.card)
+  flashcards: FlashCard[];
+
+  @ManyToOne(() => User, (user) => user.cards)
   user: User;
-
-  @OneToMany(() => Flashcard, (flashcard) => flashcard.card, { cascade: true })
-  flashcards: Flashcard[];
 }

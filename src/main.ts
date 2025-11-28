@@ -23,7 +23,7 @@ async function bootstrap() {
   app.useGlobalGuards(new ApiKeyGuard());
 
   // 👇 Render NECESITA este host
-  await app.listen(Number(process.env.PORT), '0.0.0.0');
+  await app.listen(2300, '0.0.0.0');
 }
 
 bootstrap();

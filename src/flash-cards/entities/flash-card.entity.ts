@@ -2,15 +2,14 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
-  ManyToOne,
-  UpdateDateColumn,
   CreateDateColumn,
+  UpdateDateColumn,
+  ManyToOne,
 } from 'typeorm';
-
 import { Card } from './card.entity';
 
-@Entity()
-export class Flashcard {
+@Entity('flash_cards')
+export class FlashCard {
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -21,13 +20,13 @@ export class Flashcard {
   answer: string;
 
   @Column({ nullable: true })
-  hint: string;
+  hint?: string;
 
-  @Column({ type: 'text' })
-  difficulty: string;
+  @Column({ default: 'medium' })
+  difficulty: 'easy' | 'medium' | 'hard';
 
-  @Column('simple-array')
-  tags: string[];
+  @Column('simple-array', { nullable: true })
+  tags?: string[];
 
   @CreateDateColumn()
   createdAt: Date;
@@ -35,18 +34,15 @@ export class Flashcard {
   @UpdateDateColumn()
   updatedAt: Date;
 
-  @Column({ type: 'timestamptz', nullable: true })
-  reviewDate: Date;
-
-  @Column({ default: false })
-  isArchived: boolean;
-
-  @Column()
-  numCard: number;
+  @Column({ nullable: true })
+  reviewDate?: Date;
 
   @Column()
   cardId: number;
 
-  @ManyToOne(() => Card, (card) => card.flashcards, { onDelete: 'CASCADE' })
-  card: Card;
+  @Column({ nullable: true })
+  userId?: number;
+
+  @ManyToOne(() => Card, (card) => card.flashcards)
+  card?: Card;
 }

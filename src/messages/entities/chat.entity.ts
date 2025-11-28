@@ -5,22 +5,26 @@ import {
   ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
+  CreateDateColumn,
 } from 'typeorm';
 import { Message } from './message.entity';
 
-@Entity()
+@Entity('chats')
 export class Chat {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
-  title: string;
+  @Column({ nullable: true })
+  title?: string;
 
-  @Column()
-  userId: number;
-
-  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  @CreateDateColumn()
   createdAt: Date;
+
+  @Column({ nullable: true })
+  updatedAt?: Date;
+
+  @Column({ nullable: true })
+  userId?: number;
 
   @ManyToOne(() => User, (user) => user.chats)
   user: User;

@@ -8,23 +8,37 @@ import {
 } from 'class-validator';
 
 export class CreateFlashCardDto {
-  @IsOptional()
-  @IsString()
-  topic?: string;
+  question: string;
 
-  @IsOptional()
-  @IsString()
-  referenceText?: string;
+  answer: string;
 
-  @IsNumber()
-  @Min(1)
-  @Max(50)
-  numberOfCards: number;
+  cardId: number;
 
-  @IsString()
-  @IsIn(['fácil', 'medio', 'difícil'])
-  difficulty: 'fácil' | 'medio' | 'difícil';
+  difficulty?: 'easy' | 'medium' | 'hard';
 
-  @IsNumber()
-  userId: number;
+  hint?: string;
+
+  tags?: string[];
+}
+
+export class UpdateFlashCardDto {
+  question?: string;
+
+  answer?: string;
+
+  difficulty?: 'easy' | 'medium' | 'hard';
+
+  hint?: string;
+
+  tags?: string[];
+}
+
+export class CreateCardDto {
+  title: string;
+  description?: string;
+}
+
+export class UpdateCardDto {
+  title?: string;
+  description?: string;
 }

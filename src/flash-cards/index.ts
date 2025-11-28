@@ -2,7 +2,7 @@ export { FlashCardsModule } from './flash-cards.module';
 export { FlashCardsService } from './flash-cards.service';
 export { FlashCardsController } from './flash-cards.controller';
 export { Card } from './entities/card.entity';
-export { Flashcard } from './entities/flash-card.entity';
+export { FlashCard } from './entities/flash-card.entity';
 export { CreateCardDto } from './dto/create-card.dto';
 export { UpdateCardDto } from './dto/update-card.dto';
 export { CreateFlashcardDto } from './dto/create-flashcard.dto';

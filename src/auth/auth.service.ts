@@ -11,6 +11,7 @@ import { UsersService } from 'src/users/users.service';
 import { CreateAuthDto } from './dto/create-auth.dto';
 import { LoginAuthDto } from './dto/login-auth.dto';
 import { MailService } from './mail.service';
+import { IsEmail } from 'class-validator';
 
 @Injectable()
 export class AuthService {
@@ -40,17 +41,18 @@ export class AuthService {
       { expiresIn: '15m' },
     );
     try {
-      await this.mailService.sendVerificationEmail(dto.email, token);
-    }
-    catch (err) {
+      await this.mailService.sendVerificationEmail(dto.email, token, dto.name);
+    } catch (err) {
       throw new InternalServerErrorException({
         message: 'No se pudo enviar el correo de verificación.',
         emailSent: false,
       });
     }
 
-    
-    return { message: 'Te enviamos un correo para verificar tu email.', emailSent: true };
+    return {
+      message: 'Te enviamos un correo para verificar tu email.',
+      emailSent: true,
+    };
   }
 
   /**
@@ -98,8 +100,47 @@ export class AuthService {
     });
 
     if (!user) throw new InternalServerErrorException('Error creando usuario.');
+    const tokenJwt = this.jwtService.sign({
+      sub: user.id,
+      email: user.email,
+    });
 
-    return { message: 'Usuario creado exitosamente', user };
+    return {
+      token: tokenJwt,
+      user: {
+        name: user.name,
+        email: user.email,
+        picture: user.picture,
+        sub: user.id,
+      },
+    };
+  }
+
+  /**
+   * Register normal
+   */
+
+  async register(dto: CreateAuthDto) {
+    const userExist = await this.usersService.findByEmail(dto.email);
+    if (userExist) throw new BadRequestException('Usuario ya existe');
+    const hash = bcrypt.hash(dto.password, 10);
+    const user = await this.usersService.createLocal({
+      password: hash,
+      ...dto,
+    });
+    const payload = { sub: (await user).id, email: (await user).email };
+
+    const token = this.jwtService.sign(payload);
+
+    return {
+      token: token,
+      user: {
+        sub: (await user).id,
+        email: (await user).email,
+        name: (await user).name,
+        picture: (await user).picture || null,
+      },
+    };
   }
 
   /**
@@ -126,23 +167,50 @@ export class AuthService {
       user: {
         email: user.email,
         name: user.name,
+        picture: user.picture || null,
         sub: user.id,
-      }
+      },
     };
+  }
+  async getGoogleAuthUrl() {
+    try {
+      const googleClientId = process.env.GOOGLE_CLIENT_ID;
+
+      // Usa SIEMPRE el mismo callback que la GoogleStrategy
+      const googleCallbackUrl = `${process.env.BACKEND_URL}/auth/google/callback`;
+
+      const scope = encodeURIComponent('openid profile email');
+
+      const authUrl =
+        `https://accounts.google.com/o/oauth2/v2/auth?client_id=${googleClientId}` +
+        `&redirect_uri=${encodeURIComponent(googleCallbackUrl)}` +
+        `&response_type=code&scope=${scope}`;
+
+      return { authUrl };
+    } catch (error) {
+      console.error('❌ Error generando Google Auth URL:', error);
+      throw new BadRequestException('Error al generar URL de autenticación');
+    }
   }
 
   verifyToken(token: string) {
     try {
       const payload = this.jwtService.verify(token);
-      return { valid: true, payload };
-    } catch (err) {
-      return { valid: false, err };
+      return {
+        valid: true,
+        payload,
+      };
+    } catch (error) {
+      return {
+        valid: false,
+        error: 'Token inválido',
+      };
     }
   }
 
   /**
- * 5️⃣ Login con Google (datos vienen desde GoogleStrategy → req.user)
- */
+   * 5️⃣ Login con Google (datos vienen desde GoogleStrategy → req.user)
+   */
   async loginWithGoogle(googleUser: any) {
     // googleUser viene desde GoogleStrategy:
     // { id, email, name, picture, provider, providerId }
@@ -169,12 +237,12 @@ export class AuthService {
 
     return {
       token,
+      user: {
         email: user.email,
         name: user.name,
         picture: user.picture,
         sub: user.id,
-      
+      },
     };
   }
-
 }

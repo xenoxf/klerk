@@ -2,43 +2,58 @@ import {
   Controller,
   Get,
   Post,
-  Body,
-  Patch,
-  Param,
   Delete,
-  Req,
+  Body,
+  Param,
   UseGuards,
+  Query,
+  ParseIntPipe,
+  Req,
 } from '@nestjs/common';
 import { MessagesService } from './messages.service';
-import { CreateMessageDto } from './dto/create-message.dto';
-import { UpdateMessageDto } from './dto/update-message.dto';
-import { JwtGuard } from 'src/auth/jwt/jwt.guard';
+import { JwtGuard } from '../auth/jwt/jwt.guard';
 
-@UseGuards(JwtGuard)
 @Controller('messages')
+@UseGuards(JwtGuard)
 export class MessagesController {
-  constructor(private readonly messagesService: MessagesService) {}
+  constructor(private messagesService: MessagesService) {}
 
-  @Get('chats/findAll')
-  getAllChats(@Req() req: any) {
-    return this.messagesService.getAllChats(req.user.id);
+  @Post()
+  async sendMessage(@Body() input: { content: string }, @Req() req: any) {
+    return this.messagesService.sendMessage(input.content, req.user.id);
   }
 
-  @Get('findAll/:chatId')
-  getChatById(@Req() req: any, @Param('chatId') chatId: number) {
-    const userId = req.user.id;
-    return this.messagesService.getChatById(userId, chatId);
+  @Get()
+  async getMessages(
+    @Query()
+    filters: {
+      chatId?: number;
+      role?: 'user' | 'bot';
+      search?: string;
+      page?: number;
+      limit?: number;
+    },
+    @Req() req: any,
+  ) {
+    return this.messagesService.getMessages(filters, req.user.id);
   }
 
-  @Post('send')
-  async sendMessage(@Body('prompt') prompt: string, @Req() req: any) {
-    const userId = req.user?.id || req.user?.userId || req.user;
-    return this.messagesService.sendMessage(prompt, userId);
+  @Delete(':id')
+  async deleteMessage(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+    return this.messagesService.deleteMessage(id, req.user.id);
   }
 
-  @Delete('chat/:id')
-  removeChat(@Param('id') id: string, @Req() req: any) {
-    const userId = req.user?.id || req.user?.userId || req.user;
-    return this.messagesService.removeChat(+id, userId);
+  @Delete('chat/:chatId')
+  async deleteChat(@Param('chatId', ParseIntPipe) chatId: number, @Req() req: any) {
+    return this.messagesService.deleteChat(chatId, req.user.id);
+  }
+
+  @Get('search')
+  async searchMessages(
+    @Req() req: any,
+    @Query('q') query: string,
+    @Query('chatId') chatId?: number
+  ) {
+    return this.messagesService.searchMessages(query, { chatId }, req.user.id);
   }
 }

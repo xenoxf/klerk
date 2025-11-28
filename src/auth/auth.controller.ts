@@ -1,66 +1,150 @@
-import { Controller, Post, Body, Get, Query, Req, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Body,
+  Param,
+  UseGuards,
+  Req,
+  Res,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { CreateAuthDto } from './dto/create-auth.dto';
 import { LoginAuthDto } from './dto/login-auth.dto';
-import { GoogleAuthGuard } from 'src/common/guards/google-auth/google-auth.guard';
+import { Response } from 'express';
+import { AuthGuard } from '@nestjs/passport';
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   /**
-   * 
-   * 1️⃣ Pre-registro: se envía el email pero NO se crea usuario
+   * POST /auth/pre-register
+   * Inicia proceso de registro y envía correo
    */
   @Post('pre-register')
-  preRegister(@Body() dto: CreateAuthDto) {
-    return this.authService.preRegister(dto);
+  async preRegister(@Body() createAuthDto: CreateAuthDto) {
+    try {
+      console.log('📨 POST /auth/pre-register');
+      const result = await this.authService.preRegister(createAuthDto);
+      return { success: true, data: result };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
   }
 
   /**
-   * 2️⃣ Verificar el token del correo (GET url con token)
+   * GET /auth/verify-email/:token
    */
-  @Get('verify-email')
-  verifyEmail(@Query('token') token: string) {
-    return this.authService.verifyEmailToken(token);
+  @Get('verify-email/:token')
+  async verifyEmail(@Param('token') token: string) {
+    try {
+      const result = await this.authService.verifyEmailToken(token);
+      return { success: true, data: result };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
   }
 
   /**
-   * 3️⃣ Registro final (solo si token es válido)
+   * POST /auth/register-final/:token
    */
-  @Post('register-final')
-  registerFinal(@Body('token') token: string) {
-    return this.authService.registerWithVerifiedData(token);
+  @Post('register-final/:token')
+  async registerFinal(@Param('token') token: string) {
+    try {
+      const result = await this.authService.registerWithVerifiedData(token);
+      return { success: true, data: result };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
   }
 
   /**
-   * 4️⃣ Login normal
+   * POST /auth/login
    */
   @Post('login')
-  login(@Body() dto: LoginAuthDto) {
-    return this.authService.login(dto);
+  async login(@Body() loginAuthDto: LoginAuthDto) {
+    try {
+      const result = await this.authService.login(loginAuthDto);
+      return { success: true, data: result };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
   }
 
-  // ------------------------------------------------------------
-  // 🚀 GOOGLE AUTH
-  // ------------------------------------------------------------
+  /**
+   * POST /auth/register
+   */
+  @Post('register')
+  async register(@Body() dto: CreateAuthDto) {
+    try {
+      const response = await this.authService.register(dto);
+      return { success: true, data: response };
+    } catch (e) {
+      return { success: false, error: e.message };
+    }
+  }
 
   /**
-   * 5️⃣ Redirige a Google (no retorna nada)
+   * GET /auth/google/url
+   * Devuelve la URL generada manualmente
+   */
+  @Get('google/url')
+  async getGoogleUrl() {
+    try {
+      const data = await this.authService.getGoogleAuthUrl();
+      return { success: true, data };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  /* ============================================================
+     GOOGLE OAUTH REAL (ESTO ES LO QUE TE FALTABA)
+     ============================================================ */
+
+  /**
+   * GET /auth/google
+   * Inicia autenticación con Google (usa GoogleStrategy)
    */
   @Get('google')
-  @UseGuards(GoogleAuthGuard)
+  @UseGuards(AuthGuard('google'))
   async googleAuth() {
-    return;
+    // Este método no ejecuta nada.
+    // Passport redirige automáticamente a Google.
   }
 
   /**
-   * 6️⃣ Callback desde Google
+   * GET /auth/google/callback
+   * Google redirige aquí después del login
    */
   @Get('google/callback')
-  @UseGuards(GoogleAuthGuard)
-  async googleCallback(@Req() req) {
-    // req.user viene del validate() del GoogleStrategy
-    return this.authService.loginWithGoogle(req.user);
+  @UseGuards(AuthGuard('google'))
+  async googleCallback(@Req() req, @Res() res: Response) {
+    try {
+      console.log('✓ GET /auth/google/callback');
+
+      const { token } = await this.authService.loginWithGoogle(req.user);
+
+      const FRONTEND = process.env.FRONTEND_URL;
+
+      const redirectUrl = `${FRONTEND}/auth?token=${token}`;
+
+      return res.redirect(redirectUrl);
+    } catch (error) {
+      console.error('❌ Error en Google callback:', error);
+      return res.redirect(
+        `${process.env.FRONTEND_URL}/auth?error=google_auth_failed`,
+      );
+    }
+  }
+
+  /**
+   * GET /auth/verify-token/:token
+   */
+  @Get('verify-token/:token')
+  async verifyToken(@Param('token') token: string) {
+    const result = this.authService.verifyToken(token);
+    return { success: result.valid, data: result };
   }
 }

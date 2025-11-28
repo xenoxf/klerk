@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { GroqService } from 'src/groq/groq.service';
@@ -82,10 +82,10 @@ Formato EXACTO del JSON:
     //                   GUARDAR LA NOTA PRINCIPAL
     // =================================================================
     const note = this.noteRepo.create({
-      tittle: json.title,
-      levelOfDetail,
+      title: json.title,
+      levelOfDetail: levelOfDetail as 'breve' | 'medio' | 'alto',
       userId,
-    });
+    } as Partial<Note>);
 
     const savedNote = await this.noteRepo.save(note);
 
@@ -144,5 +144,113 @@ Formato EXACTO del JSON:
     await this.noteRepo.delete(id);
 
     return { removed: true, id };
+  }
+
+  // ================================================================
+  //                  MÉTODOS CON FILTROS INTELIGENTES
+  // ================================================================
+
+  async create(input: { title: string; content: string; color?: string; tags?: string[] }, userId: number): Promise<Note> {
+    if (!input.title || !input.content) {
+      throw new BadRequestException('Title and content are required');
+    }
+
+    const note = this.noteRepo.create({
+      title: input.title,
+      levelOfDetail: 'medio',
+      userId,
+    });
+
+    return this.noteRepo.save(note);
+  }
+
+  async getAll(
+    filters: {
+      search?: string;
+      tags?: string;
+      color?: string;
+      sort?: 'newest' | 'oldest' | 'updated';
+      page?: number;
+      limit?: number;
+    },
+    userId: number
+  ): Promise<Note[]> {
+    const query = this.noteRepo.createQueryBuilder('note').where('note.userId = :userId', { userId });
+
+    if (filters.search) {
+      const q = `%${filters.search.toLowerCase()}%`;
+      query.andWhere('LOWER(note.title) LIKE :search', { search: q });
+    }
+
+    // Sort
+    const sort = filters.sort || 'newest';
+    if (sort === 'newest') {
+      query.orderBy('note.createdAt', 'DESC');
+    } else if (sort === 'oldest') {
+      query.orderBy('note.createdAt', 'ASC');
+    } else if (sort === 'updated') {
+      query.orderBy('note.updatedAt', 'DESC');
+    }
+
+    // Pagination
+    const page = filters.page || 1;
+    const limit = filters.limit || 20;
+    const skip = (page - 1) * limit;
+
+    return query.skip(skip).take(limit).getMany();
+  }
+
+  async getById(id: number, userId: number): Promise<Note> {
+    const note = await this.noteRepo.findOne({
+      where: { id, userId },
+      relations: ['noteContents'],
+    });
+
+    if (!note) {
+      throw new NotFoundException('Note not found');
+    }
+    return note;
+  }
+
+  async update(
+    id: number,
+    input: { title?: string; content?: string; color?: string; tags?: string[] },
+    userId: number
+  ): Promise<Note> {
+    const note = await this.getById(id, userId);
+
+    if (input.title) note.title = input.title;
+    note.updatedAt = new Date();
+
+    return this.noteRepo.save(note);
+  }
+
+  async delete(id: number, userId: number): Promise<{ message: string }> {
+    const note = await this.noteRepo.findOne({
+      where: { id, userId },
+    });
+
+    if (!note) {
+      throw new NotFoundException('Note not found');
+    }
+
+    await this.noteContentRepo.delete({ noteId: id } as any);
+    await this.noteRepo.delete(id);
+
+    return { message: 'Note deleted' };
+  }
+
+  async search(
+    { query, tags, color }: { query?: string; tags?: string; color?: string },
+    userId: number
+  ): Promise<Note[]> {
+    const queryBuilder = this.noteRepo.createQueryBuilder('note').where('note.userId = :userId', { userId });
+
+    if (query) {
+      const q = `%${query.toLowerCase()}%`;
+      queryBuilder.andWhere('LOWER(note.title) LIKE :search', { search: q });
+    }
+
+    return queryBuilder.getMany();
   }
 }

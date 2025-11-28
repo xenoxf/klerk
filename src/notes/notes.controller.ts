@@ -1,37 +1,74 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Req, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  UseGuards,
+  Query,
+  ParseIntPipe,
+  Req,
+} from '@nestjs/common';
 import { NotesService } from './notes.service';
-import { CreateNoteDto } from './dto/create-note.dto';
-import { UpdateNoteDto } from './dto/update-note.dto';
-import { JwtGuard } from 'src/auth/jwt/jwt.guard';
+import { JwtGuard } from '../auth/jwt/jwt.guard';
 
-@UseGuards(JwtGuard)
 @Controller('notes')
+@UseGuards(JwtGuard)
 export class NotesController {
-  constructor(private readonly notesService: NotesService) {}
+  constructor(private notesService: NotesService) {}
 
   @Post()
-  create(@Body() createNoteDto: CreateNoteDto, @Req() req: any) {
-    const userId = req.user?.id || req.user?.userId || req.user;
-    return this.notesService.generateNotes(createNoteDto, userId);
+  async create(
+    @Body() input: { title: string; content: string; color?: string; tags?: string[] },
+    @Req() req: any
+  ) {
+    return this.notesService.create(input, req.user.id);
   }
 
   @Get()
-  findAll(@Req() req: any) {
-    const userId = req.user?.id || req.user?.userId || req.user;
-    return this.notesService.findAll(userId);
+  async getAll(
+    @Query()
+    filters: {
+      search?: string;
+      tags?: string;
+      color?: string;
+      sort?: 'newest' | 'oldest' | 'updated';
+      page?: number;
+      limit?: number;
+    },
+    @Req() req: any
+  ) {
+    return this.notesService.getAll(filters, req.user.id);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string, @Req() req: any) {
-    const userId = req.user?.id || req.user?.userId || req.user;
-    return this.notesService.findOne(+id, userId);
+  async getById(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+    return this.notesService.getById(id, req.user.id);
   }
 
+  @Patch(':id')
+  async update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() input: { title?: string; content?: string; color?: string; tags?: string[] },
+    @Req() req: any
+  ) {
+    return this.notesService.update(id, input, req.user.id);
+  }
 
   @Delete(':id')
-  remove(@Param('id') id: string, @Req() req: any) {
-    const userId = req.user?.id || req.user?.userId || req.user;
-    return this.notesService.remove(+id, userId);
+  async delete(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+    return this.notesService.delete(id, req.user.id);
   }
 
+  @Get('search/advanced')
+  async search(
+    @Req() req: any,
+    @Query('q') query: string,
+    @Query('tags') tags?: string,
+    @Query('color') color?: string,
+  ) {
+    return this.notesService.search({ query, tags, color }, req.user.id);
+  }
 }

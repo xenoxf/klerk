@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
-import { Strategy, VerifyCallback } from 'passport-google-oauth20';
+import { Strategy } from 'passport-google-oauth20';
 import { UsersService } from 'src/users/users.service';
 
 @Injectable()
@@ -9,13 +9,16 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     super({
       clientID: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      callbackURL: `${process.env.BACKEND_URL}/auth/google/callback`,
-      scope: ['email', 'profile'],
+      callbackURL: `${process.env.BACKEND_URL.replace(/\/$/, '')}/auth/google/callback`,
+      scope: ['openid', 'email', 'profile'],
     });
   }
 
-  async validate(accessToken: string, refreshToken: string, profile: any): Promise<any> {
-
+  async validate(
+    accessToken: string,
+    refreshToken: string,
+    profile: any,
+  ): Promise<any> {
     const userData = {
       email: profile.emails?.[0]?.value,
       name: profile.displayName,
@@ -25,7 +28,13 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
       emailVerified: true,
     };
 
+    // Crea o obtiene al usuario
     const user = await this.usersService.createGoogle(userData);
-    return user;
+
+    // Lo que Passport enviará a req.user
+    return {
+      ...user,
+      accessToken,
+    };
   }
 }

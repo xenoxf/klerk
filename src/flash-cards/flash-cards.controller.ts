@@ -2,159 +2,116 @@ import {
   Controller,
   Get,
   Post,
-  Body,
   Patch,
-  Param,
   Delete,
+  Body,
+  Param,
   UseGuards,
-  Req,
+  Query,
   ParseIntPipe,
-  HttpCode,
-  HttpStatus,
+  Req,
 } from '@nestjs/common';
-import { AuthGuard } from '@nestjs/passport';
 import { FlashCardsService } from './flash-cards.service';
-import { CreateCardDto } from './dto/create-card.dto';
-import { UpdateCardDto } from './dto/update-card.dto';
-import { CreateFlashcardDto } from './dto/create-flashcard.dto';
-import { UpdateFlashcardDto } from './dto/update-flashcard.dto';
+import { JwtGuard } from '../auth/jwt/jwt.guard';
+import { CreateFlashCardDto, UpdateFlashCardDto } from './dto/create-flash-card.dto';
+import { FlashCardFiltersDto, CardFiltersDto } from './dto/filters.dto';
 
 @Controller('flash-cards')
-@UseGuards(AuthGuard('jwt'))
+@UseGuards(JwtGuard)
 export class FlashCardsController {
-  constructor(private readonly flashCardsService: FlashCardsService) {}
+  constructor(private flashCardsService: FlashCardsService) {}
 
-  // ==================== AI GENERATION ENDPOINTS ====================
-
-  @Post('generate/topic')
-  @HttpCode(HttpStatus.CREATED)
-  generateFromTopic(
-    @Body() body: { topic: string; numberOfCards: number; cardId: number },
-    @Req() req: any,
-  ) {
-    return this.flashCardsService.generateFromTopic(
-      body.topic,
-      body.numberOfCards,
-      body.cardId,
-      req.user.id,
-    );
-  }
-
-  @Post('generate/reference')
-  @HttpCode(HttpStatus.CREATED)
-  generateFromReference(
-    @Body() body: { referenceText: string; numberOfCards: number; cardId: number },
-    @Req() req: any,
-  ) {
-    return this.flashCardsService.generateFromReference(
-      body.referenceText,
-      body.numberOfCards,
-      body.cardId,
-      req.user.id,
-    );
-  }
-
-  // ==================== CARD ENDPOINTS ====================
+  // ==================== CARDS ====================
 
   @Post('cards')
-  @HttpCode(HttpStatus.CREATED)
-  createCard(@Body() createCardDto: CreateCardDto, @Req() req: any) {
-    return this.flashCardsService.createCard(createCardDto, req.user.id);
+  async createCard(@Body() input: { title: string; description?: string }, @Req() req: any) {
+    return this.flashCardsService.createCard(input, req.user.id);
   }
 
   @Get('cards')
-  getAllCards(@Req() req: any) {
-    return this.flashCardsService.getAllCards(req.user.id);
+  async getAllCards(@Query() filters: CardFiltersDto, @Req() req: any) {
+    return this.flashCardsService.getAllCards(filters, req.user.id);
   }
 
   @Get('cards/:id')
-  getCardById(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+  async getCardById(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
     return this.flashCardsService.getCardById(id, req.user.id);
   }
 
   @Patch('cards/:id')
-  updateCard(
+  async updateCard(
     @Param('id', ParseIntPipe) id: number,
-    @Body() updateCardDto: UpdateCardDto,
-    @Req() req: any,
+    @Body() input: { title?: string; description?: string },
+    @Req() req: any
   ) {
-    return this.flashCardsService.updateCard(id, updateCardDto, req.user.id);
+    return this.flashCardsService.updateCard(id, input, req.user.id);
   }
 
   @Delete('cards/:id')
-  deleteCard(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+  async deleteCard(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
     return this.flashCardsService.deleteCard(id, req.user.id);
   }
 
-  @Patch('cards/:id/archive')
-  archiveCard(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
-    return this.flashCardsService.archiveCard(id, req.user.id);
-  }
-
-  @Patch('cards/:id/restore')
-  restoreCard(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
-    return this.flashCardsService.restoreCard(id, req.user.id);
-  }
-
   @Get('cards/:id/stats')
-  getCardStats(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+  async getCardStats(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
     return this.flashCardsService.getCardStats(id, req.user.id);
   }
 
-  @Get('cards/archived/all')
-  getArchivedCards(@Req() req: any) {
-    return this.flashCardsService.getArchivedCards(req.user.id);
-  }
-
-  // ==================== FLASHCARD ENDPOINTS ====================
+  // ==================== FLASHCARDS ====================
 
   @Post('flashcards')
-  @HttpCode(HttpStatus.CREATED)
-  createFlashcard(@Body() createFlashcardDto: CreateFlashcardDto, @Req() req: any) {
-    return this.flashCardsService.createFlashcard(
-      createFlashcardDto,
-      req.user.id,
-    );
+  async createFlashcard(@Body() input: CreateFlashCardDto, @Req() req: any) {
+    return this.flashCardsService.createFlashcard(input, req.user.id);
   }
 
   @Get('cards/:cardId/flashcards')
-  getFlashcardsByCard(
+  async getFlashcardsByCard(
     @Param('cardId', ParseIntPipe) cardId: number,
-    @Req() req: any,
+    @Query() filters: FlashCardFiltersDto,
+    @Req() req: any
   ) {
-    return this.flashCardsService.getFlashcardsByCard(cardId, req.user.id);
+    return this.flashCardsService.getFlashcardsByCard(cardId, filters, req.user.id);
   }
 
   @Get('flashcards/:id')
-  getFlashcardById(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+  async getFlashcardById(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
     return this.flashCardsService.getFlashcardById(id, req.user.id);
   }
 
   @Patch('flashcards/:id')
-  updateFlashcard(
+  async updateFlashcard(
     @Param('id', ParseIntPipe) id: number,
-    @Body() updateFlashcardDto: UpdateFlashcardDto,
-    @Req() req: any,
+    @Body() input: UpdateFlashCardDto,
+    @Req() req: any
   ) {
-    return this.flashCardsService.updateFlashcard(
-      id,
-      updateFlashcardDto,
-      req.user.id,
-    );
+    return this.flashCardsService.updateFlashcard(id, input, req.user.id);
   }
 
   @Delete('flashcards/:id')
-  deleteFlashcard(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+  async deleteFlashcard(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
     return this.flashCardsService.deleteFlashcard(id, req.user.id);
   }
 
-  @Patch('flashcards/:id/archive')
-  archiveFlashcard(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
-    return this.flashCardsService.archiveFlashcard(id, req.user.id);
+  @Patch('flashcards/:id/review')
+  async markFlashcardAsReviewed(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+    return this.flashCardsService.markFlashcardAsReviewed(id, req.user.id);
   }
 
-  @Patch('flashcards/:id/review')
-  reviewFlashcard(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
-    return this.flashCardsService.reviewFlashcard(id, req.user.id);
+  // ==================== AI GENERATION ====================
+
+  @Post('generate/topic')
+  async generateFromTopic(
+    @Body() input: { topic: string; numberOfCards: number; cardId: number },
+    @Req() req: any
+  ) {
+    return this.flashCardsService.generateFromTopic(input, req.user.id);
+  }
+
+  @Post('generate/reference')
+  async generateFromReference(
+    @Body() input: { referenceText: string; numberOfCards: number; cardId: number },
+    @Req() req: any
+  ) {
+    return this.flashCardsService.generateFromReference(input, req.user.id);
   }
 }

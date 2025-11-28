@@ -1,42 +1,46 @@
+import { User } from 'src/users/entities/user.entity';
 import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
-  ManyToOne,
   CreateDateColumn,
   UpdateDateColumn,
   OneToMany,
+  ManyToOne,
 } from 'typeorm';
-
-import { User } from '../../users/entities/user.entity';
 import { NoteContent } from './note-content.entity';
 
-@Entity()
+@Entity('notes')
 export class Note {
   @PrimaryGeneratedColumn()
   id: number;
 
   @Column()
-  tittle: string;
+  title: string;
 
-  //@Column('text')
-  //content: string;
+  @Column({ nullable: true })
+  content?: string;
 
-  @Column({ default: 'breve'})
-  levelOfDetail: string;
+  @Column({ nullable: true })
+  color?: string;
 
-  //@Column({ type: 'datetime', nullable: true })
-  //reviewDate: Date;
+  @Column('simple-array', { nullable: true })
+  tags?: string[];
+
+  @Column({ nullable: true })
+  levelOfDetail?: 'breve' | 'medio' | 'alto';
 
   @CreateDateColumn()
   createdAt: Date;
 
-  @Column()
-  userId: number;
+  @UpdateDateColumn()
+  updatedAt: Date;
 
-  @ManyToOne(() => User, (user) => user.notes)
-  user: User;
+  @Column({ nullable: true })
+  userId?: number;
 
   @OneToMany(() => NoteContent, (note) => note.note)
-  noteContents: NoteContent[];
+  noteContents?: NoteContent[];
+  @ManyToOne(() => User, (user) => user.notes)
+  user: User;
 }
