@@ -10,14 +10,14 @@ async function bootstrap() {
     origin: ['http://localhost:3000', 'https://learnyosv07.vercel.app'],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
-    allowedHeaders: 'Content-Type, Authorization, X-Requested-With, x-api-key',
+    allowedHeaders: 'Content-Type, Authorization, X-Requested-With, x-api-key, Bearer',
     preflightContinue: false,
     optionsSuccessStatus: 204,
   });
 
   const showStack = process.env.NODE_ENV !== 'production';
 
-  app.useGlobalFilters(new AllExceptionsFilter(showStack));
+  //app.useGlobalFilters(new AllExceptionsFilter);
 
   // 👇 Ahora sí ignorará preflight
   app.useGlobalGuards(new ApiKeyGuard());
