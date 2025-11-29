@@ -19,7 +19,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly usersService: UsersService,
     private readonly mailService: MailService,
-  ) {}
+  ) { }
 
   /**
    * 1️⃣ El usuario envía nombre, email y contraseña por primera vez.
@@ -123,24 +123,31 @@ export class AuthService {
   async register(dto: CreateAuthDto) {
     const userExist = await this.usersService.findByEmail(dto.email);
     if (userExist) throw new BadRequestException('Usuario ya existe');
-    const hash = bcrypt.hash(dto.password, 10);
-    const user = await this.usersService.createLocal({
-      password: hash,
-      ...dto,
-    });
-    const payload = { sub: (await user).id, email: (await user).email };
+    try {
 
-    const token = this.jwtService.sign(payload);
 
-    return {
-      token: token,
-      user: {
-        sub: (await user).id,
-        email: (await user).email,
-        name: (await user).name,
-        picture: (await user).picture || null,
-      },
-    };
+      const hash = bcrypt.hash(dto.password, 10);
+      const user = await this.usersService.createLocal({
+        password: hash,
+        ...dto,
+      });
+      const payload = { sub: (await user).id, email: (await user).email };
+
+      const token = this.jwtService.sign(payload);
+
+      return {
+        token: token,
+        user: {
+          sub: (await user).id,
+          email: (await user).email,
+          name: (await user).name,
+          picture: (await user).picture || null,
+        },
+      };
+    }
+    catch (e: any) {
+      throw new InternalServerErrorException("Error interno del servidor");
+    }
   }
 
   /**

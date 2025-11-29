@@ -7,6 +7,7 @@ import {
   UseGuards,
   Req,
   Res,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { CreateAuthDto } from './dto/create-auth.dto';
@@ -16,7 +17,7 @@ import { AuthGuard } from '@nestjs/passport';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(private readonly authService: AuthService) { }
 
   /**
    * POST /auth/pre-register
@@ -26,10 +27,9 @@ export class AuthController {
   async preRegister(@Body() createAuthDto: CreateAuthDto) {
     try {
       console.log('📨 POST /auth/pre-register');
-      const result = await this.authService.preRegister(createAuthDto);
-      return { success: true, data: result };
+      return await this.authService.preRegister(createAuthDto);
     } catch (error) {
-      return { success: false, error: error.message };
+      throw new InternalServerErrorException("Hubo un error interno en el servidor");
     }
   }
 
@@ -39,10 +39,9 @@ export class AuthController {
   @Get('verify-email/:token')
   async verifyEmail(@Param('token') token: string) {
     try {
-      const result = await this.authService.verifyEmailToken(token);
-      return { success: true, data: result };
+      return await this.authService.verifyEmailToken(token);
     } catch (error) {
-      return { success: false, error: error.message };
+      throw new InternalServerErrorException("Huno un error interno del servidor");
     }
   }
 
@@ -52,10 +51,9 @@ export class AuthController {
   @Post('register-final/:token')
   async registerFinal(@Param('token') token: string) {
     try {
-      const result = await this.authService.registerWithVerifiedData(token);
-      return { success: true, data: result };
+      return await this.authService.registerWithVerifiedData(token);
     } catch (error) {
-      return { success: false, error: error.message };
+      throw new InternalServerErrorException("Hubo un error interno en el servidor");
     }
   }
 
@@ -78,10 +76,9 @@ export class AuthController {
   @Post('register')
   async register(@Body() dto: CreateAuthDto) {
     try {
-      const response = await this.authService.register(dto);
-      return { success: true, data: response };
+      return await this.authService.register(dto);
     } catch (e) {
-      return { success: false, error: e.message };
+      throw new InternalServerErrorException("Hubo un error interno en el servidor");
     }
   }
 
@@ -92,10 +89,10 @@ export class AuthController {
   @Get('google/url')
   async getGoogleUrl() {
     try {
-      const data = await this.authService.getGoogleAuthUrl();
-      return { success: true, data };
+      return await this.authService.getGoogleAuthUrl();
+
     } catch (error) {
-      return { success: false, error: error.message };
+      throw new InternalServerErrorException("Hubo un error interno del servidor");
     }
   }
 
@@ -144,7 +141,6 @@ export class AuthController {
    */
   @Get('verify-token/:token')
   async verifyToken(@Param('token') token: string) {
-    const result = this.authService.verifyToken(token);
-    return { success: result.valid, data: result };
+    return this.authService.verifyToken(token);
   }
 }
