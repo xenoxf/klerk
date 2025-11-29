@@ -9,7 +9,7 @@ import {
 } from 'typeorm';
 
 import { ExamQuestion } from './examQuestion.entity';
-import { User } from 'src/users/entities/user.entity';
+import { User } from '../../users/entities/user.entity';
 
 @Entity('exams')
 export class Exam {

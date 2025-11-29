@@ -5,7 +5,7 @@ import { Card } from './entities/card.entity';
 import { FlashCard } from './entities/flash-card.entity';
 import { CreateFlashCardDto, UpdateFlashCardDto } from './dto/create-flash-card.dto';
 import { FlashCardFiltersDto, CardFiltersDto } from './dto/filters.dto';
-import { GroqService } from 'src/groq/groq.service';
+import { GroqService } from '../groq/groq.service';
 
 @Injectable()
 export class FlashCardsService {

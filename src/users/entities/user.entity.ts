@@ -2,9 +2,9 @@ import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
 
 //import { Perfil } from '../../perfil/entities/perfil.entity';
 import { Note } from '../../notes/entities/note.entity';
-import { Exam } from 'src/exams/entities/exam.entity';
-import { Chat } from 'src/messages/entities/chat.entity';
-import { Card } from 'src/flash-cards/entities/card.entity';
+import { Exam } from '../../exams/entities/exam.entity';
+import { Chat } from '../../messages/entities/chat.entity';
+import { Card } from '../../flash-cards/entities/card.entity';
 
 @Entity()
 export class User {

@@ -1,7 +1,7 @@
 // groq.service.ts
 import { Injectable } from '@nestjs/common';
 import Groq from 'groq-sdk';
-import { CreateExamDto } from 'src/exams/dto/create-exam.dto';
+import { CreateExamDto } from '../exams/dto/create-exam.dto';
 import { GenerateExamDto } from './dto/generate-exam.dto';
 
 @Injectable()
