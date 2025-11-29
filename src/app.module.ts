@@ -10,7 +10,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 //import { PerfilModule } from './perfil/perfil.module';
 import { ExamsModule } from './exams/exams.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { JwtModule } from '@nestjs/jwt';
+//import { JwtModule } from '@nestjs/jwt';
 import { GroqModule } from './groq/groq.module';
 
 @Module({
@@ -21,11 +21,11 @@ import { GroqModule } from './groq/groq.module';
       imports: [ConfigModule],
       useFactory: (config: ConfigService) => ({
         type: 'postgres',
-        host: config.get('DB_HOST'),
-        port: config.get('DB_PORT'),
-        username: config.get('DB_USER'),
-        password: config.get('DB_PASS'),
-        database: config.get('DB_NAME'),
+        host: String(config.get('DB_HOST')),
+        port: Number(config.get('DB_PORT')),
+        username: String(config.get('DB_USER')),
+        password: String(config.get('DB_PASS')),
+        database: String(config.get('DB_NAME')),
         ssl:
           config.get('SSL') === 'true' ? { rejectUnauthorized: false } : false,
         autoLoadEntities: true,
@@ -45,4 +45,4 @@ import { GroqModule } from './groq/groq.module';
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule { }
