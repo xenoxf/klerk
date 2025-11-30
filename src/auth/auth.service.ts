@@ -127,26 +127,30 @@ export class AuthService {
 
 
       const hash = bcrypt.hash(dto.password, 10);
+      if (!hash) throw new InternalServerErrorException("Hubo un error al intentar hashear contraseña")
       const user = await this.usersService.createLocal({
         password: hash,
         ...dto,
       });
+      if (!user) throw new InternalServerErrorException("Hubo un error al crear usuario");
+
       const payload = { sub: (await user).id, email: (await user).email };
 
       const token = this.jwtService.sign(payload);
+      if (!token) throw new InternalServerErrorException("Hubo un error al intentar craer el JsonWebtoken");
 
       return {
         token: token,
         user: {
-          sub: (await user).id,
-          email: (await user).email,
-          name: (await user).name,
-          picture: (await user).picture || null,
+          sub: user.id,
+          email: user.email,
+          name: user.name,
+          picture: user.picture || null,
         },
       };
     }
     catch (e: any) {
-      throw new InternalServerErrorException("Error interno del servidor");
+      throw new InternalServerErrorException("Error interno del servidor detail:" + e.message);
     }
   }
 
