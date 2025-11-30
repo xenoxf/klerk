@@ -2,102 +2,144 @@ import { Injectable, BadRequestException, NotFoundException } from '@nestjs/comm
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Message } from './entities/message.entity';
+import { Chat } from './entities/chat.entity';
+import { GroqService } from 'src/groq/groq.service';
 
 @Injectable()
 export class MessagesService {
   constructor(
-    @InjectRepository(Message) private messagesRepo: Repository<Message>,
+    private readonly groqService: GroqService,
+    @InjectRepository(Message) private readonly messageRepo: Repository<Message>,
+    @InjectRepository(Chat) private readonly chatRepo: Repository<Chat>,
   ) {}
 
-  async sendMessage(content: string, userId: number): Promise<{ message: Message; response: { content: string; role: 'bot' } }> {
-    if (!content || content.trim().length === 0) {
-      throw new BadRequestException('Content is required');
+  // Obtener o crear un chat para el usuario
+  private async getOrCreateChat(userId: number): Promise<Chat> {
+    let chat = await this.chatRepo.findOne({ where: { userId } });
+
+    if (!chat) {
+      chat = this.chatRepo.create({ userId, title: 'Nuevo Chat' });
+      await this.chatRepo.save(chat);
     }
 
-    const userMessage = this.messagesRepo.create({
-      prompt: content,
-      response: '',
-      userId,
+    return chat;
+  }
+
+  // Generar título del chat basado en el primer mensaje
+  private async generateChatTitle(prompt: string): Promise<string> {
+    const instruction = `Genera un título corto (máximo 8 palabras) y descriptivo para un chat educativo basado en esta pregunta: "${prompt}". Responde SOLO con el título, sin comillas ni explicación adicional.`;
+    const title = await this.groqService.chat(instruction);
+    return title.trim();
+  }
+
+  // Enviar mensaje y obtener respuesta de IA
+  async sendMessage(prompt: string, userId: number, chatId: number) {
+    // Obtener o crear el chat
+    let chat = await this.chatRepo.findOne({ where: { userId, id: chatId } });
+    let isNewChat = false;
+
+    if (!chat) {
+      isNewChat = true;
+      const title = await this.generateChatTitle(prompt);
+      chat = this.chatRepo.create({ userId, title });
+      await this.chatRepo.save(chat);
+    }
+
+    // Obtener historial de mensajes del chat
+    const history = await this.messageRepo.find({
+      where: { chat },
+      order: { createdAt: 'ASC' },
     });
 
-    const savedMessage = await this.messagesRepo.save(userMessage);
+    // Construir historial de conversación
+    const conversationHistory = history.map((msg) => [
+      { role: 'user' as const, content: (msg as any).message || (msg as any).prompt || '' },
+      { role: 'assistant' as const, content: (msg as any).response || '' },
+    ]).flat();
 
-    const botResponse = `Response to: ${content}`;
-    const botMessage = this.messagesRepo.create({
-      prompt: content,
-      response: botResponse,
+    // Obtener respuesta de IA
+    const systemPrompt =
+      'Eres un asistente educativo experto. Proporciona respuestas claras, precisas y educativas. Sé conciso pero detallado cuando sea necesario.';
+
+    const response = await this.groqService.chatWithHistory(
+      [...conversationHistory, { role: 'user', content: prompt }],
+      systemPrompt,
+    );
+
+    // Crear y guardar el mensaje
+    const newMessage = this.messageRepo.create({
+      message: prompt,
+      response,
       userId,
-    });
-
-    const savedBotMessage = await this.messagesRepo.save(botMessage);
+      chat,
+    } as any);
+    await this.messageRepo.save(newMessage);
 
     return {
-      message: savedMessage,
-      response: { content: botResponse, role: 'bot' },
+      success: true,
+      isNewChat,
+      chat: {
+        id: (chat as any).id,
+        title: chat.title,
+      },
+      message: {
+        id: (newMessage as any).id,
+        prompt,
+        response,
+        createdAt: (newMessage as any).createdAt,
+      },
     };
   }
 
-  async getMessages(
-    filters: { chatId?: number; role?: 'user' | 'bot'; search?: string; page?: number; limit?: number },
-    userId: number
-  ): Promise<Message[]> {
-    const query = this.messagesRepo.createQueryBuilder('msg').where('msg.userId = :userId', { userId });
-
-    if (filters.search) {
-      const q = `%${filters.search.toLowerCase()}%`;
-      query.andWhere('(LOWER(msg.prompt) LIKE :search OR LOWER(msg.response) LIKE :search)', { search: q });
-    }
-
-    query.orderBy('msg.createdAt', 'ASC');
-
-    const page = filters.page || 1;
-    const limit = filters.limit || 50;
-    const skip = (page - 1) * limit;
-
-    return query.skip(skip).take(limit).getMany();
-  }
-
-  async deleteMessage(id: number, userId: number): Promise<{ message: string }> {
-    const msg = await this.messagesRepo.findOne({
-      where: { id, userId },
+  // Obtener todos los chats del usuario
+  async getUserChats(userId: number) {
+    const chats = await this.chatRepo.find({
+      where: { userId },
+      order: { updatedAt: 'DESC' },
+      relations: ['messages'],
     });
 
-    if (!msg) {
-      throw new NotFoundException('Message not found');
-    }
-
-    await this.messagesRepo.delete(id);
-    return { message: 'Message deleted' };
+    return chats.map((chat) => ({
+      id: (chat as any).id,
+      title: chat.title,
+      messageCount: (chat as any).messages?.length || 0,
+      createdAt: chat.createdAt,
+      updatedAt: chat.updatedAt,
+    }));
   }
 
-  async deleteChat(chatId: number, userId: number): Promise<{ message: string }> {
-    const result = await this.messagesRepo.delete({ chatId, userId } as any);
+  // Obtener mensajes de un chat
+  async getChatMessages(chatId: number, userId: number) {
+    const chat = await this.chatRepo.findOne({
+      where: { id: chatId, userId },
+      relations: ['messages'],
+    });
 
-    if (result.affected === 0) {
-      throw new NotFoundException('Chat not found');
-    }
+    if (!chat) return null;
 
-    return { message: 'Chat deleted' };
+    return {
+      chatId: (chat as any).id,
+      title: chat.title,
+      messages: (chat as any).messages?.map((msg) => ({
+        id: (msg as any).id,
+        prompt: msg.mensaje,
+        response: msg.response,
+        createdAt: msg.createdAt,
+      })) || [],
+    };
   }
 
-  async searchMessages(
-    query: string,
-    filters?: { chatId?: number; role?: 'user' | 'bot' },
-    userId?: number
-  ): Promise<Message[]> {
-    const queryBuilder = this.messagesRepo.createQueryBuilder('msg');
+  // Eliminar un chat y sus mensajes
+  async deleteChat(chatId: number, userId: number) {
+    const chat = await this.chatRepo.findOne({
+      where: { id: chatId, userId },
+    });
 
-    if (userId) {
-      queryBuilder.where('msg.userId = :userId', { userId });
-    }
+    if (!chat) return null;
 
-    const q = `%${query.toLowerCase()}%`;
-    queryBuilder.andWhere('(LOWER(msg.prompt) LIKE :search OR LOWER(msg.response) LIKE :search)', { search: q });
+    await this.messageRepo.delete({ chat });
+    await this.chatRepo.delete(chatId);
 
-    if (filters?.chatId) {
-      queryBuilder.andWhere('msg.chatId = :chatId', { chatId: filters.chatId });
-    }
-
-    return queryBuilder.getMany();
+    return { success: true, deletedChatId: chatId };
   }
 }

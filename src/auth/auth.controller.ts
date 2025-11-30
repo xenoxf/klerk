@@ -25,12 +25,8 @@ export class AuthController {
    */
   @Post('pre-register')
   async preRegister(@Body() createAuthDto: CreateAuthDto) {
-    try {
       console.log('📨 POST /auth/pre-register');
       return await this.authService.preRegister(createAuthDto);
-    } catch (error) {
-      throw new InternalServerErrorException("Hubo un error interno en el servidor");
-    }
   }
 
   /**
@@ -38,11 +34,7 @@ export class AuthController {
    */
   @Get('verify-email/:token')
   async verifyEmail(@Param('token') token: string) {
-    try {
       return await this.authService.verifyEmailToken(token);
-    } catch (error) {
-      throw new InternalServerErrorException("Huno un error interno del servidor");
-    }
   }
 
   /**
@@ -50,11 +42,7 @@ export class AuthController {
    */
   @Post('register-final/:token')
   async registerFinal(@Param('token') token: string) {
-    try {
       return await this.authService.registerWithVerifiedData(token);
-    } catch (error) {
-      throw new InternalServerErrorException("Hubo un error interno en el servidor");
-    }
   }
 
   /**
@@ -62,12 +50,7 @@ export class AuthController {
    */
   @Post('login')
   async login(@Body() loginAuthDto: LoginAuthDto) {
-    try {
-      const result = await this.authService.login(loginAuthDto);
-      return { success: true, data: result };
-    } catch (error) {
-      return { success: false, error: error.message };
-    }
+    return await this.authService.login(loginAuthDto);
   }
 
   /**
@@ -75,11 +58,7 @@ export class AuthController {
    */
   @Post('register')
   async register(@Body() dto: CreateAuthDto) {
-    try {
       return await this.authService.register(dto);
-    } catch (e) {
-      throw new InternalServerErrorException("Hubo un error interno en el servidor");
-    }
   }
 
   /**
@@ -88,12 +67,7 @@ export class AuthController {
    */
   @Get('google/url')
   async getGoogleUrl() {
-    try {
       return await this.authService.getGoogleAuthUrl();
-
-    } catch (error) {
-      throw new InternalServerErrorException("Hubo un error interno del servidor");
-    }
   }
 
   /* ============================================================

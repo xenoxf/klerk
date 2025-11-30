@@ -207,4 +207,25 @@ REGLAS:
     }
   }
 
+  async chatWithHistory(
+    messages: Array<{ role: 'user' | 'assistant'; content: string }>,
+    systemPrompt?: string,
+  ): Promise<string> {
+    const allMessages: any[] = [];
+
+    if (systemPrompt) {
+      allMessages.push({ role: 'system', content: systemPrompt });
+    }
+
+    allMessages.push(...messages);
+
+    const response = await this.groq.chat.completions.create({
+      model: 'mixtral-8x7b-32768',
+      messages: allMessages,
+      temperature: 0.7,
+      max_tokens: 2048,
+    });
+
+    return response.choices[0]?.message?.content || '';
+  }
 }
