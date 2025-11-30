@@ -12,9 +12,11 @@ import {
 } from '@nestjs/common';
 import { MessagesService } from './messages.service';
 import { JwtGuard } from '../auth/jwt/jwt.guard';
+import { ApiKeyGuard } from 'src/common/guards/api-key/api-key.guard';
 
 @Controller('messages')
 @UseGuards(JwtGuard)
+@UseGuards(ApiKeyGuard)
 export class MessagesController {
   constructor(private messagesService: MessagesService) {}
 

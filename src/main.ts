@@ -25,12 +25,11 @@ async function bootstrap() {
       transform: true,
     })
   );
-  const showStack = process.env.NODE_ENV !== 'production';
+  //const showStack = process.env.NODE_ENV !== 'production';
 
   //app.useGlobalFilters(new AllExceptionsFilter);
 
   // 👇 Ahora sí ignorará preflight
-  app.useGlobalGuards(new ApiKeyGuard());
   app.use(helmet())
 
   // 👇 Render NECESITA este host
