@@ -33,7 +33,7 @@ async function bootstrap() {
   app.use(helmet())
 
   // 👇 Render NECESITA este host
-  await app.listen(2300, '0.0.0.0');
+  await app.listen(process.env.PORT || 3500, '0.0.0.0');
 }
 
 bootstrap();
