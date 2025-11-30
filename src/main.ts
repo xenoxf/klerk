@@ -27,7 +27,7 @@ async function bootstrap() {
   );
   //const showStack = process.env.NODE_ENV !== 'production';
 
-  //app.useGlobalFilters(new AllExceptionsFilter);
+  app.useGlobalFilters(new AllExceptionsFilter);
 
   // 👇 Ahora sí ignorará preflight
   app.use(helmet())
