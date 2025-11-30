@@ -13,13 +13,13 @@ import {
 } from '@nestjs/common';
 import { ExamsService } from './exams.service';
 import { JwtGuard } from '../auth/jwt/jwt.guard';
-import { ApiKeyGuard } from 'src/common/guards/api-key/api-key.guard';
+import { ApiKeyGuard } from '../common/guards/api-key/api-key.guard';
 
 @Controller('exams')
 @UseGuards(JwtGuard)
 @UseGuards(ApiKeyGuard)
 export class ExamsController {
-  constructor(private examsService: ExamsService) {}
+  constructor(private examsService: ExamsService) { }
 
   @Post()
   async create(@Body() input: { title: string; description: string }, @Req() req: any) {

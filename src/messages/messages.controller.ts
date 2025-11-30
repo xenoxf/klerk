@@ -12,13 +12,13 @@ import {
 } from '@nestjs/common';
 import { MessagesService } from './messages.service';
 import { JwtGuard } from '../auth/jwt/jwt.guard';
-import { ApiKeyGuard } from 'src/common/guards/api-key/api-key.guard';
+import { ApiKeyGuard } from '../common/guards/api-key/api-key.guard';
 
 @Controller('messages')
 @UseGuards(JwtGuard)
 @UseGuards(ApiKeyGuard)
 export class MessagesController {
-  constructor(private messagesService: MessagesService) {}
+  constructor(private messagesService: MessagesService) { }
 
   @Post()
   async sendMessage(@Body() input: { content: string }, @Req() req: any) {

@@ -15,13 +15,13 @@ import { FlashCardsService } from './flash-cards.service';
 import { JwtGuard } from '../auth/jwt/jwt.guard';
 import { CreateFlashCardDto, UpdateFlashCardDto } from './dto/create-flash-card.dto';
 import { FlashCardFiltersDto, CardFiltersDto } from './dto/filters.dto';
-import { ApiKeyGuard } from 'src/common/guards/api-key/api-key.guard';
+import { ApiKeyGuard } from '../common/guards/api-key/api-key.guard';
 
 @Controller('flash-cards')
 @UseGuards(JwtGuard)
 @UseGuards(ApiKeyGuard)
 export class FlashCardsController {
-  constructor(private flashCardsService: FlashCardsService) {}
+  constructor(private flashCardsService: FlashCardsService) { }
 
   // ==================== CARDS ====================
 

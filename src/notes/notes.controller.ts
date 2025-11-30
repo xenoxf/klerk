@@ -13,13 +13,13 @@ import {
 } from '@nestjs/common';
 import { NotesService } from './notes.service';
 import { JwtGuard } from '../auth/jwt/jwt.guard';
-import { ApiKeyGuard } from 'src/common/guards/api-key/api-key.guard';
+import { ApiKeyGuard } from '../common/guards/api-key/api-key.guard';
 
 @Controller('notes')
 @UseGuards(JwtGuard)
 @UseGuards(ApiKeyGuard)
 export class NotesController {
-  constructor(private notesService: NotesService) {}
+  constructor(private notesService: NotesService) { }
 
   @Post()
   async create(
