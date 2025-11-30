@@ -12,6 +12,7 @@ import { CreateAuthDto } from './dto/create-auth.dto';
 import { LoginAuthDto } from './dto/login-auth.dto';
 import { MailService } from './mail.service';
 import { IsEmail } from 'class-validator';
+import { User } from 'src/users/entities/user.entity';
 
 @Injectable()
 export class AuthService {
@@ -119,40 +120,43 @@ export class AuthService {
   /**
    * Register normal
    */
-
   async register(dto: CreateAuthDto) {
     const userExist = await this.usersService.findByEmail(dto.email);
-    if (userExist) throw new BadRequestException('Usuario ya existe');
-    try {
 
-
-      const hash = bcrypt.hash(dto.password, 10);
-      if (!hash) throw new InternalServerErrorException("Hubo un error al intentar hashear contraseña")
-      const user = await this.usersService.createLocal({
-        password: hash,
-        ...dto,
-      });
-      if (!user) throw new InternalServerErrorException("Hubo un error al crear usuario");
-
-      const payload = { sub: (await user).id, email: (await user).email };
-
-      const token = this.jwtService.sign(payload);
-      if (!token) throw new InternalServerErrorException("Hubo un error al intentar craer el JsonWebtoken");
-
-      return {
-        token: token,
-        user: {
-          sub: user.id,
-          email: user.email,
-          name: user.name,
-          picture: user.picture || null,
-        },
-      };
+    // Si existe → error
+    if (userExist) {
+      throw new BadRequestException('Usuario ya existe');
     }
-    catch (e: any) {
-      throw new InternalServerErrorException("Error interno del servidor detail:" + e.message);
+
+    const hash = await bcrypt.hash(dto.password, 10);
+
+    const user = await this.usersService.createLocal({
+      ...dto,
+      password: hash,
+    });
+
+    if (!user) {
+      throw new InternalServerErrorException("Hubo un error al crear usuario");
     }
+
+    const payload = { sub: user.id, email: user.email };
+    const token = this.jwtService.sign(payload);
+
+    if (!token) {
+      throw new InternalServerErrorException("Hubo un error al crear el token");
+    }
+
+    return {
+      token,
+      user: {
+        sub: user.id,
+        email: user.email,
+        name: user.name,
+        picture: user.picture || null,
+      },
+    };
   }
+
 
   /**
    * 4️⃣ Login normal
@@ -162,8 +166,8 @@ export class AuthService {
 
     if (!user) throw new UnauthorizedException('Credenciales incorrectas.');
 
-    if (!user.emailVerified)
-      throw new UnauthorizedException('Debes verificar tu email primero.');
+    //if (!user.emailVerified)
+    //  throw new UnauthorizedException('Debes verificar tu email primero.');
 
     const valid = await bcrypt.compare(dto.password, user.password);
     if (!valid) throw new UnauthorizedException('Credenciales incorrectas.');

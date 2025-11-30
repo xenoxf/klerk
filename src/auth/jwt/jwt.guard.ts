@@ -12,35 +12,40 @@ export class JwtGuard implements CanActivate {
   constructor(private readonly jwtService: JwtService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const request: any = context.switchToHttp().getRequest<Request>();
+    const request = context.switchToHttp().getRequest<Request>();
 
     const token = this.extractToken(request);
     if (!token) {
-      throw new UnauthorizedException('Token not provided');
+      throw new UnauthorizedException('Token no proporcionado');
     }
 
     try {
-      // Verifica el token
+      // Verificar JWT
       const payload = await this.jwtService.verifyAsync(token);
 
-      // Aquí asumimos que el ID del usuario está en payload.sub
+      // Guardar info del usuario en request.user
       request.user = {
         id: payload.sub,
         email: payload.email,
+        ...payload, // por si metes más datos
       };
 
       return true;
     } catch (error) {
-      throw new UnauthorizedException('Invalid or expired token');
+      throw new UnauthorizedException('Token inválido o expirado');
     }
   }
 
   private extractToken(request: Request): string | null {
     const authHeader = request.headers['authorization'];
+
     if (!authHeader) return null;
 
+    // Ejemplo: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
     const [type, token] = authHeader.split(' ');
 
-    return type === 'Bearer' && token ? token : null;
+    if (type !== 'Bearer' || !token) return null;
+
+    return token;
   }
 }

@@ -58,7 +58,7 @@ export class AuthController {
    */
   @Post('register')
   async register(@Body() dto: CreateAuthDto) {
-      return await this.authService.register(dto);
+      return  this.authService.register(dto);
   }
 
   /**
@@ -67,7 +67,7 @@ export class AuthController {
    */
   @Get('google/url')
   async getGoogleUrl() {
-      return await this.authService.getGoogleAuthUrl();
+      return  this.authService.getGoogleAuthUrl();
   }
 
   /* ============================================================

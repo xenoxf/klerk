@@ -10,7 +10,7 @@ export class UsersService {
   constructor(
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
-  ) {}
+  ) { }
 
   // -------------------------
   // LOGIN LOCAL
@@ -85,5 +85,13 @@ export class UsersService {
     Object.assign(user, data);
 
     return await this.userRepo.save(user);
+  }
+
+  async updateName(id: number, name: string) {
+    const user = await this.findOne(id);
+    if (!user) throw new NotFoundException("Usuario no existe");
+    Object.assign(user, name);
+    await this.userRepo.update({ id }, { name });
+    return user;
   }
 }
