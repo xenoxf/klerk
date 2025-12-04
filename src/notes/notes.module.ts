@@ -3,13 +3,12 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { NotesService } from './notes.service';
 import { NotesController } from './notes.controller';
 import { Note } from './entities/note.entity';
-import { NoteContent } from './entities/note-content.entity';
 import { GroqModule } from '../groq/groq.module';
 import { AuthModule } from '../auth/auth.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Note, NoteContent]),
+    TypeOrmModule.forFeature([Note]),
     GroqModule,
     AuthModule,
   ],

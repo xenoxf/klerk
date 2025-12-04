@@ -11,6 +11,7 @@ import {
   ParseIntPipe,
   Req,
 } from '@nestjs/common';
+import { Request } from 'express';
 import { NotesService } from './notes.service';
 import { JwtGuard } from '../auth/jwt/jwt.guard';
 import { ApiKeyGuard } from '../common/guards/api-key/api-key.guard';
@@ -72,5 +73,15 @@ export class NotesController {
     @Query('color') color?: string,
   ) {
     return this.notesService.search({ query, tags, color }, req.user.id);
+  }
+
+  @Post('generate/topic')
+  generateFromTopic(@Body() input: { topic: string }, @Req() req) {
+    return this.notesService.generateNoteFromTopic(input, req.user.id);
+  }
+
+  @Post('generate/reference')
+  generateFromReference(@Body() input: { referenceText: string }, @Req() req) {
+    return this.notesService.generateNoteFromReference(input, req.user.id);
   }
 }

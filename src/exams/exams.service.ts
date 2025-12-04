@@ -2,105 +2,141 @@ import { Injectable, BadRequestException, NotFoundException } from '@nestjs/comm
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Exam } from './entities/exam.entity';
+import { ExamQuestion } from './entities/examQuestion.entity';
+import { ExamOption } from './entities/exam-option.entity';
+import { CreateExamDto } from './dto/create-exam.dto';
+import { UpdateExamDto } from './dto/update-exam.dto';
+import { GroqService } from '../groq/groq.service';
+import { AI_PROMPTS } from '../groq/AI_PROMPTS';
 
 @Injectable()
 export class ExamsService {
   constructor(
-    @InjectRepository(Exam) private examsRepo: Repository<Exam>,
+    @InjectRepository(Exam) private examRepo: Repository<Exam>,
+    @InjectRepository(ExamQuestion) private questionRepo: Repository<ExamQuestion>,
+    @InjectRepository(ExamOption) private optionRepo: Repository<ExamOption>,
+    private readonly groqService: GroqService,
   ) {}
 
-  async create(input: { title: string; description: string }, userId: number) {
-    if (!input.title) throw new BadRequestException('Title is required');
+  // ==================== GENERATE EXAM FROM TOPIC ====================
 
-    const exam = this.examsRepo.create({
-      title: input.title,
-      description: input.description,
-      totalQuestions: 0,
-      userId,
-    });
+  async generateExamFromTopic(input: {
+    topic: string;
+    numberOfQuestions: number;
+    difficulty: 'easy' | 'medium' | 'hard';
+  }, userId: number) {
+    if (!input.topic || input.numberOfQuestions <= 0) {
+      throw new BadRequestException('Topic and valid numberOfQuestions are required');
+    }
 
-    return this.examsRepo.save(exam);
+    if (!['easy', 'medium', 'hard'].includes(input.difficulty)) {
+      throw new BadRequestException('Invalid difficulty level');
+    }
+
+    const prompt = AI_PROMPTS.generateExamFromTopic(input.topic, input.numberOfQuestions, input.difficulty);
+
+    try {
+      const response = await this.groqService.chat(prompt);
+
+      if (!response || typeof response !== 'object') {
+        throw new BadRequestException('Invalid AI response format');
+      }
+
+      const { title, description, questions } = response as any;
+
+      if (!title || !questions || !Array.isArray(questions) || questions.length === 0) {
+        throw new BadRequestException('AI response missing required fields');
+      }
+
+      const exam = this.examRepo.create({
+        title,
+        description: description || `Exam about ${input.topic}`,
+        userId,
+      });
+
+      const savedExam = await this.examRepo.save(exam);
+
+      for (const q of questions) {
+        if (!q.question || !Array.isArray(q.options)) {
+          throw new BadRequestException('Invalid question format from AI');
+        }
+
+        const question = this.questionRepo.create({} as any);
+        (question as any).question = q.question;
+        (question as any).explanation = q.explanation || '';
+        (question as any).exam = savedExam;
+
+        const savedQuestion = await this.questionRepo.save(question);
+
+        for (const opt of q.options) {
+          const option = this.optionRepo.create({
+            text: opt.text,
+            isCorrect: opt.isCorrect,
+          });
+          (option as any).question = savedQuestion;
+          await this.optionRepo.save(option);
+        }
+      }
+
+      return savedExam;
+    } catch (error) {
+      throw new BadRequestException(`Error generating exam: ${error.message}`);
+    }
   }
 
-  async getAll(filters: { search?: string; sort?: string; page?: number; limit?: number }, userId: number) {
-    const query = this.examsRepo.createQueryBuilder('exam').where('exam.userId = :userId', { userId });
+  // ==================== BASIC CRUD ====================
 
-    if (filters.search) {
-      const q = `%${filters.search.toLowerCase()}%`;
-      query.andWhere('LOWER(exam.title) LIKE :search', { search: q });
-    }
+  async create(createExamDto: CreateExamDto, userId: number) {
+    const exam = this.examRepo.create({
+      ...createExamDto,
+      userId,
+    });
+    return this.examRepo.save(exam);
+  }
 
-    if (filters.sort === 'newest') {
-      query.orderBy('exam.createdAt', 'DESC');
-    } else if (filters.sort === 'oldest') {
-      query.orderBy('exam.createdAt', 'ASC');
-    } else if (filters.sort === 'byScore') {
-      query.orderBy('exam.score', 'DESC');
-    }
-
-    const page = filters.page || 1;
-    const limit = filters.limit || 20;
-    const skip = (page - 1) * limit;
-
-    return query.skip(skip).take(limit).getMany();
+  async getAll(userId: number) {
+    return this.examRepo.find({
+      where: { userId },
+      relations: ['questions', 'questions.options'],
+      order: { createdAt: 'DESC' },
+    });
   }
 
   async getById(id: number, userId: number) {
-    const exam = await this.examsRepo.findOne({
+    const exam = await this.examRepo.findOne({
       where: { id, userId },
-      relations: ['questions'],
+      relations: ['questions', 'questions.options'],
     });
 
     if (!exam) throw new NotFoundException('Exam not found');
     return exam;
   }
 
-  async update(id: number, input: { title?: string; description?: string }, userId: number) {
+  async update(id: number, updateExamDto: UpdateExamDto, userId: number) {
     const exam = await this.getById(id, userId);
-
-    if (input.title) exam.title = input.title;
-    if (input.description) exam.description = input.description;
+    Object.assign(exam, updateExamDto);
     exam.updatedAt = new Date();
-
-    return this.examsRepo.save(exam);
+    return this.examRepo.save(exam);
   }
 
   async delete(id: number, userId: number) {
-    const exam = await this.examsRepo.findOne({
-      where: { id, userId },
-    });
-
-    if (!exam) throw new NotFoundException('Exam not found');
-
-    await this.examsRepo.delete(id);
+    const exam = await this.getById(id, userId);
+    await this.questionRepo.delete({ exam: { id } } as any);
+    await this.examRepo.delete(id);
     return { message: 'Exam deleted' };
   }
 
-  async addQuestion(
-    examId: number,
-    input: { question: string; options: string[]; correctOptionIndex: number; explanation?: string },
-    userId: number
-  ) {
+  async addQuestion(examId: number, input: any, userId: number) {
     const exam = await this.getById(examId, userId);
+    const question = this.questionRepo.create({
+      ...input,
+      exam,
+    });
+    return this.questionRepo.save(question);
+  }
 
-    const newQuestion = {
-      id: Math.random(),
-      question: input.question,
-      options: input.options.map((text, index) => ({
-        id: Math.random(),
-        text,
-        isCorrect: index === input.correctOptionIndex,
-      })),
-      correctOption: input.correctOptionIndex,
-      explanation: input.explanation,
-      examId,
-    };
-
-    exam.totalQuestions = (exam.totalQuestions || 0) + 1;
-    exam.updatedAt = new Date();
-
-    await this.examsRepo.save(exam);
-
-    return newQuestion;
+  async generate(input: any, userId: number) {
+    // Dummy generate method
+    return { success: true, message: 'Use generateExamFromTopic or generateExamFromReference instead' };
   }
 }

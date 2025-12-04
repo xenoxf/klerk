@@ -3,14 +3,14 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Message } from './entities/message.entity';
 import { Chat } from './entities/chat.entity';
-import { GroqService } from 'src/groq/groq.service';
+import { GroqService } from '../groq/groq.service';
 
 @Injectable()
 export class MessagesService {
   constructor(
+    @InjectRepository(Message) private messageRepo: Repository<Message>,
+    @InjectRepository(Chat) private chatRepo: Repository<Chat>,
     private readonly groqService: GroqService,
-    @InjectRepository(Message) private readonly messageRepo: Repository<Message>,
-    @InjectRepository(Chat) private readonly chatRepo: Repository<Chat>,
   ) {}
 
   // Obtener o crear un chat para el usuario
@@ -89,6 +89,81 @@ export class MessagesService {
         createdAt: (newMessage as any).createdAt,
       },
     };
+  }
+
+  // ==================== PROCESS MESSAGE WITH AI ====================
+
+  async sendMessageWithAIResponse(input: { prompt: string; chatId?: number }, userId: number) {
+    if (!input.prompt) {
+      throw new BadRequestException('Prompt is required');
+    }
+
+    let chat: Chat;
+
+    if (input.chatId) {
+      chat = await this.chatRepo.findOne({
+        where: { id: input.chatId, userId },
+      });
+
+      if (!chat) {
+        throw new NotFoundException('Chat not found');
+      }
+    } else {
+      // Create new chat if not provided
+      chat = this.chatRepo.create({
+        title: input.prompt.substring(0, 50),
+        userId,
+      });
+      chat = await this.chatRepo.save(chat);
+    }
+
+    try {
+      // Get AI response
+      const aiResponse = await this.groqService.chat(input.prompt);
+
+      if (!aiResponse || typeof aiResponse !== 'object') {
+        throw new BadRequestException('Invalid AI response');
+      }
+
+      const responseText = typeof aiResponse === 'object' 
+        ? JSON.stringify(aiResponse) 
+        : String(aiResponse);
+
+      // Save user message
+      const userMessage = this.messageRepo.create({
+        prompt: input.prompt,
+        response: `[User]: ${input.prompt}`,
+        chat,
+        userId,
+      });
+      await this.messageRepo.save(userMessage);
+
+      // Save AI response message
+      const aiMessage = this.messageRepo.create({
+        prompt: input.prompt,
+        response: `[AI]: ${responseText}`,
+        chat,
+        userId,
+      });
+      await this.messageRepo.save(aiMessage);
+
+      return {
+        chat,
+        messages: [userMessage, aiMessage],
+        aiResponse: responseText,
+      };
+    } catch (error) {
+      throw new BadRequestException(`Failed to process message: ${error.message}`);
+    }
+  }
+
+  async createChatWithTitle(input: { title?: string }, userId: number) {
+    const chat = this.chatRepo.create({
+      title: input.title || `Chat ${new Date().toISOString().split('T')[0]}`,
+      userId,
+    });
+
+    return await this.chatRepo.save(chat);
   }
 
   // Obtener todos los chats del usuario

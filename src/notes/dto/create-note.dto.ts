@@ -19,3 +19,17 @@ export class CreateNoteDto {
     @IsString()
     textoReferencia?: string;
 }
+
+export class GenerateNoteDto {
+  @IsOptional()
+  @IsString()
+  topic?: string;
+
+  @IsOptional()
+  @IsString()
+  referenceText?: string;
+
+  @IsOptional()
+  @IsString()
+  color?: string;
+}

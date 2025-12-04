@@ -9,3 +9,8 @@ export class CreateMessageDto {
   @IsString()
   chatId?: string | number;
 }
+
+export class SendMessageWithAIDto {
+  prompt: string;
+  chatId?: number;
+}

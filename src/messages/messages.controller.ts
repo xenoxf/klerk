@@ -24,6 +24,16 @@ export class MessagesController {
     return this.messagesService.sendMessage(prompt, userId, +chatId);
   }
 
+  @Post('send')
+  sendWithAIResponse(@Body() input: { prompt: string; chatId?: number }, @Req() req) {
+    return this.messagesService.sendMessageWithAIResponse(input, req.user.id);
+  }
+
+  @Post('chat/create')
+  createChat(@Body() input: { title?: string }, @Req() req) {
+    return this.messagesService.createChatWithTitle(input, req.user.id);
+  }
+
   @Get('chats')
   getUserChats(@Req() req: any) {
     const userId = req.user?.id || req.user?.userId || req.user;

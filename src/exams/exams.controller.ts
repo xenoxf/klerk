@@ -10,10 +10,14 @@ import {
   Query,
   ParseIntPipe,
   Req,
+  Request,
 } from '@nestjs/common';
 import { ExamsService } from './exams.service';
 import { JwtGuard } from '../auth/jwt/jwt.guard';
 import { ApiKeyGuard } from '../common/guards/api-key/api-key.guard';
+import { CreateExamDto } from './dto/create-exam.dto';
+import { UpdateExamDto } from './dto/update-exam.dto';
+import { GenerateExamDto } from './dto/generate-exam.dto';
 
 @Controller('exams')
 @UseGuards(JwtGuard)
@@ -21,50 +25,48 @@ import { ApiKeyGuard } from '../common/guards/api-key/api-key.guard';
 export class ExamsController {
   constructor(private examsService: ExamsService) { }
 
+  // ==================== BASIC CRUD ====================
+
   @Post()
-  async create(@Body() input: { title: string; description: string }, @Req() req: any) {
-    return this.examsService.create(input, req.user.id);
+  create(@Body() createExamDto: CreateExamDto, @Req() req) {
+    return this.examsService.create(createExamDto, req.user.id);
   }
 
   @Get()
-  async getAll(
-    @Query() filters: { search?: string; sort?: 'newest' | 'oldest' | 'byScore'; page?: number; limit?: number },
-    @Req() req: any
-  ) {
-    return this.examsService.getAll(filters, req.user.id);
+  getAll(@Req() req) {
+    return this.examsService.getAll(req.user.id);
   }
 
   @Get(':id')
-  async getById(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+  getById(@Param('id', ParseIntPipe) id: number, @Req() req) {
     return this.examsService.getById(id, req.user.id);
   }
 
   @Patch(':id')
-  async update(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() input: { title?: string; description?: string },
-    @Req() req: any
-  ) {
-    return this.examsService.update(id, input, req.user.id);
+  update(@Param('id', ParseIntPipe) id: number, @Body() updateExamDto: UpdateExamDto, @Req() req) {
+    return this.examsService.update(id, updateExamDto, req.user.id);
   }
 
   @Delete(':id')
-  async delete(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+  delete(@Param('id', ParseIntPipe) id: number, @Req() req) {
     return this.examsService.delete(id, req.user.id);
   }
 
   @Post(':examId/questions')
-  async addQuestion(
-    @Param('examId', ParseIntPipe) examId: number,
-    @Body()
-    input: {
-      question: string;
-      options: string[];
-      correctOptionIndex: number;
-      explanation?: string;
-    },
-    @Req() req: any
-  ) {
+  addQuestion(@Param('examId', ParseIntPipe) examId: number, @Body() input: any, @Req() req) {
     return this.examsService.addQuestion(examId, input, req.user.id);
   }
+
+  @Post('generate')
+  generate(@Body() input: any, @Req() req) {
+    return this.examsService.generate(input, req.user.id);
+  }
+
+  // ==================== AI GENERATION ====================
+
+  @Post('generate/topic_or_referencia')
+  generateFromTopic(@Body() input: GenerateExamDto, @Req() req) {
+    return this.examsService.generateExamFromTopic(input as any, req.user.id);
+  }
+
 }

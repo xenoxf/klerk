@@ -1,18 +1,17 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { GroqService } from '../groq/groq.service';
+import { Note } from './entities/note.entity';
 import { CreateNoteDto } from './dto/create-note.dto';
 import { UpdateNoteDto } from './dto/update-note.dto';
-import { Note } from './entities/note.entity';
-import { NoteContent } from './entities/note-content.entity';
+import { GroqService } from '../groq/groq.service';
+import { AI_PROMPTS } from '../groq/AI_PROMPTS';
 
 @Injectable()
 export class NotesService {
   constructor(
+    @InjectRepository(Note) private noteRepo: Repository<Note>,
     private readonly groqService: GroqService,
-    @InjectRepository(Note) private readonly noteRepo: Repository<Note>,
-    @InjectRepository(NoteContent) private readonly noteContentRepo: Repository<NoteContent>,
   ) {}
 
   // ================================================================
@@ -89,27 +88,77 @@ Formato EXACTO del JSON:
 
     const savedNote = await this.noteRepo.save(note);
 
-    // =================================================================
-    //                   GUARDAR CONTENIDO DE NOTAS
-    // =================================================================
-    for (const block of json.contents) {
-      const content = this.noteContentRepo.create({
-        title: block.title,
-        content: block.content,
-        type: block.type || 'text',
-        order: block.order,
-        noteId: savedNote.id,
-        userId,
-      });
-
-      await this.noteContentRepo.save(content);
-    }
-
     return {
       message: 'Notas generadas correctamente',
       noteId: savedNote.id,
       totalSections: json.contents.length,
     };
+  }
+
+  async generateNoteFromTopic(input: { topic: string }, userId: number) {
+    if (!input.topic) {
+      throw new BadRequestException('Topic is required');
+    }
+
+    const prompt = AI_PROMPTS.generateNoteFromTopic(input.topic);
+
+    try {
+      const response = await this.groqService.chat(prompt);
+
+      if (!response || typeof response !== 'object') {
+        throw new BadRequestException('Invalid AI response format');
+      }
+
+      const { title, content, tags } = response as any;
+
+      if (!title || !content) {
+        throw new BadRequestException('AI response missing title or content');
+      }
+
+      const note = this.noteRepo.create({
+        title,
+        content,
+        tags: tags || [input.topic],
+        userId,
+      });
+
+      return await this.noteRepo.save(note);
+    } catch (error) {
+      throw new BadRequestException(`Failed to generate note: ${error.message}`);
+    }
+  }
+
+  async generateNoteFromReference(input: { referenceText: string }, userId: number) {
+    if (!input.referenceText) {
+      throw new BadRequestException('Reference text is required');
+    }
+
+    const prompt = AI_PROMPTS.generateNoteFromReference(input.referenceText);
+
+    try {
+      const response = await this.groqService.chat(prompt);
+
+      if (!response || typeof response !== 'object') {
+        throw new BadRequestException('Invalid AI response format');
+      }
+
+      const { title, content, tags } = response as any;
+
+      if (!title || !content) {
+        throw new BadRequestException('AI response missing required fields');
+      }
+
+      const note = this.noteRepo.create({
+        title,
+        content,
+        tags: tags || ['generated'],
+        userId,
+      });
+
+      return await this.noteRepo.save(note);
+    } catch (error) {
+      throw new BadRequestException(`Failed to generate note from reference: ${error.message}`);
+    }
   }
 
   // ================================================================
@@ -140,7 +189,6 @@ Formato EXACTO del JSON:
 
     if (!note) return null;
 
-    await this.noteContentRepo.delete({ noteId: id } as any);
     await this.noteRepo.delete(id);
 
     return { removed: true, id };
@@ -234,7 +282,6 @@ Formato EXACTO del JSON:
       throw new NotFoundException('Note not found');
     }
 
-    await this.noteContentRepo.delete({ noteId: id } as any);
     await this.noteRepo.delete(id);
 
     return { message: 'Note deleted' };

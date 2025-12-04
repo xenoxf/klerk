@@ -6,6 +6,7 @@ import { FlashCard } from './entities/flash-card.entity';
 import { CreateFlashCardDto, UpdateFlashCardDto } from './dto/create-flash-card.dto';
 import { FlashCardFiltersDto, CardFiltersDto } from './dto/filters.dto';
 import { GroqService } from '../groq/groq.service';
+import { AI_PROMPTS } from '../groq/AI_PROMPTS';
 
 @Injectable()
 export class FlashCardsService {
@@ -201,80 +202,106 @@ export class FlashCardsService {
   async generateFromTopic(input: { topic: string; numberOfCards: number; cardId: number }, userId: number) {
     const card = await this.getCardById(input.cardId, userId);
 
-    const prompt = `Generate exactly ${input.numberOfCards} flashcard pairs about "${input.topic}".
-    Return ONLY valid JSON with this exact format:
-    {
-      "cards": [
-        {"question": "...", "answer": "...", "difficulty": "easy|medium|hard"}
-      ]
-    }`;
+    if (!input.topic || input.numberOfCards <= 0) {
+      throw new BadRequestException('Topic and valid numberOfCards are required');
+    }
 
-    const response = await this.groqService.chat(prompt);
+    const prompt = AI_PROMPTS.generateFlashcardsFromTopic(input.topic, input.numberOfCards);
 
-    const generatedCards: FlashCard[] = [];
-    if (response && typeof response === 'object' && 'cards' in response) {
-      for (const card of (response as any).cards) {
+    try {
+      const response = await this.groqService.chat(prompt);
+      const generatedCards: FlashCard[] = [];
+
+      if (!response || typeof response !== 'object' || !('cards' in response)) {
+        throw new BadRequestException('Invalid response format from AI');
+      }
+
+      const cards = (response as any).cards;
+      if (!Array.isArray(cards) || cards.length === 0) {
+        throw new BadRequestException('No cards generated from AI');
+      }
+
+      for (const cardData of cards) {
+        if (!cardData.question || !cardData.answer) {
+          throw new BadRequestException('Invalid card data: missing question or answer');
+        }
+
         const flashcard = this.flashCardRepo.create({
-          question: card.question,
-          answer: card.answer,
+          question: cardData.question,
+          answer: cardData.answer,
           cardId: input.cardId,
-          difficulty: card.difficulty || 'medium',
+          difficulty: ['easy', 'medium', 'hard'].includes(cardData.difficulty) ? cardData.difficulty : 'medium',
+          hint: cardData.hint || null,
           tags: [input.topic],
           userId,
         });
         const saved = await this.flashCardRepo.save(flashcard);
         generatedCards.push(saved);
       }
+
+      card.totalCards = await this.flashCardRepo.count({ where: { cardId: card.id } });
+      await this.cardRepo.save(card);
+
+      return {
+        success: true,
+        totalCreated: generatedCards.length,
+        cards: generatedCards,
+      };
+    } catch (error) {
+      throw new BadRequestException(`Failed to generate flashcards: ${error.message}`);
     }
-
-    card.totalCards = (await this.flashCardRepo.count({ where: { cardId: card.id } })) || 0;
-    await this.cardRepo.save(card);
-
-    return {
-      success: true,
-      totalCreated: generatedCards.length,
-      cards: generatedCards,
-    };
   }
 
   async generateFromReference(input: { referenceText: string; numberOfCards: number; cardId: number }, userId: number) {
     const card = await this.getCardById(input.cardId, userId);
 
-    const prompt = `Based on this reference text, generate exactly ${input.numberOfCards} flashcard pairs:
-    "${input.referenceText}"
-    
-    Return ONLY valid JSON with this exact format:
-    {
-      "cards": [
-        {"question": "...", "answer": "...", "difficulty": "easy|medium|hard"}
-      ]
-    }`;
+    if (!input.referenceText || input.numberOfCards <= 0) {
+      throw new BadRequestException('Reference text and valid numberOfCards are required');
+    }
 
-    const response = await this.groqService.chat(prompt);
+    const prompt = AI_PROMPTS.generateFlashcardsFromReference(input.referenceText, input.numberOfCards);
 
-    const generatedCards: FlashCard[] = [];
-    if (response && typeof response === 'object' && 'cards' in response) {
-      for (const card of (response as any).cards) {
+    try {
+      const response = await this.groqService.chat(prompt);
+      const generatedCards: FlashCard[] = [];
+
+      if (!response || typeof response !== 'object' || !('cards' in response)) {
+        throw new BadRequestException('Invalid response format from AI');
+      }
+
+      const cards = (response as any).cards;
+      if (!Array.isArray(cards) || cards.length === 0) {
+        throw new BadRequestException('No cards generated from AI');
+      }
+
+      for (const cardData of cards) {
+        if (!cardData.question || !cardData.answer) {
+          throw new BadRequestException('Invalid card data from AI');
+        }
+
         const flashcard = this.flashCardRepo.create({
-          question: card.question,
-          answer: card.answer,
+          question: cardData.question,
+          answer: cardData.answer,
           cardId: input.cardId,
-          difficulty: card.difficulty || 'medium',
+          difficulty: ['easy', 'medium', 'hard'].includes(cardData.difficulty) ? cardData.difficulty : 'medium',
+          hint: cardData.hint || null,
           tags: ['generated'],
           userId,
         });
         const saved = await this.flashCardRepo.save(flashcard);
         generatedCards.push(saved);
       }
+
+      card.totalCards = await this.flashCardRepo.count({ where: { cardId: card.id } });
+      await this.cardRepo.save(card);
+
+      return {
+        success: true,
+        totalCreated: generatedCards.length,
+        cards: generatedCards,
+      };
+    } catch (error) {
+      throw new BadRequestException(`Failed to generate flashcards from reference: ${error.message}`);
     }
-
-    card.totalCards = (await this.flashCardRepo.count({ where: { cardId: card.id } })) || 0;
-    await this.cardRepo.save(card);
-
-    return {
-      success: true,
-      totalCreated: generatedCards.length,
-      cards: generatedCards,
-    };
   }
 }
