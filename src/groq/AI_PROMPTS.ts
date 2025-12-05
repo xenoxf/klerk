@@ -49,53 +49,84 @@ export const AI_PROMPTS = {
     }
   `,
 
+  // ==================== NOTES ====================
+  generateNoteFromTopic: (topic: string, numberOfNotes: number, levelOfDetail: string) => `
+    Generate exactly ${numberOfNotes} comprehensive study note(s) for the topic "${topic}" with ${levelOfDetail} level of detail.
+    Return ONLY valid JSON with this exact format (no markdown, no code blocks):
+    {
+      "notes": [
+        {
+          "title": "Note Title",
+          "contents": [
+            {"type": "text", "content": "Detailed paragraph text..."},
+            {"type": "list", "content": ["item 1", "item 2", "item 3"]},
+            {"type": "text", "content": "More detailed explanation..."}
+          ],
+          "tags": ["tag1", "tag2", "tag3"]
+        }
+      ]
+    }
+  `,
+
+  generateNoteFromReference: (referenceText: string, numberOfNotes: number, levelOfDetail: string) => `
+    Based on this reference text, generate exactly ${numberOfNotes} organized study note(s) with ${levelOfDetail} level of detail:
+    
+    "${referenceText}"
+    
+    Return ONLY valid JSON with this exact format (no markdown):
+    {
+      "notes": [
+        {
+          "title": "Note Title based on content",
+          "contents": [
+            {"type": "text", "content": "Key concept explanation..."},
+            {"type": "list", "content": ["important point 1", "important point 2"]},
+            {"type": "text", "content": "Additional details..."}
+          ],
+          "tags": ["tag1", "tag2"]
+        }
+      ]
+    }
+  `,
+
   // ==================== FLASHCARDS ====================
   generateFlashcardsFromTopic: (topic: string, numberOfCards: number) => `
     Generate exactly ${numberOfCards} flashcard pairs about "${topic}".
     Each card should have varying difficulty levels distributed across easy, medium, and hard.
-    Include helpful hints for each card.
     Return ONLY valid JSON with this exact format (no markdown, no code blocks):
     {
       "cards": [
-        {"question": "...", "answer": "...", "difficulty": "easy", "hint": "..."},
-        {"question": "...", "answer": "...", "difficulty": "medium", "hint": "..."}
+        {
+          "front": "Question or concept (max 15 words)",
+          "back": "Detailed answer (min 50 characters)",
+          "difficulty": "easy",
+          "hint": "Helpful hint"
+        },
+        {
+          "front": "Another question",
+          "back": "Complete answer with explanation",
+          "difficulty": "medium",
+          "hint": "Hint for this card"
+        }
       ]
     }
   `,
 
   generateFlashcardsFromReference: (referenceText: string, numberOfCards: number) => `
     Based on this reference text, generate exactly ${numberOfCards} flashcard pairs with varying difficulty:
+    
     "${referenceText}"
     
-    Return ONLY valid JSON with this exact format:
+    Return ONLY valid JSON with this exact format (no markdown):
     {
       "cards": [
-        {"question": "...", "answer": "...", "difficulty": "easy|medium|hard", "hint": "..."}
+        {
+          "front": "Key concept from text",
+          "back": "Detailed explanation from the text",
+          "difficulty": "easy|medium|hard",
+          "hint": "Memory aid based on the text"
+        }
       ]
-    }
-  `,
-
-  // ==================== NOTES ====================
-  generateNoteFromTopic: (topic: string) => `
-    Create comprehensive study notes for the topic "${topic}". 
-    Return ONLY valid JSON with this exact format (no markdown, no code blocks):
-    {
-      "title": "Topic Title",
-      "content": "Detailed notes with structure using line breaks. Include key concepts, explanations, and examples.",
-      "tags": ["tag1", "tag2", "tag3"]
-    }
-  `,
-
-  generateNoteFromReference: (referenceText: string) => `
-    Based on this reference text, create organized study notes:
-    
-    "${referenceText}"
-    
-    Return ONLY valid JSON with this exact format:
-    {
-      "title": "Note Title based on content",
-      "content": "Organized and summarized study notes",
-      "tags": ["tag1", "tag2"]
     }
   `,
 };

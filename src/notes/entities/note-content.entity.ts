@@ -1,21 +1,21 @@
-import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, ManyToOne, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn } from "typeorm";
 import { Note } from "./note.entity";
 
-@Entity()
+@Entity('note_contents')
 export class NoteContent {
     @PrimaryGeneratedColumn()
     id: number;
 
-    @Column({type: 'varchar', nullable: true})
+    @Column({ type: 'varchar', nullable: true })
     title: string;
 
-    @Column({type: 'text'})
+    @Column({ type: 'text' })
     content: string;
 
-    @Column({type: 'varchar', default: 'text'})
+    @Column({ type: 'varchar', default: 'text' })
     type: string;
 
-    @Column({type: 'int', nullable: true})
+    @Column({ type: 'int', nullable: true })
     order: number;
 
     @Column()
@@ -24,6 +24,12 @@ export class NoteContent {
     @Column({ nullable: true })
     userId: number;
 
-    @ManyToOne(() => Note, (note) => note.noteContents)
+    @CreateDateColumn()
+    createdAt: Date;
+
+    @UpdateDateColumn()
+    updatedAt: Date;
+
+    @ManyToOne(() => Note, (note) => note.noteContents, { onDelete: 'CASCADE' })
     note: Note;
 }

@@ -36,11 +36,12 @@ export class Note {
   @UpdateDateColumn()
   updatedAt: Date;
 
-  @Column({ nullable: true })
-  userId?: number;
+  @Column()
+  userId: number;
 
-  @OneToMany(() => NoteContent, (note) => note.note)
-  noteContents?: NoteContent[];
+  @OneToMany(() => NoteContent, (noteContent) => noteContent.note, { cascade: true })
+  noteContents: NoteContent[];
+
   @ManyToOne(() => User, (user) => user.notes)
   user: User;
 }

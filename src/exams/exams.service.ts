@@ -20,11 +20,7 @@ export class ExamsService {
 
   // ==================== GENERATE EXAM FROM TOPIC ====================
 
-  async generateExamFromTopic(input: {
-    topic: string;
-    numberOfQuestions: number;
-    difficulty: 'easy' | 'medium' | 'hard';
-  }, userId: number) {
+  async generateExamFromTopic(input: CreateExamDto, userId: number) {
     if (!input.topic || input.numberOfQuestions <= 0) {
       throw new BadRequestException('Topic and valid numberOfQuestions are required');
     }
@@ -84,15 +80,69 @@ export class ExamsService {
     }
   }
 
+  // ==================== GENERATE EXAM FROM REFERENCIA ====================
+  async generateExamFromReference(input: CreateExamDto, userId: number) {
+    if (!input.reference || input.numberOfQuestions <= 0) {
+      throw new BadRequestException('Reference text and valid numberOfQuestions are required');
+    }
+
+    if (!['easy', 'medium', 'hard'].includes(input.difficulty)) {
+      throw new BadRequestException('Invalid difficulty level');
+    }
+
+    const prompt = AI_PROMPTS.generateExamFromReference(input.reference, input.numberOfQuestions, input.difficulty);
+
+    try {
+      const response = await this.groqService.chat(prompt);
+
+      if (!response || typeof response !== 'object') {
+        throw new BadRequestException('Invalid AI response format');
+      }
+
+      const { title, description, questions } = response as any;
+
+      if (!title || !questions || !Array.isArray(questions) || questions.length === 0) {
+        throw new BadRequestException('AI response missing required fields');
+      }
+
+      const exam = this.examRepo.create({
+        title,
+        description: description || 'Exam generated from reference text',
+        userId,
+      });
+
+      const savedExam = await this.examRepo.save(exam);
+
+      for (const q of questions) {
+        if (!q.question || !Array.isArray(q.options)) {
+          throw new BadRequestException('Invalid question format from AI');
+        }
+
+        const question = this.questionRepo.create({} as any);
+        (question as any).question = q.question;
+        (question as any).explanation = q.explanation || '';
+        (question as any).exam = savedExam;
+
+        const savedQuestion = await this.questionRepo.save(question);
+
+        for (const opt of q.options) {
+          const option = this.optionRepo.create({
+            text: opt.text,
+            isCorrect: opt.isCorrect,
+          });
+          (option as any).question = savedQuestion;
+          await this.optionRepo.save(option);
+        }
+      }
+
+      return savedExam;
+    } catch (error) {
+      throw new BadRequestException(`Error generating exam from reference: ${error.message}`);
+    }
+  }
+
   // ==================== BASIC CRUD ====================
 
-  async create(createExamDto: CreateExamDto, userId: number) {
-    const exam = this.examRepo.create({
-      ...createExamDto,
-      userId,
-    });
-    return this.examRepo.save(exam);
-  }
 
   async getAll(userId: number) {
     return this.examRepo.find({
@@ -112,31 +162,10 @@ export class ExamsService {
     return exam;
   }
 
-  async update(id: number, updateExamDto: UpdateExamDto, userId: number) {
-    const exam = await this.getById(id, userId);
-    Object.assign(exam, updateExamDto);
-    exam.updatedAt = new Date();
-    return this.examRepo.save(exam);
-  }
-
   async delete(id: number, userId: number) {
     const exam = await this.getById(id, userId);
     await this.questionRepo.delete({ exam: { id } } as any);
     await this.examRepo.delete(id);
     return { message: 'Exam deleted' };
-  }
-
-  async addQuestion(examId: number, input: any, userId: number) {
-    const exam = await this.getById(examId, userId);
-    const question = this.questionRepo.create({
-      ...input,
-      exam,
-    });
-    return this.questionRepo.save(question);
-  }
-
-  async generate(input: any, userId: number) {
-    // Dummy generate method
-    return { success: true, message: 'Use generateExamFromTopic or generateExamFromReference instead' };
   }
 }

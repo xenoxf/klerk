@@ -1,303 +1,202 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Note } from './entities/note.entity';
+import { GroqService } from 'src/groq/groq.service';
 import { CreateNoteDto } from './dto/create-note.dto';
 import { UpdateNoteDto } from './dto/update-note.dto';
-import { GroqService } from '../groq/groq.service';
-import { AI_PROMPTS } from '../groq/AI_PROMPTS';
+import { Note } from './entities/note.entity';
+import { NoteContent } from './entities/note-content.entity';
 
 @Injectable()
 export class NotesService {
   constructor(
-    @InjectRepository(Note) private noteRepo: Repository<Note>,
     private readonly groqService: GroqService,
+    @InjectRepository(Note) private readonly noteRepo: Repository<Note>,
+    @InjectRepository(NoteContent) private readonly noteContentRepo: Repository<NoteContent>,
   ) {}
 
-  // ================================================================
-  //                    GENERAR NOTAS CON IA
-  // ================================================================
-
-  async generateNotes(dto: CreateNoteDto, userId: number) {
-    const { numberOfNotes, levelOfDetail, tema, textoReferencia } = dto;
-
-    if (!tema && !textoReferencia) {
-      throw new BadRequestException(
-        "Debes enviar 'tema' o 'textoReferencia' para generar notas."
-      );
+  private parseJSON(raw: string): any {
+    try {
+      return JSON.parse(raw);
+    } catch (e) {
+      try {
+        const match = raw.match(/\{[\s\S]*\}/);
+        return match ? JSON.parse(match[0]) : null;
+      } catch (e2) {
+        return null;
+      }
     }
-
-    // Prompt para la IA
-    const prompt = `
-Eres un generador de notas académico. 
-Crea exactamente ${numberOfNotes} secciones de notas.
-Nivel de detalle: "${levelOfDetail}".
-si nivel de detalle es "breve", las secciones deben ser breves y concisas.
-si nivel de detalle es "medio", las secciones deben tener explicaciones claras y ejemplos.
-si nivel de detalle es "alto", las secciones deben ser exhaustivas, con análisis profundos y múltiples ejemplos.
-
-${tema ? `Tema principal: ${tema}` : ""}
-${textoReferencia ? `Texto de referencia:\n${textoReferencia}` : ""}
-
-REGLAS IMPORTANTES:
-- Devuelve exclusivamente JSON válido.
-- No incluyas texto fuera del JSON.
-- Cada sección debe ser clara y educativa.
-- Cada sección debe tener:
-  - "title": string
-  - "content": string
-  - "type": "text"
-  - "order": número incremental desde 1
-
-Formato EXACTO del JSON:
-
-{
-  "title": "Titulo general de la nota",
-  "levelOfDetail": "breve | medio | alto",
-  "numberOfSections": número,
-  "contents": [
-    {
-      "title": "Título de sección",
-      "content": "Contenido de la sección...",
-      "type": "text",
-      "order": 1
-    }
-  ]
-}
-`;
-
-    // Llamada al modelo IA
-    const response = await this.groqService.chat(prompt);
-
-    // Parseamos JSON: groqService.chat ya intenta parsear y devuelve el objeto JSON o un objeto con error
-    let json;
-    if (response && (response as any).type === 'answer' && (response as any).success === false) {
-      console.error(response);
-      throw new BadRequestException('La IA devolvió JSON inválido.');
-    }
-    json = response;
-
-    // =================================================================
-    //                   GUARDAR LA NOTA PRINCIPAL
-    // =================================================================
-    const note = this.noteRepo.create({
-      title: json.title,
-      levelOfDetail: levelOfDetail as 'breve' | 'medio' | 'alto',
-      userId,
-    } as Partial<Note>);
-
-    const savedNote = await this.noteRepo.save(note);
-
-    return {
-      message: 'Notas generadas correctamente',
-      noteId: savedNote.id,
-      totalSections: json.contents.length,
-    };
   }
 
-  async generateNoteFromTopic(input: { topic: string }, userId: number) {
-    if (!input.topic) {
-      throw new BadRequestException('Topic is required');
+  // ==================== GENERATE NOTE FROM TOPIC ====================
+  async generateFromTopic(input: {
+    topic: string;
+    numberOfNotes: number;
+    levelOfDetail: 'breve' | 'medio' | 'detallado';
+  }, userId: number) {
+    if (!input.topic || input.numberOfNotes <= 0) {
+      throw new BadRequestException('Topic and valid numberOfNotes are required');
     }
 
-    const prompt = AI_PROMPTS.generateNoteFromTopic(input.topic);
+    if (!['breve', 'medio', 'detallado'].includes(input.levelOfDetail)) {
+      throw new BadRequestException('Invalid levelOfDetail. Must be: breve, medio, or detallado');
+    }
+
+    const instruction = `Eres un experto educativo. Genera ${input.numberOfNotes} nota(s) académica(s) detallada(s) en formato JSON únicamente sobre el tema: "${input.topic}". 
+    
+Nivel de detalle: ${input.levelOfDetail}.
+
+El JSON debe tener SOLO un array "notes" donde cada elemento tiene: { title: string (título descriptivo), contents: array de { type: "text"|"list"|"code", content: string | string[] } }.
+
+Responde SOLO con JSON válido, sin marcas de código.`;
 
     try {
-      const response = await this.groqService.chat(prompt);
+      const aiRaw = await this.groqService.chat(instruction);
+      const parsed = this.parseJSON(aiRaw);
 
-      if (!response || typeof response !== 'object') {
+      if (!parsed?.notes || !Array.isArray(parsed.notes)) {
         throw new BadRequestException('Invalid AI response format');
       }
 
-      const { title, content, tags } = response as any;
+      const createdNotes = [];
+      for (const noteData of parsed.notes) {
+        const note = this.noteRepo.create({
+          title: noteData.title || 'Sin título',
+          levelOfDetail: input.levelOfDetail || 'medio',
+          userId,
+        } as any);
+        await this.noteRepo.save(note);
 
-      if (!title || !content) {
-        throw new BadRequestException('AI response missing title or content');
+        if (Array.isArray(noteData.contents)) {
+          let order = 0;
+          for (const content of noteData.contents) {
+            const noteContent = this.noteContentRepo.create({
+              title: noteData.title,
+              content: Array.isArray(content.content) ? JSON.stringify(content.content) : content.content,
+              type: content.type || 'text',
+              order,
+              noteId: (note as any).id,
+              userId,
+            } as any);
+            await this.noteContentRepo.save(noteContent as any);
+            order++;
+          }
+        }
+
+        const savedNote = await this.noteRepo.findOne({
+          where: { id: (note as any).id },
+          relations: ['noteContents'],
+        });
+        createdNotes.push(savedNote);
       }
 
-      const note = this.noteRepo.create({
-        title,
-        content,
-        tags: tags || [input.topic],
-        userId,
-      });
-
-      return await this.noteRepo.save(note);
+      return { success: true, totalCreated: createdNotes.length, notes: createdNotes };
     } catch (error) {
-      throw new BadRequestException(`Failed to generate note: ${error.message}`);
+      throw new BadRequestException(`Error generating notes from topic: ${error.message}`);
     }
   }
 
-  async generateNoteFromReference(input: { referenceText: string }, userId: number) {
-    if (!input.referenceText) {
-      throw new BadRequestException('Reference text is required');
+  // ==================== GENERATE NOTE FROM REFERENCE ====================
+  async generateFromReference(input: {
+    referenceText: string;
+    numberOfNotes: number;
+    levelOfDetail: 'breve' | 'medio' | 'detallado';
+  }, userId: number) {
+    if (!input.referenceText || input.numberOfNotes <= 0) {
+      throw new BadRequestException('Reference text and valid numberOfNotes are required');
     }
 
-    const prompt = AI_PROMPTS.generateNoteFromReference(input.referenceText);
+    if (!['breve', 'medio', 'detallado'].includes(input.levelOfDetail)) {
+      throw new BadRequestException('Invalid levelOfDetail. Must be: breve, medio, or detallado');
+    }
+
+    const instruction = `Eres un experto educativo. Analiza el siguiente texto y genera ${input.numberOfNotes} nota(s) académica(s) estructurada(s) en formato JSON únicamente.
+
+Texto de referencia: "${input.referenceText}"
+
+Nivel de detalle: ${input.levelOfDetail}.
+
+El JSON debe tener SOLO un array "notes" donde cada elemento tiene: { title: string (título clave del texto), contents: array de { type: "text"|"list"|"code", content: string | string[] } }.
+
+Las notas deben capturar los conceptos más importantes del texto.
+
+Responde SOLO con JSON válido, sin marcas de código.`;
 
     try {
-      const response = await this.groqService.chat(prompt);
+      const aiRaw = await this.groqService.chat(instruction);
+      const parsed = this.parseJSON(aiRaw);
 
-      if (!response || typeof response !== 'object') {
+      if (!parsed?.notes || !Array.isArray(parsed.notes)) {
         throw new BadRequestException('Invalid AI response format');
       }
 
-      const { title, content, tags } = response as any;
+      const createdNotes = [];
+      for (const noteData of parsed.notes) {
+        const note = this.noteRepo.create({
+          title: noteData.title || 'Sin título',
+          levelOfDetail: input.levelOfDetail || 'medio',
+          userId,
+        } as any);
+        await this.noteRepo.save(note);
 
-      if (!title || !content) {
-        throw new BadRequestException('AI response missing required fields');
+        if (Array.isArray(noteData.contents)) {
+          let order = 0;
+          for (const content of noteData.contents) {
+            const noteContent = this.noteContentRepo.create({
+              title: noteData.title,
+              content: Array.isArray(content.content) ? JSON.stringify(content.content) : content.content,
+              type: content.type || 'text',
+              order,
+              noteId: (note as any).id,
+              userId,
+            } as any);
+            await this.noteContentRepo.save(noteContent as any);
+            order++;
+          }
+        }
+
+        const savedNote = await this.noteRepo.findOne({
+          where: { id: (note as any).id },
+          relations: ['noteContents'],
+        });
+        createdNotes.push(savedNote);
       }
 
-      const note = this.noteRepo.create({
-        title,
-        content,
-        tags: tags || ['generated'],
-        userId,
-      });
-
-      return await this.noteRepo.save(note);
+      return { success: true, totalCreated: createdNotes.length, notes: createdNotes };
     } catch (error) {
-      throw new BadRequestException(`Failed to generate note from reference: ${error.message}`);
+      throw new BadRequestException(`Error generating notes from reference: ${error.message}`);
     }
   }
 
-  // ================================================================
-  //                        MÉTODOS CRUD
-  // ================================================================
-
-  findAll(userId?: number) {
-    if (userId)
-      return this.noteRepo.find({
-        where: { userId },
-        relations: ['noteContents'],
-      });
-
-    return this.noteRepo.find({ relations: ['noteContents'] });
-  }
-
-  findOne(id: number, userId?: number) {
-    return this.noteRepo.findOne({
-      where: { id, ...(userId ? { userId } : {}) },
+  // ==================== BASIC CRUD ====================
+  async findAll(userId: number) {
+    return this.noteRepo.find({
+      where: { userId },
       relations: ['noteContents'],
+      order: { createdAt: 'DESC' },
     });
   }
 
-  async remove(id: number, userId?: number) {
-    const note = await this.noteRepo.findOne({
-      where: { id, ...(userId ? { userId } : {}) },
-    });
-
-    if (!note) return null;
-
-    await this.noteRepo.delete(id);
-
-    return { removed: true, id };
-  }
-
-  // ================================================================
-  //                  MÉTODOS CON FILTROS INTELIGENTES
-  // ================================================================
-
-  async create(input: { title: string; content: string; color?: string; tags?: string[] }, userId: number): Promise<Note> {
-    if (!input.title || !input.content) {
-      throw new BadRequestException('Title and content are required');
-    }
-
-    const note = this.noteRepo.create({
-      title: input.title,
-      levelOfDetail: 'medio',
-      userId,
-    });
-
-    return this.noteRepo.save(note);
-  }
-
-  async getAll(
-    filters: {
-      search?: string;
-      tags?: string;
-      color?: string;
-      sort?: 'newest' | 'oldest' | 'updated';
-      page?: number;
-      limit?: number;
-    },
-    userId: number
-  ): Promise<Note[]> {
-    const query = this.noteRepo.createQueryBuilder('note').where('note.userId = :userId', { userId });
-
-    if (filters.search) {
-      const q = `%${filters.search.toLowerCase()}%`;
-      query.andWhere('LOWER(note.title) LIKE :search', { search: q });
-    }
-
-    // Sort
-    const sort = filters.sort || 'newest';
-    if (sort === 'newest') {
-      query.orderBy('note.createdAt', 'DESC');
-    } else if (sort === 'oldest') {
-      query.orderBy('note.createdAt', 'ASC');
-    } else if (sort === 'updated') {
-      query.orderBy('note.updatedAt', 'DESC');
-    }
-
-    // Pagination
-    const page = filters.page || 1;
-    const limit = filters.limit || 20;
-    const skip = (page - 1) * limit;
-
-    return query.skip(skip).take(limit).getMany();
-  }
-
-  async getById(id: number, userId: number): Promise<Note> {
+  async findOne(id: number, userId: number) {
     const note = await this.noteRepo.findOne({
       where: { id, userId },
       relations: ['noteContents'],
     });
-
-    if (!note) {
-      throw new NotFoundException('Note not found');
-    }
+    if (!note) throw new NotFoundException('Note not found');
     return note;
   }
 
-  async update(
-    id: number,
-    input: { title?: string; content?: string; color?: string; tags?: string[] },
-    userId: number
-  ): Promise<Note> {
-    const note = await this.getById(id, userId);
-
-    if (input.title) note.title = input.title;
+  async update(id: number, updateNoteDto: UpdateNoteDto, userId: number) {
+    const note = await this.findOne(id, userId);
+    Object.assign(note, updateNoteDto);
     note.updatedAt = new Date();
-
     return this.noteRepo.save(note);
   }
 
-  async delete(id: number, userId: number): Promise<{ message: string }> {
-    const note = await this.noteRepo.findOne({
-      where: { id, userId },
-    });
-
-    if (!note) {
-      throw new NotFoundException('Note not found');
-    }
-
+  async remove(id: number, userId: number) {
+    const note = await this.findOne(id, userId);
+    await this.noteContentRepo.delete({ noteId: id } as any);
     await this.noteRepo.delete(id);
-
-    return { message: 'Note deleted' };
-  }
-
-  async search(
-    { query, tags, color }: { query?: string; tags?: string; color?: string },
-    userId: number
-  ): Promise<Note[]> {
-    const queryBuilder = this.noteRepo.createQueryBuilder('note').where('note.userId = :userId', { userId });
-
-    if (query) {
-      const q = `%${query.toLowerCase()}%`;
-      queryBuilder.andWhere('LOWER(note.title) LIKE :search', { search: q });
-    }
-
-    return queryBuilder.getMany();
+    return { success: true, deletedId: id };
   }
 }

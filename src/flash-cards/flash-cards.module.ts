@@ -5,9 +5,10 @@ import { FlashCardsController } from './flash-cards.controller';
 import { Card } from './entities/card.entity';
 import { FlashCard } from './entities/flash-card.entity';
 import { GroqModule } from '../groq/groq.module';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Card, FlashCard]), GroqModule],
+  imports: [TypeOrmModule.forFeature([Card, FlashCard]), GroqModule, AuthModule],
   controllers: [FlashCardsController],
   providers: [FlashCardsService],
 })

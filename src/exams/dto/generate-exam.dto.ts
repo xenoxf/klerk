@@ -1,4 +1,5 @@
 export class GenerateExamDto {
+  
   topic?: string;
   referenceText?: string;
   numberOfQuestions: number;
