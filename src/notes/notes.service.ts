@@ -1,8 +1,8 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { GroqService } from 'src/groq/groq.service';
-import { CreateNoteDto } from './dto/create-note.dto';
+import { GroqService } from '../groq/groq.service';
+//import { CreateNoteDto } from './dto/create-note.dto';
 import { UpdateNoteDto } from './dto/update-note.dto';
 import { Note } from './entities/note.entity';
 import { NoteContent } from './entities/note-content.entity';
@@ -13,7 +13,7 @@ export class NotesService {
     private readonly groqService: GroqService,
     @InjectRepository(Note) private readonly noteRepo: Repository<Note>,
     @InjectRepository(NoteContent) private readonly noteContentRepo: Repository<NoteContent>,
-  ) {}
+  ) { }
 
   private parseJSON(raw: string): any {
     try {

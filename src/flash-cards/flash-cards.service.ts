@@ -1,7 +1,7 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { GroqService } from 'src/groq/groq.service';
+import { GroqService } from '../groq/groq.service';
 import { UpdateFlashCardDto } from './dto/update-flash-card.dto';
 import { FlashCard } from './entities/flash-card.entity';
 
@@ -10,7 +10,7 @@ export class FlashCardsService {
   constructor(
     private readonly groqService: GroqService,
     @InjectRepository(FlashCard) private readonly flashCardRepo: Repository<FlashCard>,
-  ) {}
+  ) { }
 
   private parseJSON(raw: string): any {
     try {

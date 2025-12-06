@@ -15,13 +15,13 @@ import { FlashCardsService } from './flash-cards.service';
 import { CreateFlashCardDto, UpdateFlashCardDto } from './dto/create-flash-card.dto';
 import { FlashCardFiltersDto, CardFiltersDto } from './dto/filters.dto';
 import { JwtGuard } from '../auth/jwt/jwt.guard';
-import { ApiKeyGuard } from 'src/common/guards/api-key/api-key.guard';
+import { ApiKeyGuard } from '../common/guards/api-key/api-key.guard';
 
 @UseGuards(JwtGuard)
 @UseGuards(ApiKeyGuard)
 @Controller('flash-cards')
 export class FlashCardsController {
-  constructor(private readonly flashCardsService: FlashCardsService) {}
+  constructor(private readonly flashCardsService: FlashCardsService) { }
 
   // ==================== AI GENERATION ====================
   @Post('generate/topic_or_reference')

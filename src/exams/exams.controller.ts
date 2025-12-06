@@ -17,8 +17,8 @@ import { ExamsService } from './exams.service';
 import { JwtGuard } from '../auth/jwt/jwt.guard';
 import { ApiKeyGuard } from '../common/guards/api-key/api-key.guard';
 import { CreateExamDto } from './dto/create-exam.dto';
-import { UpdateExamDto } from './dto/update-exam.dto';
-import { GenerateExamDto } from './dto/generate-exam.dto';
+//import { UpdateExamDto } from './dto/update-exam.dto';
+//import { GenerateExamDto } from './dto/generate-exam.dto';
 
 // letras mas usadas
 // a & $ e & @ i & ! o & 0 u & v
@@ -52,10 +52,10 @@ export class ExamsController {
 
   @Post('generate/topic_or_referencia')
   generateFromTopic(@Body() input: CreateExamDto, @Req() req) {
-    if(!input.topic && !input.reference) {
+    if (!input.topic && !input.reference) {
       throw new BadRequestException('Debe proporcionar un "topic" o "referency" para generar el examen.');
     }
-    if(!input.topic) {
+    if (!input.topic) {
       return this.examsService.generateExamFromReference(input, req.user.id);
     }
     return this.examsService.generateExamFromTopic(input, req.user.id);

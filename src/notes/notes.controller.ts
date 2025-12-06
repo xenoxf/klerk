@@ -2,21 +2,21 @@ import {
   Controller,
   Get,
   Post,
-  Patch,
+  // Patch,
   Delete,
   Body,
   Param,
   UseGuards,
-  Query,
+  // Query,
   ParseIntPipe,
   Req,
   BadRequestException,
 } from '@nestjs/common';
-import { Request } from 'express';
+//import { Request } from 'express';
 import { NotesService } from './notes.service';
-import { UpdateNoteDto } from './dto/update-note.dto';
-import { JwtGuard } from 'src/auth/jwt/jwt.guard';
-import { ApiKeyGuard } from 'src/common/guards/api-key/api-key.guard';
+//import { UpdateNoteDto } from './dto/update-note.dto';
+import { JwtGuard } from '../auth/jwt/jwt.guard';
+import { ApiKeyGuard } from '../common/guards/api-key/api-key.guard';
 
 @Controller('notes')
 @UseGuards(JwtGuard)
