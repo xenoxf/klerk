@@ -1,8 +1,8 @@
 // groq.service.ts
 import { Injectable } from '@nestjs/common';
 import Groq from 'groq-sdk';
-import { CreateExamDto } from '../exams/dto/create-exam.dto';
-import { GenerateExamDto } from './dto/generate-exam.dto';
+//import { CreateExamDto } from '../exams/dto/create-exam.dto';
+//import { GenerateExamDto } from './dto/generate-exam.dto';
 
 @Injectable()
 export class GroqService {
@@ -82,7 +82,7 @@ Reglas:
       };
     }
   }
-    // ============================================================
+  // ============================================================
   // 🔥 FUNCIÓN ESPECIAL PARA FLASHCARDS
   // ============================================================
   async generateFlashcards(prompt: string) {
@@ -131,14 +131,14 @@ REGLAS:
       // Intento de parseo directo
       try {
         return JSON.parse(raw);
-      } catch (err) {}
+      } catch (err) { }
 
       // Si viene con basura -> intento extraer el JSON interno
       const match = raw.match(/\{[\s\S]*\}/);
       if (match) {
         try {
           return JSON.parse(match[0]);
-        } catch (err) {}
+        } catch (err) { }
       }
 
       // Último recurso -> retorno estandarizado
