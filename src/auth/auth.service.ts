@@ -11,8 +11,8 @@ import { UsersService } from '../users/users.service';
 import { CreateAuthDto } from './dto/create-auth.dto';
 import { LoginAuthDto } from './dto/login-auth.dto';
 import { MailService } from './mail.service';
-import { IsEmail } from 'class-validator';
-import { User } from 'src/users/entities/user.entity';
+//import { IsEmail } from 'class-validator';
+//import { User } from 'src/users/entities/user.entity';
 
 @Injectable()
 export class AuthService {
