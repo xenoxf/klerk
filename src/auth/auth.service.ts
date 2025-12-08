@@ -125,7 +125,7 @@ export class AuthService {
 
     // Si existe → error
     if (userExist) {
-      throw new BadRequestException('Usuario ya existe');
+      throw new BadRequestException('verifica tu email, ya está registrado.');
     }
 
     const hash = await bcrypt.hash(dto.password, 10);
