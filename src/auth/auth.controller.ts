@@ -52,7 +52,7 @@ export class AuthController {
     // Redirige a Google automáticamente
   }
 
-  @Get('google/callback')
+  @Post('google/callback')
   @UseGuards(AuthGuard('google'))
   async googleCallback(@Req() req, @Res() res: Response) {
     try {
