@@ -6,6 +6,8 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
+import { OAuth2Client } from "google-auth-library";
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 import { UsersService } from '../users/users.service';
 import { CreateAuthDto } from './dto/create-auth.dto';
@@ -188,76 +190,97 @@ export class AuthService {
     };
   }
   async getGoogleAuthUrl() {
-    try {
-      const googleClientId = process.env.GOOGLE_CLIENT_ID;
+  const client = process.env.GOOGLE_CLIENT_ID;
+  const redirect = `${process.env.BACKEND_URL}/auth/google/callback`;
+  const scope = 'openid profile email';
+  
+  return {
+    authUrl:
+      `https://accounts.google.com/o/oauth2/v2/auth?client_id=${client}` +
+      `&redirect_uri=${encodeURIComponent(redirect)}` +
+      `&response_type=code&scope=${encodeURIComponent(scope)}`
+  };
+}
 
-      // Usa SIEMPRE el mismo callback que la GoogleStrategy
-      const googleCallbackUrl = `${process.env.BACKEND_URL}/auth/google/callback`;
+async verifyToken(token: string) {
+  try {
+    return { valid: true, payload: this.jwtService.verify(token) };
+  } catch {
+    return { valid: false, error: 'Token inválido' };
+  }
+}
 
-      const scope = encodeURIComponent('openid profile email');
+async loginWithGoogle(googleUser: any) {
+  let user = await this.usersService.findByEmail(googleUser.email);
 
-      const authUrl =
-        `https://accounts.google.com/o/oauth2/v2/auth?client_id=${googleClientId}` +
-        `&redirect_uri=${encodeURIComponent(googleCallbackUrl)}` +
-        `&response_type=code&scope=${scope}`;
-
-      return { authUrl };
-    } catch (error) {
-      console.error('❌ Error generando Google Auth URL:', error);
-      throw new BadRequestException('Error al generar URL de autenticación');
-    }
+  if (!user) {
+    user = await this.usersService.createGoogle({
+      email: googleUser.email,
+      name: googleUser.name,
+      picture: googleUser.picture,
+      provider: 'google',
+      providerId: googleUser.providerId,
+      emailVerified: true,
+    });
   }
 
-  verifyToken(token: string) {
-    try {
-      const payload = this.jwtService.verify(token);
-      return {
-        valid: true,
-        payload,
-      };
-    } catch (error) {
-      return {
-        valid: false,
-        error: 'Token inválido',
-      };
-    }
-  }
+  const token = this.jwtService.sign({ sub: user.id, email: user.email });
 
-  /**
-   * 5️⃣ Login con Google (datos vienen desde GoogleStrategy → req.user)
-   */
-  async loginWithGoogle(googleUser: any) {
-    // googleUser viene desde GoogleStrategy:
-    // { id, email, name, picture, provider, providerId }
+  return { token, user };
+}
+async loginWithGoogle4(idToken: string) {
+  try {
+    if (!idToken) throw new Error("ID Token requerido");
 
-    let user = await this.usersService.findByEmail(googleUser.email);
+    // Verificación segura con Google
+    const ticket = await googleClient.verifyIdToken({
+      idToken,
+      audience: process.env.GOOGLE_CLIENT_ID
+    });
+
+    const payload = ticket.getPayload();
+    if (!payload) throw new Error("Token inválido");
+
+    const { email, name, picture, sub, email_verified } = payload;
+
+    if (!email) throw new Error("Google no devolvió email");
+
+    // Buscar usuario
+    let user = await this.usersService.findByEmail(email);
 
     // Si no existe lo creamos automáticamente
     if (!user) {
       user = await this.usersService.createGoogle({
-        email: googleUser.email,
-        name: googleUser.name,
-        picture: googleUser.picture,
-        provider: 'google',
-        providerId: googleUser.providerId,
-        emailVerified: true,
+        email,
+        name: name || "Sin nombre",
+        picture,
+        providerId: sub,
+        emailVerified: email_verified ?? true,
+        provider: "google"
       });
     }
 
-    // Generar token
-    const token = this.jwtService.sign({
-      sub: user.id,
-      email: user.email,
-    });
+    // Crear JWT del sistema
+    const token = this.jwtService.sign(
+      { sub: user.id, email: user.email },
+      { expiresIn: "7d" } // 🔥 le añadí expiración real
+    );
 
     return {
       token,
       user: {
+        id: user.id,
         email: user.email,
         name: user.name,
         picture: user.picture,
-        sub: user.id,
-      },
+      }
     };
+
+  } catch (error) {
+    console.error("❌ Error login Google:", error);
+    throw new Error(error.message || "Error autenticando con Google");
   }
+}
+
+
 }
