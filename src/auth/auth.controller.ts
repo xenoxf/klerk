@@ -45,14 +45,15 @@ export class AuthController {
     return this.authService.register(dto);
   }
 
-  /* ============= GOOGLE OAUTH ============= */
   @Get('google')
   @UseGuards(AuthGuard('google'))
   async googleAuth() {
-    // Redirige a Google automáticamente
+    // Este método se ejecuta automáticamente
+    // Redirige a Google para login
   }
 
-  @Post('google/callback')
+  // 2. Callback de Google (IMPORTANTE: debe ser GET)
+  @Get('google/callback')  // ✅ GET, no POST
   @UseGuards(AuthGuard('google'))
   async googleCallback(@Req() req, @Res() res: Response) {
     try {
