@@ -1,6 +1,7 @@
 // groq.service.ts
 import { Injectable } from '@nestjs/common';
 import Groq from 'groq-sdk';
+import { parse } from 'path/win32';
 //import { CreateExamDto } from '../exams/dto/create-exam.dto';
 //import { GenerateExamDto } from './dto/generate-exam.dto';
 
@@ -182,7 +183,7 @@ REGLAS:
 
       // Intentar parsear JSON
       try {
-        return raw;
+        return JSON.parse(raw);
       } catch (err) {
         return {
           type: 'answer',
