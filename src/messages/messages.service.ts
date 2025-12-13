@@ -1,9 +1,10 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Message } from './entities/message.entity';
 import { Chat } from './entities/chat.entity';
 import { GroqService } from '../groq/groq.service';
+import { title } from 'process';
 
 @Injectable()
 export class MessagesService {
@@ -32,68 +33,12 @@ export class MessagesService {
     return title.trim();
   }
 
-  // Enviar mensaje y obtener respuesta de IA
-  async sendMessage(prompt: string, userId: number, chatId: number) {
-    // Obtener o crear el chat
-    let chat = await this.chatRepo.findOne({ where: { userId, id: chatId } });
-    let isNewChat = false;
-
-    if (!chat) {
-      isNewChat = true;
-      const title = await this.generateChatTitle(prompt);
-      chat = this.chatRepo.create({ userId, title });
-      await this.chatRepo.save(chat);
-    }
-
-    // Obtener historial de mensajes del chat
-    const history = await this.messageRepo.find({
-      where: { chat },
-      order: { createdAt: 'ASC' },
-    });
-
-    // Construir historial de conversación
-    const conversationHistory = history.map((msg) => [
-      { role: 'user' as const, content: (msg as any).message || (msg as any).prompt || '' },
-      { role: 'assistant' as const, content: (msg as any).response || '' },
-    ]).flat();
-
-    // Obtener respuesta de IA
-    const systemPrompt =
-      'Eres un asistente educativo experto. Proporciona respuestas claras, precisas y educativas. Sé conciso pero detallado cuando sea necesario.';
-
-    const response = await this.groqService.chatWithHistory(
-      [...conversationHistory, { role: 'user', content: prompt }],
-      systemPrompt,
-    );
-
-    // Crear y guardar el mensaje
-    const newMessage = this.messageRepo.create({
-      message: prompt,
-      response,
-      userId,
-      chat,
-    } as any);
-    await this.messageRepo.save(newMessage);
-
-    return {
-      success: true,
-      isNewChat,
-      chat: {
-        id: (chat as any).id,
-        title: chat.title,
-      },
-      message: {
-        id: (newMessage as any).id,
-        prompt,
-        response,
-        createdAt: (newMessage as any).createdAt,
-      },
-    };
-  }
-
   // ==================== PROCESS MESSAGE WITH AI ====================
 
-  async sendMessageWithAIResponse(input: { prompt: string; chatId?: number }, userId: number) {
+  async sendMessageWithAIResponse(
+    input: { prompt: string; chatId?: number },
+    userId: number,
+  ) {
     if (!input.prompt) {
       throw new BadRequestException('Prompt is required');
     }
@@ -106,35 +51,35 @@ export class MessagesService {
       });
 
       if (!chat) {
-        throw new NotFoundException('Chat not found');
+        chat = await this.createChat(userId, title);
       }
     } else {
       // Create new chat if not provided
-      chat = this.chatRepo.create({
-        title: input.prompt.substring(0, 50),
-        userId,
-      });
-      chat = await this.chatRepo.save(chat);
+      chat = await this.createChat(userId, title);
     }
 
     try {
       // Get AI response
-      const aiResponse = await this.groqService.chat(input.prompt);
+      const aiResponse = await this.groqService.chatMessage(input.prompt);
 
       if (!aiResponse || typeof aiResponse !== 'object') {
         throw new BadRequestException('Invalid AI response');
       }
+      const createdAt = new Date().toISOString();
 
-      const responseText = typeof aiResponse === 'object' 
-        ? JSON.stringify(aiResponse) 
-        : String(aiResponse);
+      const responseText =
+        typeof aiResponse === 'object'
+          ? JSON.stringify(aiResponse)
+          : String(aiResponse);
 
       // Save user message
       const userMessage = this.messageRepo.create({
         prompt: input.prompt,
-        response: `[User]: ${input.prompt}`,
+        response: responseText,
         chat,
         userId,
+        chatId: chat.id,
+        createdAt,
       });
       await this.messageRepo.save(userMessage);
 
@@ -144,28 +89,17 @@ export class MessagesService {
         response: `[AI]: ${responseText}`,
         chat,
         userId,
+        createdAt,
       });
       await this.messageRepo.save(aiMessage);
 
-      return {
-        chat,
-        messages: [userMessage, aiMessage],
-        aiResponse: responseText,
-      };
+      return userMessage;
     } catch (error) {
-      throw new BadRequestException(`Failed to process message: ${error.message}`);
+      throw new BadRequestException(
+        `Failed to process message: ${error.message}`,
+      );
     }
   }
-
-  async createChatWithTitle(input: { title?: string }, userId: number) {
-    const chat = this.chatRepo.create({
-      title: input.title || `Chat ${new Date().toISOString().split('T')[0]}`,
-      userId,
-    });
-
-    return await this.chatRepo.save(chat);
-  }
-
   // Obtener todos los chats del usuario
   async getUserChats(userId: number) {
     const chats = await this.chatRepo.find({
@@ -183,6 +117,15 @@ export class MessagesService {
     }));
   }
 
+  async createChat(userId: number, title: string) {
+    const chat = this.chatRepo.create({
+      title,
+      userId,
+      createdAt: new Date().toISOString(),
+    });
+    return this.chatRepo.save(chat);
+  }
+
   // Obtener mensajes de un chat
   async getChatMessages(chatId: number, userId: number) {
     const chat = await this.chatRepo.findOne({
@@ -195,12 +138,13 @@ export class MessagesService {
     return {
       chatId: (chat as any).id,
       title: chat.title,
-      messages: (chat as any).messages?.map((msg) => ({
-        id: (msg as any).id,
-        prompt: msg.mensaje,
-        response: msg.response,
-        createdAt: msg.createdAt,
-      })) || [],
+      messages:
+        (chat as any).messages?.map((msg) => ({
+          id: (msg as any).id,
+          prompt: msg.mensaje,
+          response: msg.response,
+          createdAt: msg.createdAt,
+        })) || [],
     };
   }
 

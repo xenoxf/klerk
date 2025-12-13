@@ -1,11 +1,14 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Exam } from './entities/exam.entity';
 import { ExamQuestion } from './entities/examQuestion.entity';
 import { ExamOption } from './entities/exam-option.entity';
 import { CreateExamDto } from './dto/create-exam.dto';
-import { UpdateExamDto } from './dto/update-exam.dto';
 import { GroqService } from '../groq/groq.service';
 import { AI_PROMPTS } from '../groq/AI_PROMPTS';
 
@@ -13,7 +16,8 @@ import { AI_PROMPTS } from '../groq/AI_PROMPTS';
 export class ExamsService {
   constructor(
     @InjectRepository(Exam) private examRepo: Repository<Exam>,
-    @InjectRepository(ExamQuestion) private questionRepo: Repository<ExamQuestion>,
+    @InjectRepository(ExamQuestion)
+    private questionRepo: Repository<ExamQuestion>,
     @InjectRepository(ExamOption) private optionRepo: Repository<ExamOption>,
     private readonly groqService: GroqService,
   ) {}
@@ -22,14 +26,20 @@ export class ExamsService {
 
   async generateExamFromTopic(input: CreateExamDto, userId: number) {
     if (!input.topic || input.numberOfQuestions <= 0) {
-      throw new BadRequestException('Topic and valid numberOfQuestions are required');
+      throw new BadRequestException(
+        'Topic and valid numberOfQuestions are required',
+      );
     }
 
     if (!['easy', 'medium', 'hard'].includes(input.difficulty)) {
       throw new BadRequestException('Invalid difficulty level');
     }
 
-    const prompt = AI_PROMPTS.generateExamFromTopic(input.topic, input.numberOfQuestions, input.difficulty);
+    const prompt = AI_PROMPTS.generateExamFromTopic(
+      input.topic,
+      input.numberOfQuestions,
+      input.difficulty,
+    );
 
     try {
       const response = await this.groqService.chat(prompt);
@@ -40,7 +50,12 @@ export class ExamsService {
 
       const { title, description, questions } = response as any;
 
-      if (!title || !questions || !Array.isArray(questions) || questions.length === 0) {
+      if (
+        !title ||
+        !questions ||
+        !Array.isArray(questions) ||
+        questions.length === 0
+      ) {
         throw new BadRequestException('AI response missing required fields');
       }
 
@@ -48,6 +63,7 @@ export class ExamsService {
         title,
         description: description || `Exam about ${input.topic}`,
         userId,
+        createdAt: new Date().toISOString(),
       });
 
       const savedExam = await this.examRepo.save(exam);
@@ -83,14 +99,20 @@ export class ExamsService {
   // ==================== GENERATE EXAM FROM REFERENCIA ====================
   async generateExamFromReference(input: CreateExamDto, userId: number) {
     if (!input.reference || input.numberOfQuestions <= 0) {
-      throw new BadRequestException('Reference text and valid numberOfQuestions are required');
+      throw new BadRequestException(
+        'Reference text and valid numberOfQuestions are required',
+      );
     }
 
     if (!['easy', 'medium', 'hard'].includes(input.difficulty)) {
       throw new BadRequestException('Invalid difficulty level');
     }
 
-    const prompt = AI_PROMPTS.generateExamFromReference(input.reference, input.numberOfQuestions, input.difficulty);
+    const prompt = AI_PROMPTS.generateExamFromReference(
+      input.reference,
+      input.numberOfQuestions,
+      input.difficulty,
+    );
 
     try {
       const response = await this.groqService.chat(prompt);
@@ -101,7 +123,12 @@ export class ExamsService {
 
       const { title, description, questions } = response as any;
 
-      if (!title || !questions || !Array.isArray(questions) || questions.length === 0) {
+      if (
+        !title ||
+        !questions ||
+        !Array.isArray(questions) ||
+        questions.length === 0
+      ) {
         throw new BadRequestException('AI response missing required fields');
       }
 
@@ -109,6 +136,7 @@ export class ExamsService {
         title,
         description: description || 'Exam generated from reference text',
         userId,
+        createdAt: new Date().toISOString(),
       });
 
       const savedExam = await this.examRepo.save(exam);
@@ -137,12 +165,13 @@ export class ExamsService {
 
       return savedExam;
     } catch (error) {
-      throw new BadRequestException(`Error generating exam from reference: ${error.message}`);
+      throw new BadRequestException(
+        `Error generating exam from reference: ${error.message}`,
+      );
     }
   }
 
   // ==================== BASIC CRUD ====================
-
 
   async getAll(userId: number) {
     return this.examRepo.find({

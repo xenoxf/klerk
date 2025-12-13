@@ -20,7 +20,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (config: ConfigService) => ({
-        secret: config.get<string>('JWT_SECRET'),   // ⬅️ AQUÍ LEE LA VAR
+        secret: config.get<string>('JWT_SECRET'), // ⬅️ AQUÍ LEE LA VAR
         signOptions: { expiresIn: '1d' },
       }),
       inject: [ConfigService],
@@ -31,15 +31,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 
   controllers: [AuthController],
 
-  providers: [
-    AuthService,
-    MailService,
-    GoogleStrategy,
-  ],
+  providers: [AuthService, MailService, GoogleStrategy],
 
-  exports: [
-    JwtModule,
-    PassportModule
-  ],
+  exports: [JwtModule, PassportModule],
 })
 export class AuthModule {}

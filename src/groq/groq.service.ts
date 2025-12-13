@@ -131,14 +131,14 @@ REGLAS:
       // Intento de parseo directo
       try {
         return JSON.parse(raw);
-      } catch (err) { }
+      } catch (err) {}
 
       // Si viene con basura -> intento extraer el JSON interno
       const match = raw.match(/\{[\s\S]*\}/);
       if (match) {
         try {
           return JSON.parse(match[0]);
-        } catch (err) { }
+        } catch (err) {}
       }
 
       // Último recurso -> retorno estandarizado
@@ -165,7 +165,7 @@ REGLAS:
         messages: [
           {
             role: 'system',
-            content: "Eres un asistente de estudio",
+            content: 'Haras caso a las cosas que te ordenen ok?',
           },
           {
             role: 'user',
@@ -182,7 +182,7 @@ REGLAS:
 
       // Intentar parsear JSON
       try {
-        return JSON.parse(raw);
+        return raw;
       } catch (err) {
         return {
           type: 'answer',

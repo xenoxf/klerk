@@ -1,4 +1,11 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToMany, ManyToOne } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  ManyToMany,
+  ManyToOne,
+} from 'typeorm';
 import { Chat } from './chat.entity';
 
 @Entity('messages')
@@ -10,7 +17,7 @@ export class Message {
   response: string;
 
   @Column()
-  prompt:string;
+  prompt: string;
 
   @CreateDateColumn()
   createdAt: Date;

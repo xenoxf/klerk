@@ -1,4 +1,8 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { GroqService } from '../groq/groq.service';
@@ -12,8 +16,9 @@ export class NotesService {
   constructor(
     private readonly groqService: GroqService,
     @InjectRepository(Note) private readonly noteRepo: Repository<Note>,
-    @InjectRepository(NoteContent) private readonly noteContentRepo: Repository<NoteContent>,
-  ) { }
+    @InjectRepository(NoteContent)
+    private readonly noteContentRepo: Repository<NoteContent>,
+  ) {}
 
   private parseJSON(raw: string): any {
     try {
@@ -29,21 +34,28 @@ export class NotesService {
   }
 
   // ==================== GENERATE NOTE FROM TOPIC ====================
-  async generateFromTopic(input: {
-    topic: string;
-    numberOfNotes: number;
-    levelOfDetail: 'breve' | 'medio' | 'detallado';
-  }, userId: number) {
+  async generateFromTopic(
+    input: {
+      topic: string;
+      numberOfNotes: number;
+      levelOfDetail: 'breve' | 'medio' | 'detallado';
+    },
+    userId: number,
+  ) {
     if (!input.topic || input.numberOfNotes <= 0) {
-      throw new BadRequestException('Topic and valid numberOfNotes are required');
+      throw new BadRequestException(
+        'Topic and valid numberOfNotes are required',
+      );
     }
 
     if (!['breve', 'medio', 'detallado'].includes(input.levelOfDetail)) {
-      throw new BadRequestException('Invalid levelOfDetail. Must be: breve, medio, or detallado');
+      throw new BadRequestException(
+        'Invalid levelOfDetail. Must be: breve, medio, or detallado',
+      );
     }
 
-    const instruction = `Eres un experto educativo. Genera ${input.numberOfNotes} nota(s) académica(s) detallada(s) en formato JSON únicamente sobre el tema: "${input.topic}". 
-    
+    const instruction = `Eres un experto educativo. Genera ${input.numberOfNotes} nota(s) académica(s) detallada(s) en formato JSON únicamente sobre el tema: "${input.topic}".
+
 Nivel de detalle: ${input.levelOfDetail}.
 
 El JSON debe tener SOLO un array "notes" donde cada elemento tiene: { title: string (título descriptivo), contents: array de { type: "text"|"list"|"code", content: string | string[] } }.
@@ -72,7 +84,9 @@ Responde SOLO con JSON válido, sin marcas de código.`;
           for (const content of noteData.contents) {
             const noteContent = this.noteContentRepo.create({
               title: noteData.title,
-              content: Array.isArray(content.content) ? JSON.stringify(content.content) : content.content,
+              content: Array.isArray(content.content)
+                ? JSON.stringify(content.content)
+                : content.content,
               type: content.type || 'text',
               order,
               noteId: (note as any).id,
@@ -90,24 +104,33 @@ Responde SOLO con JSON válido, sin marcas de código.`;
         createdNotes.push(savedNote);
       }
 
-      return { success: true, totalCreated: createdNotes.length, notes: createdNotes };
+      return { success: true, notes: createdNotes };
     } catch (error) {
-      throw new BadRequestException(`Error generating notes from topic: ${error.message}`);
+      throw new BadRequestException(
+        `Error generating notes from topic: ${error.message}`,
+      );
     }
   }
 
   // ==================== GENERATE NOTE FROM REFERENCE ====================
-  async generateFromReference(input: {
-    referenceText: string;
-    numberOfNotes: number;
-    levelOfDetail: 'breve' | 'medio' | 'detallado';
-  }, userId: number) {
+  async generateFromReference(
+    input: {
+      referenceText: string;
+      numberOfNotes: number;
+      levelOfDetail: 'breve' | 'medio' | 'detallado';
+    },
+    userId: number,
+  ) {
     if (!input.referenceText || input.numberOfNotes <= 0) {
-      throw new BadRequestException('Reference text and valid numberOfNotes are required');
+      throw new BadRequestException(
+        'Reference text and valid numberOfNotes are required',
+      );
     }
 
     if (!['breve', 'medio', 'detallado'].includes(input.levelOfDetail)) {
-      throw new BadRequestException('Invalid levelOfDetail. Must be: breve, medio, or detallado');
+      throw new BadRequestException(
+        'Invalid levelOfDetail. Must be: breve, medio, or detallado',
+      );
     }
 
     const instruction = `Eres un experto educativo. Analiza el siguiente texto y genera ${input.numberOfNotes} nota(s) académica(s) estructurada(s) en formato JSON únicamente.
@@ -144,7 +167,9 @@ Responde SOLO con JSON válido, sin marcas de código.`;
           for (const content of noteData.contents) {
             const noteContent = this.noteContentRepo.create({
               title: noteData.title,
-              content: Array.isArray(content.content) ? JSON.stringify(content.content) : content.content,
+              content: Array.isArray(content.content)
+                ? JSON.stringify(content.content)
+                : content.content,
               type: content.type || 'text',
               order,
               noteId: (note as any).id,
@@ -162,9 +187,11 @@ Responde SOLO con JSON válido, sin marcas de código.`;
         createdNotes.push(savedNote);
       }
 
-      return { success: true, totalCreated: createdNotes.length, notes: createdNotes };
+      return { success: true, notes: createdNotes };
     } catch (error) {
-      throw new BadRequestException(`Error generating notes from reference: ${error.message}`);
+      throw new BadRequestException(
+        `Error generating notes from reference: ${error.message}`,
+      );
     }
   }
 
