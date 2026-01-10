@@ -35,8 +35,7 @@ export class AuthService {
         sub: user.id, 
         email: user.email,
         type: 'access' 
-      },
-      { expiresIn: '7d' }
+      }
     );
   }
 

@@ -7,33 +7,40 @@ import { MessagesModule } from './messages/messages.module';
 import { NotesModule } from './notes/notes.module';
 import { FlashCardsModule } from './flash-cards/flash-cards.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-//import { PerfilModule } from './perfil/perfil.module';
 import { ExamsModule } from './exams/exams.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
-//import { JwtModule } from '@nestjs/jwt';
 import { GroqModule } from './groq/groq.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    // Configuración del módulo de configuración
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: '.env', // Especifica explícitamente el archivo .env
+    }),
 
+    // Configuración de TypeORM
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
-      useFactory: (config: ConfigService) => ({
+      useFactory: (configService: ConfigService) => ({
         type: 'postgres',
-        host: String(config.get('DB_HOST')),
-        port: Number(config.get('DB_PORT')),
-        username: String(config.get('DB_USER')),
-        password: String(config.get('DB_PASS')),
-        database: String(config.get('DB_NAME')),
+        host: configService.get<string>('DB_HOST'),
+        port: configService.get<number>('DB_PORT'),
+        username: configService.get<string>('DB_USER'),
+        password: configService.get<string>('DB_PASS'),
+        database: configService.get<string>('DB_NAME'),
         ssl:
-          config.get('SSL') === 'true' ? { rejectUnauthorized: false } : false,
+          configService.get<string>('SSL') === 'true'
+            ? { rejectUnauthorized: false }
+            : false,
         autoLoadEntities: true,
-        synchronize: true, // ❗ solo en desarrollo
+        synchronize: true, // ⚠️ Solo en desarrollo - cambiar a false en producción
+        logging: true, // Agrega logging para ver las consultas SQL
       }),
       inject: [ConfigService],
     }),
 
+    // Tus módulos
     UsersModule,
     AuthModule,
     MessagesModule,
@@ -45,4 +52,4 @@ import { GroqModule } from './groq/groq.module';
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule { }
+export class AppModule {}
