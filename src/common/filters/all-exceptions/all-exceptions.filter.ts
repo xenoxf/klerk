@@ -1,52 +1,26 @@
-import {
-  ExceptionFilter,
-  Catch,
-  ArgumentsHost,
-  HttpException,
-  HttpStatus,
-  Logger,
-} from '@nestjs/common';
+import { ExceptionFilter, Catch, ArgumentsHost, Logger } from '@nestjs/common';
 import { Request, Response } from 'express';
-import { hostname } from 'os';
-import { timestamp } from 'rxjs';
+
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
-  private readonly logger = new Logger(AllExceptionsFilter.name);
+  private readonly logger = new Logger('Exceptions');
 
-  catch(exception: any, host: ArgumentsHost) {
+  catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
-    const response = ctx.getResponse<Response>();
-    const request = ctx.getRequest<Request>();
+    const res = ctx.getResponse<Response>();
+    const req = ctx.getRequest<Request>();
 
-    const isHttp = exception instanceof HttpException;
+    const status = exception['status'] || 500;
+    const message = exception['message'] || 'Error interno';
 
-    const status = isHttp
-      ? exception.getStatus()
-      : HttpStatus.INTERNAL_SERVER_ERROR;
-
-    const message = isHttp
-      ? exception.getResponse()
-      : {
-          message: exception.message || 'Internal server error',
-          stack: exception.stack,
-        };
-
-    const bytes = Buffer.byteLength(JSON.stringify(request.body || {}));
-
-    const errorResponse = {
-      statusCode: status,
-      path: request.path,
-      method: request.method,
+    const error = {
+      status,
+      path: req.path,
       timestamp: new Date().toISOString(),
       message,
-      ip: request.ip,
-      hostname: request.hostname,
-      host: request.host,
-      bytesOfBody: bytes,
     };
 
-    this.logger.error(errorResponse);
-    response.status(status).json(errorResponse);
+    this.logger.error(JSON.stringify(error));
+    res.status(status).json(error);
   }
 }
-
