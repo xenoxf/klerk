@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
+import { AuthGuard } from '@nestjs/passport';
 
 @Injectable()
 export class JwtGuard implements CanActivate {
@@ -47,5 +48,20 @@ export class JwtGuard implements CanActivate {
     if (type !== 'Bearer' || !token) return null;
 
     return token;
+  }
+}
+
+@Injectable()
+export class JwtAuthGuard extends AuthGuard('jwt') {
+  canActivate(context: any) {
+    // Lógica personalizada si es necesaria
+    return super.canActivate(context);
+  }
+
+  handleRequest(err: any, user: any, info: any) {
+    if (err || !user) {
+      throw err || new Error('Unauthorized');
+    }
+    return user;
   }
 }

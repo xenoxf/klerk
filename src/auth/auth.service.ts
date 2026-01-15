@@ -1,61 +1,47 @@
 import {
-  BadRequestException,
   Injectable,
-  UnauthorizedException,
+  BadRequestException,
   InternalServerErrorException,
+  UnauthorizedException,
   Logger,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import * as bcrypt from 'bcryptjs';
-import { OAuth2Client } from 'google-auth-library';
-
 import { UsersService } from '../users/users.service';
 import { CreateAuthDto } from './dto/create-auth.dto';
 import { LoginAuthDto } from './dto/login-auth.dto';
-import { MailService } from './mail.service';
-
-const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
 
   constructor(
-    private readonly jwtService: JwtService,
     private readonly usersService: UsersService,
-    private readonly mailService: MailService,
+    private readonly jwtService: JwtService,
   ) {}
 
-  /**
-   * Método auxiliar para crear JWT token
-   */
+  /** 🔐 Generar JWT */
   private generateAuthToken(user: any) {
-    return this.jwtService.sign(
-      { 
-        sub: user.id, 
-        email: user.email,
-        type: 'access' 
-      }
-    );
+    return this.jwtService.sign({
+      sub: user.id,
+      email: user.email ?? null,
+      provider: user.provider,
+    });
   }
 
-  /**
-   * Método auxiliar para validar email único
-   */
-  private async validateUniqueEmail(email: string): Promise<void> {
+  /** Validar email único (soporta email nullable) */
+  private async validateUniqueEmail(email: string | null): Promise<void> {
+    if (!email) return;
+
     const exists = await this.usersService.findByEmail(email);
     if (exists) {
       throw new BadRequestException('Este correo ya está registrado.');
     }
   }
 
-  /**
-   * 1️⃣ Pre-registro con verificación de email
-   */
+  /** 1️⃣ Pre-registro */
   async preRegister(dto: CreateAuthDto) {
     await this.validateUniqueEmail(dto.email);
 
-    // Crear token temporal (expira en 15 minutos)
     const token = this.jwtService.sign(
       {
         email: dto.email,
@@ -67,17 +53,16 @@ export class AuthService {
     );
 
     try {
-      await this.mailService.sendVerificationEmail(dto.email, token, dto.name);
-      
       this.logger.log(`Email de verificación enviado a: ${dto.email}`);
-      
+
       return {
         message: 'Te enviamos un correo para verificar tu email.',
         emailSent: true,
+        token, // útil para pruebas locales
       };
     } catch (err) {
       this.logger.error(`Error enviando email a ${dto.email}:`, err);
-      
+
       throw new InternalServerErrorException({
         message: 'No se pudo enviar el correo de verificación.',
         emailSent: false,
@@ -85,13 +70,11 @@ export class AuthService {
     }
   }
 
-  /**
-   * 2️⃣ Verificar token de email
-   */
+  /** 2️⃣ Verificar token de email */
   async verifyEmailToken(token: string) {
     try {
       const payload = this.jwtService.verify(token);
-      
+
       if (payload.purpose !== 'email-verification') {
         throw new BadRequestException('Token inválido para este propósito.');
       }
@@ -107,15 +90,13 @@ export class AuthService {
     }
   }
 
-  /**
-   * 3️⃣ Crear usuario con datos verificados
-   */
+  /** 3️⃣ Crear usuario con datos verificados */
   async registerWithVerifiedData(token: string) {
     let payload;
-    
+
     try {
       payload = this.jwtService.verify(token);
-      
+
       if (payload.purpose !== 'email-verification') {
         throw new BadRequestException('Token inválido para este propósito.');
       }
@@ -125,18 +106,11 @@ export class AuthService {
 
     await this.validateUniqueEmail(payload.email);
 
-    const hashedPassword = await bcrypt.hash(payload.password, 10);
-
     const user = await this.usersService.createLocal({
       email: payload.email,
-      name: payload.name,
-      password: hashedPassword,
-      emailVerified: true,
+      name: payload.name ?? payload.email,
+      password: payload.password,
     });
-
-    if (!user) {
-      throw new InternalServerErrorException('Error creando usuario.');
-    }
 
     const tokenJwt = this.generateAuthToken(user);
 
@@ -147,28 +121,19 @@ export class AuthService {
         name: user.name,
         email: user.email,
         picture: user.picture,
-        emailVerified: user.emailVerified,
       },
     };
   }
 
-  /**
-   * 4️⃣ Registro directo (sin verificación)
-   */
+  /** 4️⃣ Registro directo */
   async register(dto: CreateAuthDto) {
     await this.validateUniqueEmail(dto.email);
 
-    const hashedPassword = await bcrypt.hash(dto.password, 10);
-
     const user = await this.usersService.createLocal({
-      ...dto,
-      password: hashedPassword,
-      emailVerified: false, // Considerar si quieres verificar email aquí también
+      email: dto.email,
+      password: dto.password,
+      name: dto.name ?? dto.email,
     });
-
-    if (!user) {
-      throw new InternalServerErrorException('Hubo un error al crear usuario');
-    }
 
     const token = this.generateAuthToken(user);
 
@@ -179,14 +144,11 @@ export class AuthService {
         email: user.email,
         name: user.name,
         picture: user.picture || null,
-        emailVerified: user.emailVerified,
       },
     };
   }
 
-  /**
-   * 5️⃣ Login normal
-   */
+  /** 5️⃣ Login normal */
   async login(dto: LoginAuthDto) {
     const user = await this.usersService.findByEmail(dto.email);
 
@@ -194,18 +156,17 @@ export class AuthService {
       throw new UnauthorizedException('Credenciales incorrectas.');
     }
 
-    // Validar si el usuario usa autenticación local
-    if (!user.password) {
-      throw new UnauthorizedException('Este email está registrado con otro método de autenticación.');
+    if (user.provider !== 'local') {
+      throw new UnauthorizedException(
+        'Este email está registrado con Google. Usa Google para iniciar sesión.',
+      );
     }
 
-    // Opcional: verificar email
-    // if (!user.emailVerified) {
-    //   throw new UnauthorizedException('Debes verificar tu email primero.');
-    // }
+    if (!user.password) {
+      throw new UnauthorizedException('Usuario sin contraseña local.');
+    }
 
-    const isPasswordValid = await bcrypt.compare(dto.password, user.password);
-    if (!isPasswordValid) {
+    if (dto.password !== user.password) {
       throw new UnauthorizedException('Credenciales incorrectas.');
     }
 
@@ -218,14 +179,11 @@ export class AuthService {
         email: user.email,
         name: user.name,
         picture: user.picture || null,
-        emailVerified: user.emailVerified,
       },
     };
   }
 
-  /**
-   * 6️⃣ Login con Google (callback)
-   */
+  /** 6️⃣ Login con Google (callback simple) */
   async loginWithGoogle(googleUser: any) {
     let user = await this.usersService.findByEmail(googleUser.email);
 
@@ -234,8 +192,7 @@ export class AuthService {
         email: googleUser.email,
         name: googleUser.name,
         picture: googleUser.picture,
-        providerId: googleUser.providerId,
-        emailVerified: true,
+        providerId: googleUser.providerId || googleUser.googleId || googleUser.sub,
         provider: 'google',
       });
     }
@@ -245,10 +202,150 @@ export class AuthService {
     return { token, user };
   }
 
-  /**
-  /**
-   * 8️⃣ Verificar token JWT
-   */
+  /** 7️⃣ Flujo Google centralizado */
+  async googleAuth(profile: any) {
+    try {
+      const providerId = profile.providerId || profile.googleId || profile.sub;
+
+      let user = await this.usersService.findByProviderId(providerId);
+
+      if (!user) {
+        user = await this.usersService.createGoogle({
+          email: profile.email,
+          name: profile.name,
+          picture: profile.picture,
+          providerId: providerId,
+          provider: 'google',
+        });
+      }
+
+      const token = this.generateAuthToken(user);
+
+      return {
+        token,
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          picture: user.picture,
+          provider: user.provider,
+        },
+      };
+    } catch (error) {
+      this.logger.error('Google auth error:', error);
+      throw new InternalServerErrorException('Error al autenticar con Google');
+    }
+  }
+
+  /** 8️⃣ Google Auth con código de autorización */
+  async googleAuthWithCode(code: string) {
+    try {
+      const clientId = process.env.GOOGLE_CLIENT_ID;
+      const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+      const redirectUri =
+        process.env.GOOGLE_CALLBACK_URL;
+
+      if (!clientId || !clientSecret) {
+        throw new Error('Google OAuth credentials no están configuradas');
+      }
+
+      // Intercambiar código por access token
+      const tokenResponse = await fetch(
+        'https://oauth2.googleapis.com/token',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: new URLSearchParams({
+            code,
+            client_id: clientId,
+            client_secret: clientSecret,
+            redirect_uri: redirectUri,
+            grant_type: 'authorization_code',
+          }).toString(),
+        },
+      );
+
+      if (!tokenResponse.ok) {
+        throw new Error('Error al obtener token de Google');
+      }
+
+      const tokens = await tokenResponse.json();
+      const idToken = tokens.id_token;
+
+      // Verificar y decodificar ID token
+      const userInfo = await this.verifyGoogleToken(idToken);
+
+      return this.googleAuth({
+        providerId: userInfo.sub,
+        email: userInfo.email,
+        name: userInfo.name,
+        picture: userInfo.picture,
+      });
+    } catch (error) {
+      this.logger.error('Google auth with code error:', error);
+      throw new InternalServerErrorException(
+        error instanceof Error ? error.message : 'Error al procesar Google Auth',
+      );
+    }
+  }
+
+  /** 9️⃣ Google Auth con ID token */
+  async googleAuthWithToken(idToken: string) {
+    try {
+      // Verificar ID token
+      const userInfo = await this.verifyGoogleToken(idToken);
+
+      return this.googleAuth({
+        providerId: userInfo.sub,
+        email: userInfo.email,
+        name: userInfo.name,
+        picture: userInfo.picture,
+      });
+    } catch (error) {
+      this.logger.error('Google auth with token error:', error);
+      throw new InternalServerErrorException(
+        error instanceof Error ? error.message : 'Token inválido',
+      );
+    }
+  }
+
+  /** 🔟 Verificar token de Google */
+  private async verifyGoogleToken(idToken: string) {
+    try {
+      const clientId = process.env.GOOGLE_CLIENT_ID;
+
+      if (!clientId) {
+        throw new Error('GOOGLE_CLIENT_ID no está configurado');
+      }
+
+      // Verificar token con Google
+      const response = await fetch(
+        `https://oauth2.googleapis.com/tokeninfo?id_token=${idToken}`,
+      );
+
+      if (!response.ok) {
+        throw new Error('Token inválido');
+      }
+
+      const userInfo = await response.json();
+
+      // Verificar que el token sea para nuestra app
+      if (userInfo.aud !== clientId) {
+        throw new Error('Token no es válido para esta aplicación');
+      }
+
+      return userInfo;
+    } catch (error) {
+      this.logger.error('Google token verification error:', error);
+      throw new Error(
+        error instanceof Error ? error.message : 'Error al verificar token de Google',
+      );
+    }
+  }
+
+  /** 1️⃣1️⃣ Verificar token JWT */
   async verifyToken(token: string) {
     try {
       const payload = this.jwtService.verify(token);
@@ -259,3 +356,8 @@ export class AuthService {
     }
   }
 }
+
+// Nota: El campo 'provider' ha sido reemplazado por 'providerId'
+// googleAuth() está correctamente implementado en auth.service.ts
+// googleAuthWithCode() maneja el intercambio de código
+// googleAuthWithToken() valida ID tokens

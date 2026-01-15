@@ -1,23 +1,32 @@
-import { IsEmail, IsOptional, IsString } from 'class-validator';
+import { IsString, IsEmail, IsOptional } from 'class-validator';
 
 export class CreateGoogleUserDto {
   @IsEmail()
   email: string;
 
   @IsString()
-  provider: string; // 'google'
+  name: string;
 
   @IsString()
-  providerId: string;
+  googleId: string;
 
   @IsOptional()
   @IsString()
-  name?: string;
+  avatar?: string;
 
   @IsOptional()
   @IsString()
   picture?: string;
 
-  // Al registrarse con Google se asume email verificado
-  emailVerified: boolean = true;
+  @IsOptional()
+  @IsString()
+  password?: string;
+
+  @IsOptional()
+  @IsString()
+  providerId?: string;
+
+  @IsOptional()
+  @IsString()
+  provider?: string; // Nueva propiedad opcional para el proveedor
 }

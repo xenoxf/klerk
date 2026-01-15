@@ -35,7 +35,7 @@ import { GroqModule } from './groq/groq.module';
             : false,
         autoLoadEntities: true,
         synchronize: true, // ⚠️ Solo en desarrollo - cambiar a false en producción
-        logging: true, // Agrega logging para ver las consultas SQL
+        // logging: true, // Agrega logging para ver las consultas SQL
       }),
       inject: [ConfigService],
     }),
@@ -52,4 +52,4 @@ import { GroqModule } from './groq/groq.module';
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule { }

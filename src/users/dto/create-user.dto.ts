@@ -22,7 +22,4 @@ export class CreateUserDto {
   @IsOptional()
   @IsString()
   name?: string;
-
-  @IsBoolean()
-  emailVerified?: boolean;
 }
