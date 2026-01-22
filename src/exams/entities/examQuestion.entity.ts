@@ -2,19 +2,20 @@ import { Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "ty
 import { ExamOption } from "./exam-option.entity";
 import { Exam } from "./exam.entity";
 
-// q a @
-
-@Entity()
+@Entity('exam_questions')
 export class ExamQuestion {
     @PrimaryGeneratedColumn()
-    id:  number;
+    id: number;
 
-    @Column({type: 'text'})
+    @Column({ type: 'text' })
     question: string;
 
-    @ManyToOne(() => Exam, (exam) => exam.questions)
+    @Column({ type: 'text', nullable: true })
+    explanation?: string;
+
+    @ManyToOne(() => Exam, (exam) => exam.questions, { onDelete: 'CASCADE' })
     exam: Exam;
 
-    @OneToMany(() => ExamOption, (option) => option.question, { cascade: true })
+    @OneToMany(() => ExamOption, (option) => option.question, { cascade: true, onDelete: 'CASCADE' })
     options: ExamOption[];
 }

@@ -26,6 +26,9 @@ export class Exam {
   totalQuestions: number;
 
   @Column({ nullable: true })
+  difficulty?: string;
+
+  @Column({ nullable: true })
   score?: number;
 
   @CreateDateColumn()

@@ -62,7 +62,9 @@ export class ExamsService {
       const exam = this.examRepo.create({
         title,
         description: description || `Exam about ${input.topic}`,
+        difficulty: input.difficulty,
         userId,
+        totalQuestions: input.numberOfQuestions,
         createdAt: new Date().toISOString(),
       });
 
@@ -73,10 +75,11 @@ export class ExamsService {
           throw new BadRequestException('Invalid question format from AI');
         }
 
-        const question = this.questionRepo.create({} as any);
-        (question as any).question = q.question;
-        (question as any).explanation = q.explanation || '';
-        (question as any).exam = savedExam;
+        const question = this.questionRepo.create({
+          question: q.question,
+          explanation: q.explanation || '',
+          exam: savedExam,
+        });
 
         const savedQuestion = await this.questionRepo.save(question);
 
@@ -84,8 +87,8 @@ export class ExamsService {
           const option = this.optionRepo.create({
             text: opt.text,
             isCorrect: opt.isCorrect,
+            question: savedQuestion,
           });
-          (option as any).question = savedQuestion;
           await this.optionRepo.save(option);
         }
       }
@@ -135,7 +138,9 @@ export class ExamsService {
       const exam = this.examRepo.create({
         title,
         description: description || 'Exam generated from reference text',
+        difficulty: input.difficulty,
         userId,
+        totalQuestions: input.numberOfQuestions,
         createdAt: new Date().toISOString(),
       });
 
@@ -146,10 +151,11 @@ export class ExamsService {
           throw new BadRequestException('Invalid question format from AI');
         }
 
-        const question = this.questionRepo.create({} as any);
-        (question as any).question = q.question;
-        (question as any).explanation = q.explanation || '';
-        (question as any).exam = savedExam;
+        const question = this.questionRepo.create({
+          question: q.question,
+          explanation: q.explanation || '',
+          exam: savedExam,
+        });
 
         const savedQuestion = await this.questionRepo.save(question);
 
@@ -157,8 +163,8 @@ export class ExamsService {
           const option = this.optionRepo.create({
             text: opt.text,
             isCorrect: opt.isCorrect,
+            question: savedQuestion,
           });
-          (option as any).question = savedQuestion;
           await this.optionRepo.save(option);
         }
       }

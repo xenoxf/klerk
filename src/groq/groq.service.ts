@@ -1,9 +1,7 @@
 // groq.service.ts
 import { Injectable } from '@nestjs/common';
 import Groq from 'groq-sdk';
-import { parse } from 'path/win32';
-//import { CreateExamDto } from '../exams/dto/create-exam.dto';
-//import { GenerateExamDto } from './dto/generate-exam.dto';
+import { AI_PROMPTS } from './AI_PROMPTS';
 
 @Injectable()
 export class GroqService {
@@ -11,53 +9,222 @@ export class GroqService {
     apiKey: process.env.GROQ_API_KEY,
   });
 
-  async chatMessage(prompt: string) {
+  // ==================== MÉTODOS ESPECÍFICOS USANDO PROMPTS MEJORADOS ====================
+
+  async generateExamFromTopic(topic: string, numberOfQuestions: number, difficulty: string) {
     try {
+      const prompt = AI_PROMPTS.generateExamFromTopic(topic, numberOfQuestions, difficulty);
+      
       const completion = await this.groq.chat.completions.create({
         model: 'llama-3.3-70b-versatile',
-
-        // Mensajes para obligar JSON limpio
         messages: [
           {
             role: 'system',
-            content: `
-Eres un asistente experto. SIEMPRE responde en JSON válido.
-Nunca uses markdown, ni bloques con backticks.
-El formato del JSON debe ser:
-
-{
-  "type": "answer",
-  "success": true,
-  "content": {
-    "explanation": "texto",
-    "code": {
-      "language": "string",
-      "source": "codigo aqui"
-    }
-  }
-}
-
-Reglas:
-- "code" es opcional.
-- Nunca incluyas comentarios tipo // o /* */ dentro del código.
-- No escapes el JSON. No lo metas en strings.
-- Nada fuera del JSON.
-`,
+            content: 'Responde EXCLUSIVAMENTE con JSON válido. Sin markdown, sin texto adicional.',
           },
           {
             role: 'user',
             content: prompt,
           },
         ],
+        temperature: 0.2,
+        max_tokens: 4096,
+      });
 
-        // Hace que la salida sea JSON más limpio
+      const raw = completion.choices[0]?.message?.content?.trim() || '';
+      return JSON.parse(raw);
+      
+    } catch (error) {
+      return {
+        error: true,
+        message: 'Error generando examen',
+        detail: error.message,
+      };
+    }
+  }
+
+  async generateExamFromReference(referenceText: string, numberOfQuestions: number, difficulty: string) {
+    try {
+      const prompt = AI_PROMPTS.generateExamFromReference(referenceText, numberOfQuestions, difficulty);
+      
+      const completion = await this.groq.chat.completions.create({
+        model: 'llama-3.3-70b-versatile',
+        messages: [
+          {
+            role: 'system',
+            content: 'Responde EXCLUSIVAMENTE con JSON válido. Sin markdown, sin texto adicional.',
+          },
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+        temperature: 0.2,
+        max_tokens: 4096,
+      });
+
+      const raw = completion.choices[0]?.message?.content?.trim() || '';
+      return JSON.parse(raw);
+      
+    } catch (error) {
+      return {
+        error: true,
+        message: 'Error generando examen desde referencia',
+        detail: error.message,
+      };
+    }
+  }
+
+  async generateNoteFromTopic(topic: string, numberOfNotes: number, levelOfDetail: string) {
+    try {
+      const prompt = AI_PROMPTS.generateNoteFromTopic(topic, numberOfNotes, levelOfDetail);
+      
+      const completion = await this.groq.chat.completions.create({
+        model: 'llama-3.3-70b-versatile',
+        messages: [
+          {
+            role: 'system',
+            content: 'Responde EXCLUSIVAMENTE con JSON válido. Sin markdown, sin texto adicional.',
+          },
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+        temperature: 0.2,
+        max_tokens: 4096,
+      });
+
+      const raw = completion.choices[0]?.message?.content?.trim() || '';
+      return JSON.parse(raw);
+      
+    } catch (error) {
+      return {
+        error: true,
+        message: 'Error generando notas',
+        detail: error.message,
+      };
+    }
+  }
+
+  async generateNoteFromReference(referenceText: string, numberOfNotes: number, levelOfDetail: string) {
+    try {
+      const prompt = AI_PROMPTS.generateNoteFromReference(referenceText, numberOfNotes, levelOfDetail);
+      
+      const completion = await this.groq.chat.completions.create({
+        model: 'llama-3.3-70b-versatile',
+        messages: [
+          {
+            role: 'system',
+            content: 'Responde EXCLUSIVAMENTE con JSON válido. Sin markdown, sin texto adicional.',
+          },
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+        temperature: 0.2,
+        max_tokens: 4096,
+      });
+
+      const raw = completion.choices[0]?.message?.content?.trim() || '';
+      return JSON.parse(raw);
+      
+    } catch (error) {
+      return {
+        error: true,
+        message: 'Error generando notas desde referencia',
+        detail: error.message,
+      };
+    }
+  }
+
+  async generateFlashcardsFromTopic(topic: string, numberOfCards: number) {
+    try {
+      const prompt = AI_PROMPTS.generateFlashcardsFromTopic(topic, numberOfCards);
+      
+      const completion = await this.groq.chat.completions.create({
+        model: 'llama-3.3-70b-versatile',
+        messages: [
+          {
+            role: 'system',
+            content: 'Responde EXCLUSIVAMENTE con JSON válido. Sin markdown, sin texto adicional.',
+          },
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+        temperature: 0.2,
+        max_tokens: 4096,
+      });
+
+      const raw = completion.choices[0]?.message?.content?.trim() || '';
+      return JSON.parse(raw);
+      
+    } catch (error) {
+      return {
+        error: true,
+        message: 'Error generando flashcards',
+        detail: error.message,
+      };
+    }
+  }
+
+  async generateFlashcardsFromReference(referenceText: string, numberOfCards: number) {
+    try {
+      const prompt = AI_PROMPTS.generateFlashcardsFromReference(referenceText, numberOfCards);
+      
+      const completion = await this.groq.chat.completions.create({
+        model: 'llama-3.3-70b-versatile',
+        messages: [
+          {
+            role: 'system',
+            content: 'Responde EXCLUSIVAMENTE con JSON válido. Sin markdown, sin texto adicional.',
+          },
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+        temperature: 0.2,
+        max_tokens: 4096,
+      });
+
+      const raw = completion.choices[0]?.message?.content?.trim() || '';
+      return JSON.parse(raw);
+      
+    } catch (error) {
+      return {
+        error: true,
+        message: 'Error generando flashcards desde referencia',
+        detail: error.message,
+      };
+    }
+  }
+
+  // ==================== MÉTODOS EXISTENTES (MANTENIDOS) ====================
+
+  async chatMessage(prompt: string) {
+    try {
+      const completion = await this.groq.chat.completions.create({
+        model: 'llama-3.3-70b-versatile',
+        messages: [
+          {
+            role: 'system',
+            content: 'Eres un asistente útil. Responde de forma clara.',
+          },
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
         temperature: 0.3,
         max_tokens: 4096,
       });
 
       const raw = completion.choices[0].message.content;
 
-      // Intentar parsear JSON
       try {
         return JSON.parse(raw);
       } catch (err) {
@@ -83,14 +250,11 @@ Reglas:
       };
     }
   }
-  // ============================================================
-  // 🔥 FUNCIÓN ESPECIAL PARA FLASHCARDS
-  // ============================================================
+
   async generateFlashcards(prompt: string) {
     try {
       const completion = await this.groq.chat.completions.create({
         model: 'llama-3.3-70b-versatile',
-
         messages: [
           {
             role: 'system',
@@ -114,7 +278,6 @@ REGLAS:
 - Prohibido usar markdown.
 - Prohibido usar backticks.
 - Prohibido agregar mensajes adicionales.
-- Si no puedes generar JSON, devuelve un error (pero aún en JSON).
 `,
           },
           {
@@ -122,19 +285,16 @@ REGLAS:
             content: prompt,
           },
         ],
-
         temperature: 0.25,
         max_tokens: 4096,
       });
 
       const raw = completion.choices[0].message.content?.trim() ?? '';
 
-      // Intento de parseo directo
       try {
         return JSON.parse(raw);
       } catch (err) {}
 
-      // Si viene con basura -> intento extraer el JSON interno
       const match = raw.match(/\{[\s\S]*\}/);
       if (match) {
         try {
@@ -142,7 +302,6 @@ REGLAS:
         } catch (err) {}
       }
 
-      // Último recurso -> retorno estandarizado
       return {
         error: true,
         message: 'La IA devolvió un JSON inválido.',
@@ -161,8 +320,6 @@ REGLAS:
     try {
       const completion = await this.groq.chat.completions.create({
         model: 'llama-3.3-70b-versatile',
-
-        // Mensajes para obligar JSON limpio
         messages: [
           {
             role: 'system',
@@ -173,15 +330,12 @@ REGLAS:
             content: prompt,
           },
         ],
-
-        // Hace que la salida sea JSON más limpio
         temperature: 0.3,
         max_tokens: 4096,
       });
 
       const raw = completion.choices[0].message.content;
 
-      // Intentar parsear JSON
       try {
         return JSON.parse(raw);
       } catch (err) {
@@ -220,13 +374,17 @@ REGLAS:
 
     allMessages.push(...messages);
 
-    const response = await this.groq.chat.completions.create({
-      model: 'mixtral-8x7b-32768',
-      messages: allMessages,
-      temperature: 0.7,
-      max_tokens: 2048,
-    });
+    try {
+      const response = await this.groq.chat.completions.create({
+        model: 'mixtral-8x7b-32768',
+        messages: allMessages,
+        temperature: 0.7,
+        max_tokens: 2048,
+      });
 
-    return response.choices[0]?.message?.content || '';
+      return response.choices[0]?.message?.content || '';
+    } catch (error) {
+      return `Error: ${error.message}`;
+    }
   }
 }
