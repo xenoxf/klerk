@@ -2,6 +2,7 @@ import { Injectable, BadRequestException, NotFoundException } from '@nestjs/comm
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { GroqService } from '../groq/groq.service';
+import { AI_PROMPTS } from '../groq/AI_PROMPTS';
 import { UpdateFlashCardDto } from './dto/update-flash-card.dto';
 import { FlashCard } from './entities/flash-card.entity';
 
@@ -12,45 +13,39 @@ export class FlashCardsService {
     @InjectRepository(FlashCard) private readonly flashCardRepo: Repository<FlashCard>,
   ) { }
 
-  private parseJSON(raw: string): any {
-    try {
-      return JSON.parse(raw);
-    } catch (e) {
-      try {
-        const match = raw.match(/\{[\s\S]*\}/);
-        return match ? JSON.parse(match[0]) : null;
-      } catch (e2) {
-        return null;
-      }
-    }
-  }
-
   async generateFromTopic(input: any, userId: number) {
     if (!input.topic || input.numberOfCards <= 0) {
       throw new BadRequestException('Topic and valid numberOfCards required');
     }
 
-    const instruction = `Genera ${input.numberOfCards} tarjetas flashcard sobre "${input.topic}" en JSON. Array "cards" con {front:(pregunta corta),back:(respuesta detallada),difficulty:"fácil"|"medio"|"difícil"}. Solo JSON.`;
-    const aiRaw = await this.groqService.chat(instruction);
-    const parsed = this.parseJSON(aiRaw);
+    try {
+      const response = await this.groqService.generateFlashcardsFromTopic(
+        input.topic,
+        input.numberOfCards,
+      );
 
-    if (!parsed?.cards || !Array.isArray(parsed.cards)) {
-      throw new BadRequestException('Invalid AI response');
+      if (!response?.cards || !Array.isArray(response.cards)) {
+        throw new BadRequestException('Invalid AI response');
+      }
+
+      const createdCards = [];
+      for (const card of response.cards) {
+        const flashCard = this.flashCardRepo.create({
+          front: card.front,
+          back: card.back,
+          description: `Dificultad: ${card.difficulty || 'medio'}. Tema: ${input.topic}`,
+          userId,
+        } as any);
+        await this.flashCardRepo.save(flashCard);
+        createdCards.push(flashCard);
+      }
+
+      return { success: true, totalCreated: createdCards.length, cards: createdCards };
+    } catch (error) {
+      throw new BadRequestException(
+        `Error generating flashcards from topic: ${error.message}`,
+      );
     }
-
-    const createdCards = [];
-    for (const card of parsed.cards) {
-      const flashCard = this.flashCardRepo.create({
-        front: card.front,
-        back: card.back,
-        description: `Dificultad: ${card.difficulty || 'medio'}. Tema: ${input.topic}`,
-        userId,
-      } as any);
-      await this.flashCardRepo.save(flashCard);
-      createdCards.push(flashCard);
-    }
-
-    return { success: true, totalCreated: createdCards.length, cards: createdCards };
   }
 
   async generateFromReference(input: any, userId: number) {
@@ -58,27 +53,34 @@ export class FlashCardsService {
       throw new BadRequestException('Reference text and numberOfCards required');
     }
 
-    const instruction = `Analiza: "${input.referenceText}". Genera ${input.numberOfCards} tarjetas flashcard en JSON. Array "cards" con {front:(concepto clave),back:(explicación del texto),difficulty:"fácil"|"medio"|"difícil"}. Solo JSON.`;
-    const aiRaw = await this.groqService.chat(instruction);
-    const parsed = this.parseJSON(aiRaw);
+    try {
+      const response = await this.groqService.generateFlashcardsFromReference(
+        input.referenceText,
+        input.numberOfCards,
+      );
 
-    if (!parsed?.cards || !Array.isArray(parsed.cards)) {
-      throw new BadRequestException('Invalid AI response');
+      if (!response?.cards || !Array.isArray(response.cards)) {
+        throw new BadRequestException('Invalid AI response');
+      }
+
+      const createdCards = [];
+      for (const card of response.cards) {
+        const flashCard = this.flashCardRepo.create({
+          front: card.front,
+          back: card.back,
+          description: `Dificultad: ${card.difficulty || 'medio'}. Generado desde referencia`,
+          userId,
+        } as any);
+        await this.flashCardRepo.save(flashCard);
+        createdCards.push(flashCard);
+      }
+
+      return { success: true, totalCreated: createdCards.length, cards: createdCards };
+    } catch (error) {
+      throw new BadRequestException(
+        `Error generating flashcards from reference: ${error.message}`,
+      );
     }
-
-    const createdCards = [];
-    for (const card of parsed.cards) {
-      const flashCard = this.flashCardRepo.create({
-        front: card.front,
-        back: card.back,
-        description: `Dificultad: ${card.difficulty || 'medio'}. Generado desde referencia`,
-        userId,
-      } as any);
-      await this.flashCardRepo.save(flashCard);
-      createdCards.push(flashCard);
-    }
-
-    return { success: true, totalCreated: createdCards.length, cards: createdCards };
   }
 
   async findAll(userId: number) {

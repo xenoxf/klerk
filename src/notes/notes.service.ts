@@ -6,7 +6,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { GroqService } from '../groq/groq.service';
-//import { CreateNoteDto } from './dto/create-note.dto';
+import { AI_PROMPTS } from '../groq/AI_PROMPTS';
 import { UpdateNoteDto } from './dto/update-note.dto';
 import { Note } from './entities/note.entity';
 import { NoteContent } from './entities/note-content.entity';
@@ -54,24 +54,19 @@ export class NotesService {
       );
     }
 
-    const instruction = `Eres un experto educativo. Genera ${input.numberOfNotes} nota(s) académica(s) detallada(s) en formato JSON únicamente sobre el tema: "${input.topic}".
-
-Nivel de detalle: ${input.levelOfDetail}.
-
-El JSON debe tener SOLO un array "notes" donde cada elemento tiene: { title: string (título descriptivo), contents: array de { type: "text"|"list"|"code", content: string | string[] } }.
-
-Responde SOLO con JSON válido, sin marcas de código.`;
-
     try {
-      const aiRaw = await this.groqService.chat(instruction);
-      const parsed = this.parseJSON(aiRaw);
+      const response = await this.groqService.generateNoteFromTopic(
+        input.topic,
+        input.numberOfNotes,
+        input.levelOfDetail,
+      );
 
-      if (!parsed?.notes || !Array.isArray(parsed.notes)) {
+      if (!response?.notes || !Array.isArray(response.notes)) {
         throw new BadRequestException('Invalid AI response format');
       }
 
       const createdNotes = [];
-      for (const noteData of parsed.notes) {
+      for (const noteData of response.notes) {
         const note = this.noteRepo.create({
           title: noteData.title || 'Sin título',
           levelOfDetail: input.levelOfDetail || 'medio',
@@ -133,28 +128,19 @@ Responde SOLO con JSON válido, sin marcas de código.`;
       );
     }
 
-    const instruction = `Eres un experto educativo. Analiza el siguiente texto y genera ${input.numberOfNotes} nota(s) académica(s) estructurada(s) en formato JSON únicamente.
-
-Texto de referencia: "${input.referenceText}"
-
-Nivel de detalle: ${input.levelOfDetail}.
-
-El JSON debe tener SOLO un array "notes" donde cada elemento tiene: { title: string (título clave del texto), contents: array de { type: "text"|"list"|"code", content: string | string[] } }.
-
-Las notas deben capturar los conceptos más importantes del texto.
-
-Responde SOLO con JSON válido, sin marcas de código.`;
-
     try {
-      const aiRaw = await this.groqService.chat(instruction);
-      const parsed = this.parseJSON(aiRaw);
+      const response = await this.groqService.generateNoteFromReference(
+        input.referenceText,
+        input.numberOfNotes,
+        input.levelOfDetail,
+      );
 
-      if (!parsed?.notes || !Array.isArray(parsed.notes)) {
+      if (!response?.notes || !Array.isArray(response.notes)) {
         throw new BadRequestException('Invalid AI response format');
       }
 
       const createdNotes = [];
-      for (const noteData of parsed.notes) {
+      for (const noteData of response.notes) {
         const note = this.noteRepo.create({
           title: noteData.title || 'Sin título',
           levelOfDetail: input.levelOfDetail || 'medio',

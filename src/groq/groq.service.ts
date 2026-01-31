@@ -203,6 +203,87 @@ export class GroqService {
     }
   }
 
+  // ==================== EDUCATIONAL CHAT METHODS ====================
+
+  async generateEducationalChatResponse(
+    userMessage: string,
+    conversationContext?: string,
+  ) {
+    try {
+      const prompt = AI_PROMPTS.generateEducationalChatResponse(
+        userMessage,
+        conversationContext,
+      );
+
+      const completion = await this.groq.chat.completions.create({
+        model: 'llama-3.3-70b-versatile',
+        messages: [
+          {
+            role: 'system',
+            content:
+              'Eres un tutor educativo experto. Responde EXCLUSIVAMENTE con JSON válido. Sin markdown, sin texto adicional.',
+          },
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+        temperature: 0.3,
+        max_tokens: 2048,
+      });
+
+      const raw = completion.choices[0]?.message?.content?.trim() || '';
+
+      try {
+        return JSON.parse(raw);
+      } catch (e) {
+        return {
+          response: raw,
+          keyPoints: [],
+          suggestedFollowUp: '',
+          difficulty: 'intermediate',
+          relevantTopics: [],
+        };
+      }
+    } catch (error) {
+      return {
+        response: 'Lo siento, hubo un error procesando tu pregunta.',
+        keyPoints: [],
+        suggestedFollowUp: '',
+        difficulty: 'intermediate',
+        relevantTopics: [],
+        error: error.message,
+      };
+    }
+  }
+
+  async generateChatTitleFromMessage(firstMessage: string): Promise<string> {
+    try {
+      const prompt = AI_PROMPTS.generateChatTitle(firstMessage);
+
+      const completion = await this.groq.chat.completions.create({
+        model: 'llama-3.3-70b-versatile',
+        messages: [
+          {
+            role: 'system',
+            content: 'Eres un asistente conciso. Responde SOLO con el título solicitado, sin comillas ni explicación.',
+          },
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+        temperature: 0.2,
+        max_tokens: 100,
+      });
+
+      const title = completion.choices[0]?.message?.content?.trim() || 'Nuevo Chat';
+      return title;
+    } catch (error) {
+      return 'Nuevo Chat';
+    }
+  }
+
   // ==================== MÉTODOS EXISTENTES (MANTENIDOS) ====================
 
   async chatMessage(prompt: string) {

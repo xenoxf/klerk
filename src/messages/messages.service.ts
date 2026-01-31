@@ -4,7 +4,6 @@ import { Repository } from 'typeorm';
 import { Message } from './entities/message.entity';
 import { Chat } from './entities/chat.entity';
 import { GroqService } from '../groq/groq.service';
-import { title } from 'process';
 
 @Injectable()
 export class MessagesService {
@@ -28,9 +27,7 @@ export class MessagesService {
 
   // Generar título del chat basado en el primer mensaje
   private async generateChatTitle(prompt: string): Promise<string> {
-    const instruction = `Genera un título corto (máximo 8 palabras) y descriptivo para un chat educativo basado en esta pregunta: "${prompt}". Responde SOLO con el título, sin comillas ni explicación adicional.`;
-    const title = await this.groqService.chat(instruction);
-    return title.trim();
+    return await this.groqService.generateChatTitleFromMessage(prompt);
   }
 
   // ==================== PROCESS MESSAGE WITH AI ====================
@@ -43,6 +40,8 @@ export class MessagesService {
       throw new BadRequestException('Prompt is required');
     }
 
+    const chatTitle = await this.generateChatTitle(input.prompt);
+
     let chat: Chat;
 
     if (input.chatId) {
@@ -51,20 +50,23 @@ export class MessagesService {
       });
 
       if (!chat) {
-        chat = await this.createChat(userId, title);
+        chat = await this.createChat(userId, chatTitle);
       }
     } else {
       // Create new chat if not provided
-      chat = await this.createChat(userId, title);
+      chat = await this.createChat(userId, chatTitle);
     }
 
     try {
-      // Get AI response
-      const aiResponse = await this.groqService.chatMessage(input.prompt);
+      // Get AI response using educational chat method
+      const aiResponse = await this.groqService.generateEducationalChatResponse(
+        input.prompt,
+      );
 
-      if (!aiResponse || typeof aiResponse !== 'object') {
+      if (!aiResponse) {
         throw new BadRequestException('Invalid AI response');
       }
+
       const createdAt = new Date().toISOString();
 
       const responseText =
@@ -83,10 +85,10 @@ export class MessagesService {
       });
       await this.messageRepo.save(userMessage);
 
-      // Save AI response message
+      // Also save AI response metadata
       const aiMessage = this.messageRepo.create({
         prompt: input.prompt,
-        response: `[AI]: ${responseText}`,
+        response: aiResponse.response || responseText,
         chat,
         userId,
         createdAt,

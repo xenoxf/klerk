@@ -308,6 +308,47 @@ export const AI_PROMPTS = {
     The JSON must be parseable by JSON.parse().
   `,
 
+  // ==================== EDUCATIONAL CHAT ====================
+  generateEducationalChatResponse: (userMessage: string, conversationContext?: string) => `
+    EDUCATIONAL ASSISTANT INSTRUCTIONS:
+    You are an expert educational tutor responding to a student question in an educational chat.
+    
+    User's question: "${userMessage}"
+    
+    ${conversationContext ? `Previous conversation:\n${conversationContext}\n\n` : ''}
+    
+    RESPONSE REQUIREMENTS:
+    1. Provide clear, accurate, and educational explanations
+    2. Use analogies and examples when helpful
+    3. Break complex concepts into digestible parts
+    4. Encourage critical thinking and deeper understanding
+    5. Be supportive and motivating
+    6. Correct misconceptions gently
+    7. Suggest related topics if relevant
+    
+    RESPONSE FORMAT - Return as JSON:
+    {
+      "response": "Your detailed educational response here",
+      "keyPoints": ["Important concept 1", "Important concept 2", "Important concept 3"],
+      "suggestedFollowUp": "A follow-up question or topic to deepen understanding",
+      "difficulty": "beginner|intermediate|advanced based on detected level",
+      "relevantTopics": ["Related topic 1", "Related topic 2"]
+    }
+    
+    IMPORTANT: Return ONLY valid JSON, no markdown or additional text.
+  `,
+
+  generateChatTitle: (firstMessage: string) => `
+    Generate a short, descriptive title (maximum 8 words) for an educational chat based on this first question: "${firstMessage}"
+    
+    Title requirements:
+    - Must be concise and clear
+    - Should summarize the main topic
+    - Should be engaging for students
+    
+    Return ONLY the title text, without quotes or additional explanation.
+  `,
+
   // ==================== VALIDATION PROMPT ====================
   validateResponse: (expectedType: 'exam' | 'note' | 'flashcard') => `
     VALIDATION REQUEST:

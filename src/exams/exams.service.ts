@@ -10,7 +10,6 @@ import { ExamQuestion } from './entities/examQuestion.entity';
 import { ExamOption } from './entities/exam-option.entity';
 import { CreateExamDto } from './dto/create-exam.dto';
 import { GroqService } from '../groq/groq.service';
-import { AI_PROMPTS } from '../groq/AI_PROMPTS';
 
 @Injectable()
 export class ExamsService {
@@ -35,14 +34,12 @@ export class ExamsService {
       throw new BadRequestException('Invalid difficulty level');
     }
 
-    const prompt = AI_PROMPTS.generateExamFromTopic(
-      input.topic,
-      input.numberOfQuestions,
-      input.difficulty,
-    );
-
     try {
-      const response = await this.groqService.chat(prompt);
+      const response = await this.groqService.generateExamFromTopic(
+        input.topic,
+        input.numberOfQuestions,
+        input.difficulty,
+      );
 
       if (!response || typeof response !== 'object') {
         throw new BadRequestException('Invalid AI response format');
@@ -111,14 +108,12 @@ export class ExamsService {
       throw new BadRequestException('Invalid difficulty level');
     }
 
-    const prompt = AI_PROMPTS.generateExamFromReference(
-      input.reference,
-      input.numberOfQuestions,
-      input.difficulty,
-    );
-
     try {
-      const response = await this.groqService.chat(prompt);
+      const response = await this.groqService.generateExamFromReference(
+        input.reference,
+        input.numberOfQuestions,
+        input.difficulty,
+      );
 
       if (!response || typeof response !== 'object') {
         throw new BadRequestException('Invalid AI response format');
