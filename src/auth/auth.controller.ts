@@ -157,6 +157,10 @@ export class AuthController {
   @Get('verify_token')
   @UseGuards(AuthGuard('jwt'))
   verifyToken(@Request() req: any) {
-    return this.authService.verifyToken(req.user.token);
+    return {
+      valid: true,
+      user: req.user,
+      message: 'Token is valid',
+    };
   }
 }
