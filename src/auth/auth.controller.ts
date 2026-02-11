@@ -153,4 +153,10 @@ export class AuthController {
   getProfile(@Request() req: any) {
     return req.user;
   }
+
+  @Get('verify_token')
+  @UseGuards(AuthGuard('jwt'))
+  verifyToken(@Request() req: any) {
+    return this.authService.verifyToken(req.user.token);
+  }
 }
