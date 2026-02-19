@@ -1,18 +1,26 @@
-// filepath: /home/juniorxf/proyectos/klerk/src/flash-cards/dto/filters.dto.ts
+import { IsString, IsOptional, Min, Max, IsNumber } from 'class-validator';
 
-export class CardFiltersDto {
+export class FiltersDto {
+  @IsOptional()
+  @IsString({ message: 'La búsqueda debe ser un texto' })
   search?: string;
-  sort?: 'newest' | 'oldest' | 'mostReviewed' | 'leastReviewed' = 'newest';
-  page?: number = 1;
-  limit?: number = 20;
+
+  @IsOptional()
+  @IsString({ message: 'La categoría debe ser un texto' })
+  category?: string;
+
+  @IsOptional()
+  @IsNumber({}, { message: 'La página debe ser un número' })
+  @Min(1, { message: 'La página debe ser al menos 1' })
+  page?: number;
+
+  @IsOptional()
+  @IsNumber({}, { message: 'El límite debe ser un número' })
+  @Min(1, { message: 'El límite debe ser al menos 1' })
+  @Max(100, { message: 'El límite no puede exceder 100' })
+  limit?: number;
 }
 
-export class FlashCardFiltersDto {
-  difficulty?: 'easy' | 'medium' | 'hard';
-  tags?: string[];
-  reviewed?: boolean;
-  search?: string;
-  sort?: 'newest' | 'oldest' | 'byDifficulty' | 'mostReviewed' = 'newest';
-  page?: number = 1;
-  limit?: number = 20;
-}
+// Alias para compatibilidad
+export type FlashCardFiltersDto = FiltersDto;
+export type CardFiltersDto = FiltersDto;

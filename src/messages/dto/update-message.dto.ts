@@ -1,11 +1,8 @@
-import { IsOptional, IsString } from 'class-validator';
+import { IsOptional, IsString, MinLength } from 'class-validator';
 
 export class UpdateMessageDto {
   @IsOptional()
-  @IsString()
-  mensaje?: string;
-
-  @IsOptional()
-  @IsString()
-  response?: string;
+  @IsString({ message: 'El contenido debe ser un texto' })
+  @MinLength(1, { message: 'El mensaje no puede estar vacío' })
+  content?: string;
 }

@@ -1,16 +1,19 @@
-import { IsEmail, IsNotEmpty, IsOptional, IsString, MinLength } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
 
 export class CreateAuthDto {
-  @IsEmail()
+  @IsNotEmpty({ message: 'El email es requerido' })
+  @IsEmail({}, { message: 'El email debe ser válido' })
   email: string;
 
-  @IsString()
-  @MinLength(5)
-  @IsNotEmpty()
-  password: string;
+  @IsNotEmpty({ message: 'El nombre es requerido' })
+  @IsString({ message: 'El nombre debe ser un texto' })
+  @MinLength(2, { message: 'El nombre debe tener al menos 2 caracteres' })
+  @MaxLength(50, { message: 'El nombre no puede exceder 50 caracteres' })
+  name: string;
 
-  @IsOptional()
-  @IsNotEmpty()
-  @IsString()
-  name?: string;
+  @IsNotEmpty({ message: 'La contraseña es requerida' })
+  @IsString({ message: 'La contraseña debe ser un texto' })
+  @MinLength(8, { message: 'La contraseña debe tener al menos 8 caracteres' })
+  @MaxLength(100, { message: 'La contraseña no puede exceder 100 caracteres' })
+  password: string;
 }

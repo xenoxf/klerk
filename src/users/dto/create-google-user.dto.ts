@@ -1,32 +1,32 @@
-import { IsString, IsEmail, IsOptional } from 'class-validator';
+import { IsEmail, IsString, IsOptional, MaxLength } from 'class-validator';
 
 export class CreateGoogleUserDto {
-  @IsEmail()
+  @IsEmail({}, { message: 'El email debe ser válido' })
   email: string;
 
-  @IsString()
+  @IsString({ message: 'El nombre debe ser un texto' })
+  @MaxLength(50, { message: 'El nombre no puede exceder 50 caracteres' })
   name: string;
 
-  @IsString()
+  @IsString({ message: 'El googleId debe ser un texto' })
   googleId: string;
 
   @IsOptional()
-  @IsString()
+  @IsString({ message: 'La foto debe ser un URL válido' })
   avatar?: string;
 
   @IsOptional()
-  @IsString()
+  @IsString({ message: 'La imagen debe ser un URL válido' })
   picture?: string;
 
   @IsOptional()
-  @IsString()
+  @IsString({ message: 'La contraseña debe ser un texto' })
   password?: string;
 
   @IsOptional()
-  @IsString()
+  @IsString({ message: 'El providerId debe ser un texto' })
   providerId?: string;
 
-  @IsOptional()
-  @IsString()
-  provider?: string; // Nueva propiedad opcional para el proveedor
+  @IsString({ message: 'El proveedor debe ser un texto' })
+  provider: string;
 }

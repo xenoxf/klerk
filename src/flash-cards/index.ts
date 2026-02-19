@@ -1,9 +1,13 @@
+export { FlashCardsController } from './flash-cards.controller';
 export { FlashCardsModule } from './flash-cards.module';
 export { FlashCardsService } from './flash-cards.service';
-export { FlashCardsController } from './flash-cards.controller';
-export { Card } from './entities/card.entity';
+
+// DTO Exports
+export { CreateFlashCardDto } from './dto/create-flash-card.dto';
+export { UpdateFlashCardDto } from './dto/update-flash-card.dto';
+export { GenerateFlashCardsDto } from './dto/generate-flash-cards.dto';
+export { FiltersDto } from './dto/filters.dto';
+
+// Entity Exports
 export { FlashCard } from './entities/flash-card.entity';
-export { CreateCardDto } from './dto/create-card.dto';
-export { UpdateCardDto } from './dto/update-card.dto';
-export { CreateFlashcardDto } from './dto/create-flashcard.dto';
-export { UpdateFlashcardDto } from './dto/update-flashcard.dto';
+export { Card } from './entities/card.entity';

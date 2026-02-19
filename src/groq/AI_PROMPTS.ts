@@ -8,85 +8,136 @@ export const AI_PROMPTS = {
     2. Difficulty level: ${difficulty}
     3. Each question MUST have EXACTLY 4 options
     4. EXACTLY ONE option per question must be correct
-    5. Questions should test genuine understanding, not just memorization
-    6. Distribute question types: 60% conceptual, 30% application, 10% analysis
+    5. Distribute question types: 60% conceptual, 30% application, 10% analysis
+    6. USE MARKDOWN FORMATTING in all text content for rich formatting
+    7. Include **bold**, *italic*, \`code\`, lists, and other markdown as needed
+    8. Make content educational and visually clear with markdown
+    9. BE CREATIVE with responses - vary question styles, use real-world examples, include scenarios
+    10. Calculate estimated time dynamically based on TOPIC and DIFFICULTY:
+       - Basic topics (arithmetic, vocabulary, simple concepts): ${difficulty === 'easy' ? '5-10 min' : difficulty === 'medium' ? '10-15 min' : '15-20 min'}
+       - Intermediate topics (algebra, history, biology): ${difficulty === 'easy' ? '10-15 min' : difficulty === 'medium' ? '15-25 min' : '25-35 min'}
+       - Advanced topics (calculus, physics, advanced chemistry): ${difficulty === 'easy' ? '15-20 min' : difficulty === 'medium' ? '25-35 min' : '40-60 min'}
     
-    VALIDATION RULES:
-    - "question" field: Clear, unambiguous question ending with "?"
-    - "options" array: Exactly 4 objects, each with "text" and "isCorrect"
-    - "isCorrect": Boolean, only ONE true per question
-    - "explanation": 1-2 sentences explaining why correct answer is right
+    TOPIC ANALYSIS FOR TIME ESTIMATION:
+    - Geometry/Math topics: Quick reading, calculation time needed
+    - Literature/History: More reading, comprehension, recall time
+    - Science/Physics: Analysis, problem-solving time
+    - Technical topics: Deep understanding, complex scenarios
     
-    RETURN ONLY PURE VALID JSON with this EXACT structure:
+    CREATIVITY REQUIREMENTS:
+    - Vary question formats: direct questions, scenario-based, analytical, practical applications
+    - Include real-world examples and case studies
+    - Mix question difficulty within the exam
+    - Use creative distractors that test common misconceptions
+    - Include "trick" questions that require careful reading
+    - Create interesting scenarios and contexts
+    
+    MARKDOWN USAGE REQUIREMENTS:
+    - **Bold** for important terms and keywords
+    - *Italic* for emphasis and definitions
+    - \`code\` for technical terms, formulas, or code snippets
+    - > Blockquotes for important notes or tips
+    - Lists with - or * for key points
+    - Headers with # for section organization
+    - Links [text](url) if references are needed
+    - **Tables** for comparisons if applicable
+    
+    RETURN ONLY PURE VALID JSON with MARKDOWN in content:
     {
-      "title": "Relevant exam title about ${topic}",
-      "description": "Comprehensive exam covering key aspects of ${topic} at ${difficulty} level",
+      "title": "**Exam: ${topic}** - ${difficulty} Level",
+      "description": "Comprehensive exam covering **key aspects** of *${topic}* at ${difficulty} difficulty. Test your knowledge with **real-world scenarios** and **creative questions**.",
       "totalQuestions": ${numberOfQuestions},
-      "estimatedTime": "30-45 minutes",
+      "estimatedTime": "CALCULATE BASED ON TOPIC AND DIFFICULTY - varies from 5-60 minutes",
+      "topicDifficulty": {
+        "topic": "${topic}",
+        "difficultyLevel": "${difficulty}",
+        "estimationBasis": "Calculated from topic complexity and question difficulty"
+      },
       "questions": [
         {
           "id": 1,
-          "question": "Clear question text?",
+          "question": "**What is...?** *Clear, unambiguous question ending with ?* OR **Scenario-based:** Real-world situation requiring analysis",
           "options": [
-            {"id": "A", "text": "Plausible but incorrect option", "isCorrect": false},
-            {"id": "B", "text": "Correct option", "isCorrect": true},
-            {"id": "C", "text": "Common misconception", "isCorrect": false},
-            {"id": "D", "text": "Plausible but incorrect option", "isCorrect": false}
+            {"id": "A", "text": "**Option A:** Creative distractor with *plausible context*", "isCorrect": false},
+            {"id": "B", "text": "**Option B:** Correct answer with \`technical detail\` or *real-world application*", "isCorrect": true},
+            {"id": "C", "text": "**Option C:** Common misconception - *teach through error*", "isCorrect": false},
+            {"id": "D", "text": "**Option D:** Plausible but incorrect, *tests careful reading*", "isCorrect": false}
           ],
-          "explanation": "Concise explanation of why B is correct",
+          "explanation": "**Why B is correct:** Detailed markdown explanation with **emphasis**, *italics*, \`code blocks\`, **practical examples**, and references to key concepts. Include: why this answer is correct, why others are wrong, real-world application.",
           "difficulty": "${difficulty}",
-          "category": "conceptual|application|analysis"
+          "category": "conceptual|application|analysis",
+          "creativeElement": "Includes scenario, real-world context, or unconventional approach"
         }
       ]
     }
     
-    DO NOT include markdown, code blocks, or any text outside the JSON.
-    The JSON must be parseable by JSON.parse().
+    CREATIVITY GUIDELINES:
+    ✓ Mix question types: direct, scenario-based, analytical, practical
+    ✓ Include real-world examples and applications
+    ✓ Use creative scenarios that engage students
+    ✓ Create misconception-based distractors that teach
+    ✓ Vary reading difficulty within appropriate level
+    ✓ Include "aha moment" questions that require insight
+    ✓ Use analogies and comparisons in explanations
+    ✓ Reference relevant contexts and industries
+    
+    TIME ESTIMATION FORMULA:
+    - Base time per question: 1-3 minutes
+    - Easy: 1-1.5 min per question
+    - Medium: 2-2.5 min per question
+    - Hard: 2.5-3 min per question
+    - Multiply by number of questions and add difficulty multiplier
+    - Final time = (questions × time_per_question) × topic_complexity_factor
+    
+    The JSON must be VALID and parseable by JSON.parse().
+    All content should be enriched with markdown formatting and creative scenarios.
   `,
 
   generateExamFromReference: (referenceText: string, numberOfQuestions: number, difficulty: string) => `
-    CRITICAL INSTRUCTIONS:
-    1. Generate EXACTLY ${numberOfQuestions} multiple choice questions based SOLELY on this reference text:
+    CRITICAL INSTRUCTIONS - STRICT FORMAT REQUIREMENTS:
+    1. Generate EXACTLY ${numberOfQuestions} multiple choice questions based SOLELY on this reference text
+    2. Difficulty level: ${difficulty}
+    3. All questions and answers MUST be directly derived from the reference text
+    4. Each question: EXACTLY 4 options, ONE correct answer
+    5. USE MARKDOWN FORMATTING to enhance readability and structure
+    6. Include **bold** for key concepts, *italic* for emphasis, \`code\` for technical terms
+    7. Use > blockquotes for important reference excerpts
     
     REFERENCE TEXT:
     ${referenceText.substring(0, 2000)} ${referenceText.length > 2000 ? '... [text truncated]' : ''}
     
-    2. Difficulty level: ${difficulty}
-    3. All questions and answers MUST be directly derived from the reference text
-    4. Each question: EXACTLY 4 options, ONE correct answer
-    5. Include page/section numbers if reference has them
+    MARKDOWN FORMATTING IN RESPONSE:
+    - **Bold** for key terms from the reference
+    - *Italic* for emphasis and important concepts
+    - \`code\` for technical terms or formulas
+    - > Blockquotes for direct quotes or important excerpts
+    - Links [text](url) if available
     
-    VALIDATION RULES:
-    - Questions must be factually accurate per reference text
-    - No external knowledge or assumptions
-    - Options should include plausible distractors from the text
-    - Explanations should cite the reference text
-    
-    RETURN ONLY PURE VALID JSON with this EXACT structure:
+    RETURN ONLY PURE VALID JSON with MARKDOWN in content:
     {
-      "title": "Exam based on provided reference",
-      "description": "Questions derived directly from the reference material",
+      "title": "**Exam:** Based on Reference Material - ${difficulty} Level",
+      "description": "**Questions derived directly** from the *provided reference text*",
       "totalQuestions": ${numberOfQuestions},
       "sourceFidelity": "high",
       "questions": [
         {
           "id": 1,
-          "question": "Question directly from reference?",
+          "question": "**Question directly from reference?** *Clear and unambiguous*",
           "options": [
-            {"id": "A", "text": "Option from text", "isCorrect": false},
-            {"id": "B", "text": "Correct option from text", "isCorrect": true},
-            {"id": "C", "text": "Misinterpretation of text", "isCorrect": false},
-            {"id": "D", "text": "Option from different context", "isCorrect": false}
+            {"id": "A", "text": "**Option A:** Description with *reference context*", "isCorrect": false},
+            {"id": "B", "text": "**Option B:** Correct option from text", "isCorrect": true},
+            {"id": "C", "text": "**Option C:** Common misinterpretation - *avoid*", "isCorrect": false},
+            {"id": "D", "text": "**Option D:** Option from different context", "isCorrect": false}
           ],
-          "explanation": "Explanation referencing specific parts of the text",
-          "textReference": "Relevant excerpt or section from reference",
+          "explanation": "**Explanation:** Detailed markdown explanation with *emphasis* and references to **specific parts** of the text",
+          "textReference": "> Relevant excerpt or section from reference",
           "difficulty": "${difficulty}"
         }
       ]
     }
     
-    DO NOT include markdown, code blocks, or any text outside the JSON.
-    The JSON must be parseable by JSON.parse().
+    The JSON must be VALID and parseable by JSON.parse().
+    Enrich all content with markdown formatting.
   `,
 
   // ==================== NOTES ====================
@@ -95,48 +146,62 @@ export const AI_PROMPTS = {
     1. Generate EXACTLY ${numberOfNotes} comprehensive study note(s) for "${topic}"
     2. Level of detail: ${levelOfDetail}
     3. Each note should be self-contained and educational
-    4. Use hierarchical organization: main concepts → subtopics → details
+    4. Use hierarchical organization: main concepts -> subtopics -> details
     5. ${levelOfDetail === 'high' ? 'Include examples, analogies, and applications' : levelOfDetail === 'medium' ? 'Include key concepts and explanations' : 'Focus on essential facts only'}
+    6. USE MARKDOWN FORMATTING in all text content (**bold**, *italic*, \`code\`, lists, headers, etc.)
     
-    CONTENT TYPES TO INCLUDE:
-    - "text": Paragraph explanations (2-5 sentences)
-    - "list": Bullet points for key items, steps, or examples
-    - "definition": Key terms with clear definitions
-    - "warning": Common mistakes or misconceptions
-    - "tip": Study tips or memory aids
+    CONTENT TYPES WITH MARKDOWN:
+    - "text": Paragraph with **bold**, *italic*, and markdown formatting
+    - "list": Markdown lists with - or * for key items
+    - "definition": **Term:** *Definition with context and emphasis*
+    - "warning": > **Warning:** Important cautions with markdown
+    - "tip": > **Tip:** Study tips and memory aids with markdown
+    - "code": \`\`\`language code blocks\`\`\`
     
-    RETURN ONLY PURE VALID JSON with this EXACT structure:
+    MARKDOWN FORMATTING ENCOURAGED:
+    - Use **bold** for key concepts
+    - Use *italic* for emphasis
+    - Use \`code\` for technical terms
+    - Use # Headers, ## Subheaders
+    - Use > Blockquotes for important points
+    - Use - Lists for bullet points
+    
+    RETURN ONLY PURE VALID JSON with MARKDOWN in content:
     {
       "topic": "${topic}",
       "notes": [
         {
           "id": 1,
-          "title": "Clear, descriptive title for this note",
+          "title": "# **Main Concept Title**",
           "contents": [
             {
               "type": "text",
-              "content": "Comprehensive explanation of a key concept..."
+              "content": "Comprehensive explanation with **key terms**, *emphasis*, and \`code\` where applicable..."
             },
             {
               "type": "definition",
-              "content": "Key term: Definition with context"
+              "content": "**Key Term:** *Clear definition with context and examples*"
             },
             {
               "type": "list",
-              "content": ["Important point 1", "Important point 2", "Important point 3"]
+              "content": "- Important point 1\\n- Important point 2\\n- Important point 3"
             },
             {
               "type": "example",
-              "content": "Practical example illustrating the concept"
+              "content": "**Example:** \`\`\`code\\nExample code or scenario\\n\`\`\`"
             },
             {
               "type": "warning",
-              "content": "Common misunderstanding to avoid"
+              "content": "> **⚠️ Warning:** *Common mistake to avoid with emphasis*"
+            },
+            {
+              "type": "tip",
+              "content": "> **💡 Tip:** **Memory aid** with *important details*"
             }
           ],
           "tags": ["relevant", "tags", "based", "on", "content"],
-          "summary": "One-sentence summary of this note",
-          "prerequisites": ["basic concepts needed to understand this note"]
+          "summary": "**Brief summary** with *key emphasis* - one sentence",
+          "prerequisites": ["**Basic concept 1**", "*Foundational knowledge 2*"]
         }
       ],
       "metadata": {
@@ -146,8 +211,8 @@ export const AI_PROMPTS = {
       }
     }
     
-    DO NOT include markdown, code blocks, or any text outside the JSON.
-    The JSON must be parseable by JSON.parse().
+    The JSON must be VALID and parseable by JSON.parse().
+    All text content should be enriched with markdown formatting for better readability.
   `,
 
   generateNoteFromReference: (referenceText: string, numberOfNotes: number, levelOfDetail: string) => `
@@ -161,42 +226,51 @@ export const AI_PROMPTS = {
     3. Extract and organize information from the reference text
     4. Preserve the original meaning and context
     5. Group related concepts together logically
+    6. USE MARKDOWN FORMATTING for rich text (**bold**, *italic*, \`code\`, > blockquotes, etc.)
     
     STRUCTURE REQUIREMENTS:
     - Identify main themes from the text
-    - Extract key concepts, definitions, and examples
+    - Extract key concepts, definitions, and examples with markdown
     - Note relationships between concepts
     - Highlight important quotes or data points
+    - Use markdown formatting for emphasis and organization
     
-    RETURN ONLY PURE VALID JSON with this EXACT structure:
+    MARKDOWN FORMATTING:
+    - **Bold** for key terms from reference
+    - *Italic* for emphasis
+    - \`code\` for technical terms
+    - > Blockquotes for important excerpts
+    - # Headers for organization
+    
+    RETURN ONLY PURE VALID JSON with MARKDOWN in content:
     {
-      "sourceSummary": "Brief description of reference content",
+      "sourceSummary": "**Brief description** of *reference content*",
       "notes": [
         {
           "id": 1,
-          "title": "Topic extracted from reference",
+          "title": "## **Topic extracted from reference**",
           "contents": [
             {
               "type": "text",
-              "content": "Summary of key idea from reference...",
+              "content": "**Summary** of *key idea* from reference with markdown formatting...",
               "sourceReference": "Relevant part of original text"
             },
             {
               "type": "quote",
-              "content": "Important direct quote if applicable",
+              "content": "> **Important quote** if applicable with *emphasis*",
               "sourceLocation": "Context of quote"
             },
             {
               "type": "list",
-              "content": ["Key finding 1", "Key finding 2", "Key finding 3"]
+              "content": "- **Key finding 1**\\n- *Key finding 2*\\n- \`Key finding 3\`"
             },
             {
               "type": "connection",
-              "content": "How this connects to other parts of the text"
+              "content": "**How this connects** to *other parts* of the text"
             }
           ],
           "tags": ["extracted", "tags", "from", "reference"],
-          "keyTakeaways": ["Main point 1", "Main point 2"],
+          "keyTakeaways": ["**Main point 1**", "*Main point 2*"],
           "sourceCitations": ["Specific references to original text"]
         }
       ],
@@ -207,8 +281,8 @@ export const AI_PROMPTS = {
       }
     }
     
-    DO NOT include markdown, code blocks, or any text outside the JSON.
-    The JSON must be parseable by JSON.parse().
+    The JSON must be VALID and parseable by JSON.parse().
+    Enrich all text with markdown formatting.
   `,
 
   // ==================== FLASHCARDS ====================
@@ -218,43 +292,47 @@ export const AI_PROMPTS = {
     2. Difficulty distribution: 30% easy, 50% medium, 20% hard
     3. Cards should test both recall and understanding
     4. Mix card types: definitions, concepts, applications, comparisons
+    5. USE MARKDOWN FORMATTING in card content (**bold**, *italic*, \`code\`, etc.)
+    6. Front: Clear question with markdown if needed (max 15 words)
+    7. Back: Complete answer with rich markdown formatting
     
-    CARD REQUIREMENTS:
-    - Front: Clear question or term (max 15 words)
-    - Back: Complete, educational answer (50-200 characters)
-    - Hint: Genuine memory aid, not just repetition
-    - Difficulty: Appropriate for content complexity
+    MARKDOWN FORMATTING:
+    - Use **bold** for key terms
+    - Use *italic* for emphasis
+    - Use \`code\` for technical terms or formulas
+    - Use > blockquotes for important notes
+    - Use - lists for multiple points
     
-    RETURN ONLY PURE VALID JSON with this EXACT structure:
+    RETURN ONLY PURE VALID JSON with MARKDOWN in content:
     {
       "topic": "${topic}",
       "totalCards": ${numberOfCards},
       "cards": [
         {
           "id": 1,
-          "front": "Concise question or concept",
-          "back": "Detailed answer that explains, not just states. Include context and why it matters.",
+          "front": "**Question?** *Concise key concept*",
+          "back": "**Detailed answer** with *emphasis*, \`code\`, and **important points**. Include context and why it matters.",
           "difficulty": "easy|medium|hard",
-          "hint": "Practical hint that helps recall without giving answer away",
+          "hint": "**Hint:** Practical memory aid with *emphasis*",
           "category": "definition|concept|application|comparison",
           "tags": ["relevant", "subtopic", "tags"],
-          "example": "Optional clarifying example",
-          "commonMistakes": ["Typical error 1", "Typical error 2"]
+          "example": "**Example:** *Practical illustration* with \`code\` if needed",
+          "commonMistakes": ["**Mistake 1:** *Common error*", "**Mistake 2:** *Another error*"]
         }
       ],
       "difficultyBreakdown": {
-        "easy": Math.round(${numberOfCards} * 0.3),
-        "medium": Math.round(${numberOfCards} * 0.5),
-        "hard": Math.round(${numberOfCards} * 0.2)
+        "easy": ${Math.round(numberOfCards * 0.3)},
+        "medium": ${Math.round(numberOfCards * 0.5)},
+        "hard": ${Math.round(numberOfCards * 0.2)}
       },
       "studyTips": [
-        "Spaced repetition schedule recommendation",
-        "How to use these cards effectively"
+        "**Tip 1:** Spaced repetition schedule recommendation",
+        "**Tip 2:** How to use these cards effectively"
       ]
     }
     
-    DO NOT include markdown, code blocks, or any text outside the JSON.
-    The JSON must be parseable by JSON.parse().
+    The JSON must be VALID and parseable by JSON.parse().
+    Use markdown formatting generously for better learning experience.
   `,
 
   generateFlashcardsFromReference: (referenceText: string, numberOfCards: number) => `
@@ -267,6 +345,8 @@ export const AI_PROMPTS = {
     2. Extract key information for effective spaced repetition
     3. Focus on important facts, concepts, and relationships
     4. Ensure cards are testable and unambiguous
+    5. USE MARKDOWN FORMATTING (**bold**, *italic*, \`code\`) for emphasis
+    6. ALL CONTENT MUST BE DIRECTLY FROM THE REFERENCE TEXT
     
     EXTRACTION GUIDELINES:
     - Identify key terms and their definitions
@@ -275,17 +355,23 @@ export const AI_PROMPTS = {
     - Highlight comparisons and contrasts
     - Capture sequences or processes
     
-    RETURN ONLY PURE VALID JSON with this EXACT structure:
+    MARKDOWN USAGE:
+    - **Bold** for key terms from the reference
+    - *Italic* for emphasis and important concepts
+    - \`code\` for formulas, technical terms, or citations
+    - > Blockquotes for direct quotes from reference
+    
+    RETURN ONLY PURE VALID JSON with MARKDOWN in content:
     {
       "source": "Reference-based flashcards",
       "totalCards": ${numberOfCards},
       "cards": [
         {
           "id": 1,
-          "front": "Key term or question from text",
-          "back": "Accurate information directly from reference",
+          "front": "**Key term or question** from text",
+          "back": "**Accurate information** directly from reference with *emphasis* and \`technical terms\`",
           "difficulty": "easy|medium|hard",
-          "hint": "Context clue from the text",
+          "hint": "**Hint:** Context clue from the text",
           "textReference": "Specific location in source material",
           "cardType": "fact|definition|relationship|sequence",
           "importance": "high|medium|low based on text emphasis",
@@ -304,8 +390,8 @@ export const AI_PROMPTS = {
       }
     }
     
-    DO NOT include markdown, code blocks, or any text outside the JSON.
-    The JSON must be parseable by JSON.parse().
+    The JSON must be VALID and parseable by JSON.parse().
+    Use markdown formatting while maintaining source fidelity.
   `,
 
   // ==================== EDUCATIONAL CHAT ====================
