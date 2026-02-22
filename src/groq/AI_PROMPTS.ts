@@ -8,89 +8,26 @@ export const AI_PROMPTS = {
     2. Difficulty level: ${difficulty}
     3. Each question MUST have EXACTLY 4 options
     4. EXACTLY ONE option per question must be correct
-    5. Distribute question types: 60% conceptual, 30% application, 10% analysis
-    6. USE MARKDOWN FORMATTING in all text content for rich formatting
-    7. Include **bold**, *italic*, \`code\`, lists, and other markdown as needed
-    8. Make content educational and visually clear with markdown
-    9. BE CREATIVE with responses - vary question styles, use real-world examples, include scenarios
-    10. Calculate estimated time dynamically based on TOPIC and DIFFICULTY:
-       - Basic topics (arithmetic, vocabulary, simple concepts): ${difficulty === 'easy' ? '5-10 min' : difficulty === 'medium' ? '10-15 min' : '15-20 min'}
-       - Intermediate topics (algebra, history, biology): ${difficulty === 'easy' ? '10-15 min' : difficulty === 'medium' ? '15-25 min' : '25-35 min'}
-       - Advanced topics (calculus, physics, advanced chemistry): ${difficulty === 'easy' ? '15-20 min' : difficulty === 'medium' ? '25-35 min' : '40-60 min'}
+    5. USE MARKDOWN FORMATTING in all text content for rich formatting
+    6. Include **bold**, *italic*, \`code\`, lists, and other markdown as needed
     
-    TOPIC ANALYSIS FOR TIME ESTIMATION:
-    - Geometry/Math topics: Quick reading, calculation time needed
-    - Literature/History: More reading, comprehension, recall time
-    - Science/Physics: Analysis, problem-solving time
-    - Technical topics: Deep understanding, complex scenarios
-    
-    CREATIVITY REQUIREMENTS:
-    - Vary question formats: direct questions, scenario-based, analytical, practical applications
-    - Include real-world examples and case studies
-    - Mix question difficulty within the exam
-    - Use creative distractors that test common misconceptions
-    - Include "trick" questions that require careful reading
-    - Create interesting scenarios and contexts
-    
-    MARKDOWN USAGE REQUIREMENTS:
-    - **Bold** for important terms and keywords
-    - *Italic* for emphasis and definitions
-    - \`code\` for technical terms, formulas, or code snippets
-    - > Blockquotes for important notes or tips
-    - Lists with - or * for key points
-    - Headers with # for section organization
-    - Links [text](url) if references are needed
-    - **Tables** for comparisons if applicable
-    
-    RETURN ONLY PURE VALID JSON with MARKDOWN in content:
+    RETURN ONLY PURE VALID JSON:
     {
-      "title": "**Exam: ${topic}** - ${difficulty} Level",
-      "description": "Comprehensive exam covering **key aspects** of *${topic}* at ${difficulty} difficulty. Test your knowledge with **real-world scenarios** and **creative questions**.",
-      "totalQuestions": ${numberOfQuestions},
-      "estimatedTime": "CALCULATE BASED ON TOPIC AND DIFFICULTY - varies from 5-60 minutes",
-      "topicDifficulty": {
-        "topic": "${topic}",
-        "difficultyLevel": "${difficulty}",
-        "estimationBasis": "Calculated from topic complexity and question difficulty"
-      },
       "questions": [
         {
-          "id": 1,
-          "question": "**What is...?** *Clear, unambiguous question ending with ?* OR **Scenario-based:** Real-world situation requiring analysis",
+          "question": "**What is...?** *Clear, unambiguous question ending with ?*",
+          "explanation": "**Why correct:** Detailed markdown "tablas de datos u etc, recuerde que todo en markdow" explanation with **emphasis**, *italics*, and \`code\`.",
           "options": [
-            {"id": "A", "text": "**Option A:** Creative distractor with *plausible context*", "isCorrect": false},
-            {"id": "B", "text": "**Option B:** Correct answer with \`technical detail\` or *real-world application*", "isCorrect": true},
-            {"id": "C", "text": "**Option C:** Common misconception - *teach through error*", "isCorrect": false},
-            {"id": "D", "text": "**Option D:** Plausible but incorrect, *tests careful reading*", "isCorrect": false}
-          ],
-          "explanation": "**Why B is correct:** Detailed markdown explanation with **emphasis**, *italics*, \`code blocks\`, **practical examples**, and references to key concepts. Include: why this answer is correct, why others are wrong, real-world application.",
-          "difficulty": "${difficulty}",
-          "category": "conceptual|application|analysis",
-          "creativeElement": "Includes scenario, real-world context, or unconventional approach"
-        }
+            {"text": "**Option A:** Description", "isCorrect": false},
+            {"text": "**Option B:** Correct answer", "isCorrect": true},
+            {"text": "**Option C:** Common misconception", "isCorrect": false},
+            {"text": "**Option D:** Plausible but incorrect", "isCorrect": false}
+          ]
+        }, las demas preguntas siguen con el mismo formato
       ]
     }
     
-    CREATIVITY GUIDELINES:
-    ✓ Mix question types: direct, scenario-based, analytical, practical
-    ✓ Include real-world examples and applications
-    ✓ Use creative scenarios that engage students
-    ✓ Create misconception-based distractors that teach
-    ✓ Vary reading difficulty within appropriate level
-    ✓ Include "aha moment" questions that require insight
-    ✓ Use analogies and comparisons in explanations
-    ✓ Reference relevant contexts and industries
-    
-    TIME ESTIMATION FORMULA:
-    - Base time per question: 1-3 minutes
-    - Easy: 1-1.5 min per question
-    - Medium: 2-2.5 min per question
-    - Hard: 2.5-3 min per question
-    - Multiply by number of questions and add difficulty multiplier
-    - Final time = (questions × time_per_question) × topic_complexity_factor
-    
     The JSON must be VALID and parseable by JSON.parse().
-    All content should be enriched with markdown formatting and creative scenarios.
   `,
 
   generateExamFromReference: (referenceText: string, numberOfQuestions: number, difficulty: string) => `
@@ -100,44 +37,27 @@ export const AI_PROMPTS = {
     3. All questions and answers MUST be directly derived from the reference text
     4. Each question: EXACTLY 4 options, ONE correct answer
     5. USE MARKDOWN FORMATTING to enhance readability and structure
-    6. Include **bold** for key concepts, *italic* for emphasis, \`code\` for technical terms
-    7. Use > blockquotes for important reference excerpts
     
     REFERENCE TEXT:
     ${referenceText.substring(0, 2000)} ${referenceText.length > 2000 ? '... [text truncated]' : ''}
     
-    MARKDOWN FORMATTING IN RESPONSE:
-    - **Bold** for key terms from the reference
-    - *Italic* for emphasis and important concepts
-    - \`code\` for technical terms or formulas
-    - > Blockquotes for direct quotes or important excerpts
-    - Links [text](url) if available
-    
-    RETURN ONLY PURE VALID JSON with MARKDOWN in content:
+    RETURN ONLY PURE VALID JSON:
     {
-      "title": "Título será generado automáticamente",
-      "description": "**Questions derived directly** from the *provided reference text*",
-      "totalQuestions": ${numberOfQuestions},
-      "sourceFidelity": "high",
       "questions": [
         {
-          "id": 1,
           "question": "**Question directly from reference?** *Clear and unambiguous*",
-          "options": [
-            {"id": "A", "text": "**Option A:** Description with *reference context*", "isCorrect": false},
-            {"id": "B", "text": "**Option B:** Correct option from text", "isCorrect": true},
-            {"id": "C", "text": "**Option C:** Common misinterpretation - *avoid*", "isCorrect": false},
-            {"id": "D", "text": "**Option D:** Option from different context", "isCorrect": false}
-          ],
           "explanation": "**Explanation:** Detailed markdown explanation with *emphasis* and references to **specific parts** of the text",
-          "textReference": "> Relevant excerpt or section from reference",
-          "difficulty": "${difficulty}"
+          "options": [
+            {"text": "**Option A:** Description with *reference context*", "isCorrect": false},
+            {"text": "**Option B:** Correct option from text", "isCorrect": true},
+            {"text": "**Option C:** Common misinterpretation", "isCorrect": false},
+            {"text": "**Option D:** Option from different context", "isCorrect": false}
+          ]
         }
       ]
     }
     
     The JSON must be VALID and parseable by JSON.parse().
-    Enrich all content with markdown formatting.
   `,
 
   // ==================== NOTES ====================

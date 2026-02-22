@@ -41,24 +41,11 @@ export class ExamsService {
         input.difficulty,
       );
 
-      if (!response || typeof response !== 'object') {
-        throw new BadRequestException('Invalid AI response format');
-      }
 
-      const { title, description, questions } = response as any;
-
-      if (
-        !title ||
-        !questions ||
-        !Array.isArray(questions) ||
-        questions.length === 0
-      ) {
-        throw new BadRequestException('AI response missing required fields');
-      }
-
+      const { questions } = response as any;
+      const title = await this.groqService.generateExamTitle(input.topic);
       const exam = this.examRepo.create({
         title,
-        description: description || `Exam about ${input.topic}`,
         difficulty: input.difficulty,
         userId,
         totalQuestions: input.numberOfQuestions,
@@ -115,24 +102,12 @@ export class ExamsService {
         input.difficulty,
       );
 
-      if (!response || typeof response !== 'object') {
-        throw new BadRequestException('Invalid AI response format');
-      }
+      const {questions} = response as any
 
-      const { title, description, questions } = response as any;
-
-      if (
-        !title ||
-        !questions ||
-        !Array.isArray(questions) ||
-        questions.length === 0
-      ) {
-        throw new BadRequestException('AI response missing required fields');
-      }
+      const title = await this.groqService.generateExamTitle(input.reference);
 
       const exam = this.examRepo.create({
         title,
-        description: description || 'Exam generated from reference text',
         difficulty: input.difficulty,
         userId,
         totalQuestions: input.numberOfQuestions,
@@ -142,7 +117,7 @@ export class ExamsService {
       const savedExam = await this.examRepo.save(exam);
 
       for (const q of questions) {
-        if (!q.question || !Array.isArray(q.options)) {
+        if (!q.question) {
           throw new BadRequestException('Invalid question format from AI');
         }
 

@@ -17,9 +17,6 @@ export class GroqService {
     difficulty: string,
   ) {
     try {
-      // Generar título usando la IA
-      const title = await this.generateExamTitle(topic);
-
       const prompt = AI_PROMPTS.generateExamFromTopic(
         topic,
         numberOfQuestions,
@@ -44,12 +41,8 @@ export class GroqService {
       });
 
       const raw = completion.choices[0]?.message?.content?.trim() || '';
-      const parsed = JSON.parse(raw);
-      
-      // Reemplazar el título con el generado por la IA
-      parsed.title = title;
-      
-      return parsed;
+      const cleaned = this.cleanJsonResponse(raw);
+      return JSON.parse(cleaned);
     } catch (error) {
       return {
         error: true,

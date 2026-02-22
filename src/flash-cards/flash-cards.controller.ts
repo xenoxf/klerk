@@ -29,6 +29,7 @@ export class FlashCardsController {
     if (!input.topic && !input.referenceText) {
       throw new BadRequestException('Debe proporcionar un "topic" o "referenceText" para generar tarjetas.');
     }
+    if(input.topic && input.referenceText) throw new BadRequestException('No puede proporcionar ambos "topic" y "referenceText". Por favor, elija uno :).');
     if (!input.referenceText) {
       return this.flashCardsService.generateFromTopic(input, req.user.id);
     }

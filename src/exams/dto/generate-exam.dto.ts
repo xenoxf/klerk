@@ -18,14 +18,12 @@ export class GenerateExamDto {
   @MinLength(10, { message: 'La referencia debe tener al menos 10 caracteres' })
   reference?: string;
 
-  @IsOptional()
   @Min(1, { message: 'La cantidad debe ser al menos 1' })
   @Max(50, { message: 'La cantidad no puede exceder 50' })
-  numberOfQuestions?: number;
+  numberOfQuestions: number;
 
-  @IsOptional()
   @IsIn(['easy', 'medium', 'hard'], {
     message: 'La dificultad debe ser easy, medium o hard',
   })
-  difficulty?: 'easy' | 'medium' | 'hard';
+  difficulty: string;
 }
