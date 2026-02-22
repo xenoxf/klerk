@@ -11,7 +11,7 @@ export class MessagesService {
     @InjectRepository(Message) private messageRepo: Repository<Message>,
     @InjectRepository(Chat) private chatRepo: Repository<Chat>,
     private readonly groqService: GroqService,
-  ) {}
+  ) { }
 
   // Obtener o crear un chat para el usuario
   private async getOrCreateChat(userId: number): Promise<Chat> {
@@ -83,7 +83,7 @@ export class MessagesService {
       // Save user message
       const userMessage = this.messageRepo.create({
         prompt: input.prompt,
-        response: response as any,
+        response: response.response,
         chat,
         userId,
         chatId: chat.id,
