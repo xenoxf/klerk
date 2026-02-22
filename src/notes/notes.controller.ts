@@ -16,11 +16,11 @@ import {
 import { NotesService } from './notes.service';
 //import { UpdateNoteDto } from './dto/update-note.dto';
 import { JwtGuard } from '../auth/jwt/jwt.guard';
-import { ApiKeyGuard } from '../common/guards/api-key/api-key.guard';
+//import { ApiKeyGuard } from '../common/guards/api-key/api-key.guard';
 
 @Controller('notes')
 @UseGuards(JwtGuard)
-@UseGuards(ApiKeyGuard)
+//@UseGuards(ApiKeyGuard)
 export class NotesController {
   constructor(private notesService: NotesService) { }
 
@@ -28,7 +28,9 @@ export class NotesController {
   @Post('generate/topic_or_reference')
   generate(@Body() input: any, @Req() req: any) {
     if (!input.topic && !input.referenceText) {
-      throw new BadRequestException('Debe proporcionar un "topic" o "referenceText" para generar notas.');
+      throw new BadRequestException(
+        'Debe proporcionar un "topic" o "referenceText" para generar notas.',
+      );
     }
     if (!input.referenceText) {
       return this.notesService.generateFromTopic(input, req.user.id);
@@ -50,5 +52,4 @@ export class NotesController {
   async delete(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
     return this.notesService.remove(id, req.user.id);
   }
-
 }

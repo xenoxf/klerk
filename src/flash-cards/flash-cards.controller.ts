@@ -18,7 +18,7 @@ import { JwtGuard } from '../auth/jwt/jwt.guard';
 import { ApiKeyGuard } from '../common/guards/api-key/api-key.guard';
 
 @UseGuards(JwtGuard)
-@UseGuards(ApiKeyGuard)
+//@UseGuards(ApiKeyGuard)
 @Controller('flash-cards')
 export class FlashCardsController {
   constructor(private readonly flashCardsService: FlashCardsService) { }
@@ -27,9 +27,14 @@ export class FlashCardsController {
   @Post('generate/topic_or_reference')
   generate(@Body() input: any, @Req() req: any) {
     if (!input.topic && !input.referenceText) {
-      throw new BadRequestException('Debe proporcionar un "topic" o "referenceText" para generar tarjetas.');
+      throw new BadRequestException(
+        'Debe proporcionar un "topic" o "referenceText" para generar tarjetas.',
+      );
     }
-    if(input.topic && input.referenceText) throw new BadRequestException('No puede proporcionar ambos "topic" y "referenceText". Por favor, elija uno :).');
+    if (input.topic && input.referenceText)
+      throw new BadRequestException(
+        'No puede proporcionar ambos "topic" y "referenceText". Por favor, elija uno :).',
+      );
     if (!input.referenceText) {
       return this.flashCardsService.generateFromTopic(input, req.user.id);
     }
