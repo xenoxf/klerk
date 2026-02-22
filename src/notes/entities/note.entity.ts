@@ -21,9 +21,6 @@ export class Note {
   @Column({ nullable: true })
   content?: string;
 
-  @Column({ nullable: true })
-  color?: string;
-
   @Column('simple-array', { nullable: true })
   tags?: string[];
 

@@ -6,8 +6,8 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { GroqService } from '../groq/groq.service';
-//import { AI_PROMPTS } from '../groq/AI_PROMPTS';
 import { FlashCard } from './entities/flash-card.entity';
+import { Card } from './entities/card.entity';
 
 @Injectable()
 export class FlashCardsService {
@@ -15,6 +15,8 @@ export class FlashCardsService {
     private readonly groqService: GroqService,
     @InjectRepository(FlashCard)
     private readonly flashCardRepo: Repository<FlashCard>,
+    @InjectRepository(Card)
+    private readonly cardRepo: Repository<Card>,
   ) {}
 
   async generateFromTopic(input: any, userId: number) {
@@ -32,24 +34,49 @@ export class FlashCardsService {
         throw new BadRequestException('Invalid AI response');
       }
 
-      const createdCards = [];
-      for (const card of response.cards) {
-        const flashCard = this.flashCardRepo.create({
-          question: card.front || card.question || '',
-          answer: card.back || card.answer || '',
-          hint: card.hint || null,
-          difficulty: (card.difficulty || 'medium') as 'easy' | 'medium' | 'hard',
-          tags: card.tags || [],
+      // Generar título y descripción por IA
+      const title = await this.groqService.generateFlashcardTitle(input.topic);
+      const description = await this.groqService.generateFlashcardDescription(
+        input.topic,
+        input.numberOfCards,
+      );
+
+      // Crear el Card padre con título y descripción
+      const card = this.cardRepo.create({
+        title,
+        description,
+        totalCards: input.numberOfCards,
+        reviewedCards: 0,
+        userId,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      const savedCard = await this.cardRepo.save(card);
+
+      // Crear los FlashCard hijos
+      const createdFlashCards = [];
+      for (const flashCard of response.cards) {
+        const fc = this.flashCardRepo.create({
+          question: flashCard.front || flashCard.question || '',
+          answer: flashCard.back || flashCard.answer || '',
+          hint: flashCard.hint || null,
+          difficulty: (flashCard.difficulty ||
+            'medium') as 'easy' | 'medium' | 'hard',
+          tags: flashCard.tags || [],
+          cardId: savedCard.id,
           userId,
-        } as any);
-        await this.flashCardRepo.save(flashCard);
-        createdCards.push(flashCard);
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+        await this.flashCardRepo.save(fc);
+        createdFlashCards.push(fc);
       }
 
       return {
         success: true,
-        totalCreated: createdCards.length,
-        cards: createdCards,
+        card: savedCard,
+        totalCreated: createdFlashCards.length,
+        flashcards: createdFlashCards,
       };
     } catch (error) {
       throw new BadRequestException(
@@ -75,24 +102,51 @@ export class FlashCardsService {
         throw new BadRequestException('Invalid AI response');
       }
 
-      const createdCards = [];
-      for (const card of response.cards) {
-        const flashCard = this.flashCardRepo.create({
-          question: card.front || card.question || '',
-          answer: card.back || card.answer || '',
-          hint: card.hint || null,
-          difficulty: (card.difficulty || 'medium') as 'easy' | 'medium' | 'hard',
-          tags: card.tags || [],
+      // Generar título y descripción por IA
+      const title = await this.groqService.generateFlashcardTitle(
+        'Reference-based Flashcards',
+      );
+      const description = await this.groqService.generateFlashcardDescription(
+        'From Reference',
+        input.numberOfCards,
+      );
+
+      // Crear el Card padre con título y descripción
+      const card = this.cardRepo.create({
+        title,
+        description,
+        totalCards: input.numberOfCards,
+        reviewedCards: 0,
+        userId,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      const savedCard = await this.cardRepo.save(card);
+
+      // Crear los FlashCard hijos
+      const createdFlashCards = [];
+      for (const flashCard of response.cards) {
+        const fc = this.flashCardRepo.create({
+          question: flashCard.front || flashCard.question || '',
+          answer: flashCard.back || flashCard.answer || '',
+          hint: flashCard.hint || null,
+          difficulty: (flashCard.difficulty ||
+            'medium') as 'easy' | 'medium' | 'hard',
+          tags: flashCard.tags || [],
+          cardId: savedCard.id,
           userId,
-        } as any);
-        await this.flashCardRepo.save(flashCard);
-        createdCards.push(flashCard);
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+        await this.flashCardRepo.save(fc);
+        createdFlashCards.push(fc);
       }
 
       return {
         success: true,
-        totalCreated: createdCards.length,
-        cards: createdCards,
+        card: savedCard,
+        totalCreated: createdFlashCards.length,
+        flashcards: createdFlashCards,
       };
     } catch (error) {
       throw new BadRequestException(

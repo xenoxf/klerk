@@ -268,7 +268,7 @@ export class GroqService {
           {
             role: 'system',
             content:
-              'Eres un tutor educativo experto. Responde EXCLUSIVAMENTE con JSON válido. El campo "response" DEBE contener markdown formateado (usa **bold**, *italic*, `code`, listas, etc.). Los demás campos pueden ser texto plano.',
+              'Eres un tutor educativo experto. Responde SOLO con markdown formateado. Sin JSON, sin campos adicionales. Solo la respuesta en markdown puro con **bold**, *italic*, `code`, listas, etc. cuando sea necesario.',
           },
           {
             role: 'user',
@@ -276,44 +276,18 @@ export class GroqService {
           },
         ],
         temperature: 0.3,
-        max_tokens: 4096,
+        max_tokens: 2048,
       });
 
       const raw = completion.choices[0]?.message?.content?.trim() || '';
-
-      try {
-        const cleaned = this.cleanJsonResponse(raw);
-        const parsed = JSON.parse(cleaned);
-        // Asegurar que el campo response existe y contiene markdown
-        if (parsed.response && typeof parsed.response === 'string') {
-          return parsed;
-        }
-        // Si viene como texto plano, intentar parsearlo como markdown
-        return {
-          response: parsed.response || raw,
-          keyPoints: parsed.keyPoints || [],
-          suggestedFollowUp: parsed.suggestedFollowUp || '',
-          difficulty: parsed.difficulty || 'intermediate',
-          relevantTopics: parsed.relevantTopics || [],
-        };
-      } catch (e) {
-        // Si no es JSON válido, devolver como markdown directo
-        return {
-          response: raw,
-          keyPoints: [],
-          suggestedFollowUp: '',
-          difficulty: 'intermediate',
-          relevantTopics: [],
-        };
-      }
+      
+      // Return markdown directly, no JSON parsing
+      return {
+        response: raw,
+      };
     } catch (error) {
       return {
-        response: 'Lo siento, hubo un error procesando tu pregunta.',
-        keyPoints: [],
-        suggestedFollowUp: '',
-        difficulty: 'intermediate',
-        relevantTopics: [],
-        error: error.message,
+        response: `Error al generar respuesta: ${error.message}`,
       };
     }
   }
@@ -383,6 +357,164 @@ Responde SOLO con el título, nada más.`;
       return title.replace(/^["']|["']$/g, '');
     } catch (error) {
       return `Examen sobre ${topicOrReference.substring(0, 30)}`;
+    }
+  }
+
+  async generateFlashcardTitle(topicOrReference: string): Promise<string> {
+    try {
+      const prompt = `Genera un título corto y descriptivo (máximo 8 palabras) para un conjunto de flashcards sobre: "${topicOrReference}"
+
+El título debe ser:
+- Conciso y claro
+- Descriptivo del tema
+- Atractivo para estudiantes
+- Sin comillas ni explicación adicional
+
+Responde SOLO con el título, nada más.`;
+
+      const completion = await this.groq.chat.completions.create({
+        model: 'llama-3.3-70b-versatile',
+        messages: [
+          {
+            role: 'system',
+            content:
+              'Eres un asistente que genera títulos concisos. Responde SOLO con el título solicitado, sin comillas ni explicación.',
+          },
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+        temperature: 0.2,
+        max_tokens: 50,
+      });
+
+      const title =
+        completion.choices[0]?.message?.content?.trim() ||
+        `Flashcards sobre ${topicOrReference.substring(0, 25)}`;
+      return title.replace(/^["']|["']$/g, '');
+    } catch (error) {
+      return `Flashcards sobre ${topicOrReference.substring(0, 25)}`;
+    }
+  }
+
+  async generateFlashcardDescription(
+    topicOrReference: string,
+    numberOfCards: number,
+  ): Promise<string> {
+    try {
+      const prompt = `Genera una descripción breve (máximo 15 palabras) para un conjunto de ${numberOfCards} flashcards sobre: "${topicOrReference}"
+
+La descripción debe ser:
+- Concisa y clara
+- Explicar qué contienen las flashcards
+- Indicar el tema principal
+- Sin comillas ni explicación adicional
+
+Responde SOLO con la descripción, nada más.`;
+
+      const completion = await this.groq.chat.completions.create({
+        model: 'llama-3.3-70b-versatile',
+        messages: [
+          {
+            role: 'system',
+            content:
+              'Eres un asistente que genera descripciones concisas. Responde SOLO con la descripción solicitada, sin comillas ni explicación.',
+          },
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+        temperature: 0.2,
+        max_tokens: 80,
+      });
+
+      const description =
+        completion.choices[0]?.message?.content?.trim() ||
+        `Conjunto de ${numberOfCards} flashcards sobre ${topicOrReference.substring(0, 20)}`;
+      return description.replace(/^["']|["']$/g, '');
+    } catch (error) {
+      return `Conjunto de ${numberOfCards} flashcards sobre ${topicOrReference.substring(0, 20)}`;
+    }
+  }
+
+  async generateNoteTitle(topicOrReference: string): Promise<string> {
+    try {
+      const prompt = `Genera un título corto y descriptivo (máximo 8 palabras) para notas de estudio sobre: "${topicOrReference}"
+
+El título debe ser:
+- Conciso y claro
+- Descriptivo del tema
+- Atractivo para estudiantes
+- Sin comillas ni explicación adicional
+
+Responde SOLO con el título, nada más.`;
+
+      const completion = await this.groq.chat.completions.create({
+        model: 'llama-3.3-70b-versatile',
+        messages: [
+          {
+            role: 'system',
+            content:
+              'Eres un asistente que genera títulos concisos. Responde SOLO con el título solicitado, sin comillas ni explicación.',
+          },
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+        temperature: 0.2,
+        max_tokens: 50,
+      });
+
+      const title =
+        completion.choices[0]?.message?.content?.trim() ||
+        `Notas sobre ${topicOrReference.substring(0, 28)}`;
+      return title.replace(/^["']|["']$/g, '');
+    } catch (error) {
+      return `Notas sobre ${topicOrReference.substring(0, 28)}`;
+    }
+  }
+
+  async generateNoteDescription(
+    topicOrReference: string,
+    levelOfDetail: string,
+  ): Promise<string> {
+    try {
+      const prompt = `Genera una descripción breve (máximo 15 palabras) para notas de estudio (nivel: ${levelOfDetail}) sobre: "${topicOrReference}"
+
+La descripción debe ser:
+- Concisa y clara
+- Explicar qué contienen las notas
+- Indicar el nivel de detalle
+- Sin comillas ni explicación adicional
+
+Responde SOLO con la descripción, nada más.`;
+
+      const completion = await this.groq.chat.completions.create({
+        model: 'llama-3.3-70b-versatile',
+        messages: [
+          {
+            role: 'system',
+            content:
+              'Eres un asistente que genera descripciones concisas. Responde SOLO con la descripción solicitada, sin comillas ni explicación.',
+          },
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+        temperature: 0.2,
+        max_tokens: 80,
+      });
+
+      const description =
+        completion.choices[0]?.message?.content?.trim() ||
+        `Notas de estudio (${levelOfDetail}) sobre ${topicOrReference.substring(0, 18)}`;
+      return description.replace(/^["']|["']$/g, '');
+    } catch (error) {
+      return `Notas de estudio (${levelOfDetail}) sobre ${topicOrReference.substring(0, 18)}`;
     }
   }
 

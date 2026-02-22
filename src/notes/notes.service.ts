@@ -65,12 +65,22 @@ export class NotesService {
         throw new BadRequestException('Invalid AI response format');
       }
 
+      // Generar título y descripción por IA
+      const title = await this.groqService.generateNoteTitle(input.topic);
+      const description = await this.groqService.generateNoteDescription(
+        input.topic,
+        input.levelOfDetail,
+      );
+
       const createdNotes = [];
       for (const noteData of response.notes) {
         const note = this.noteRepo.create({
-          title: noteData.title || 'Sin título',
+          title: title,
+          description: description,
           levelOfDetail: input.levelOfDetail || 'medio',
           userId,
+          createdAt: new Date(),
+          updatedAt: new Date(),
         } as any);
         await this.noteRepo.save(note);
 
@@ -139,12 +149,24 @@ export class NotesService {
         throw new BadRequestException('Invalid AI response format');
       }
 
+      // Generar título y descripción por IA
+      const title = await this.groqService.generateNoteTitle(
+        'Reference-based Notes',
+      );
+      const description = await this.groqService.generateNoteDescription(
+        'From Reference',
+        input.levelOfDetail,
+      );
+
       const createdNotes = [];
       for (const noteData of response.notes) {
         const note = this.noteRepo.create({
-          title: noteData.title || 'Sin título',
+          title: title,
+          description: description,
           levelOfDetail: input.levelOfDetail || 'medio',
           userId,
+          createdAt: new Date(),
+          updatedAt: new Date(),
         } as any);
         await this.noteRepo.save(note);
 

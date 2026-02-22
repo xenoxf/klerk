@@ -11,7 +11,7 @@ export class MessagesService {
     @InjectRepository(Message) private messageRepo: Repository<Message>,
     @InjectRepository(Chat) private chatRepo: Repository<Chat>,
     private readonly groqService: GroqService,
-  ) {}
+  ) { }
 
   // Obtener o crear un chat para el usuario
   private async getOrCreateChat(userId: number): Promise<Chat> {
@@ -59,48 +59,34 @@ export class MessagesService {
 
     try {
       // Get AI response using educational chat method
-      const aiResponse = await this.groqService.generateEducationalChatResponse(
+      const response = await this.groqService.generateEducationalChatResponse(
         input.prompt,
       );
 
-      if (!aiResponse) {
+      if (!response) {
         throw new BadRequestException('Invalid AI response');
       }
 
       const createdAt = new Date().toISOString();
 
       // Extraer solo el campo response que contiene el markdown
-      const responseText =
+      /*const responseText =
         typeof aiResponse === 'object' && aiResponse.response
           ? aiResponse.response
           : typeof aiResponse === 'string'
             ? aiResponse
-            : JSON.stringify(aiResponse);
+            : JSON.stringify(aiResponse);*/
 
       // Save user message
       const userMessage = this.messageRepo.create({
         prompt: input.prompt,
-        response: responseText,
+        response: response as any,
         chat,
         userId,
         chatId: chat.id,
         createdAt,
       });
-      await this.messageRepo.save(userMessage);
-
-      return {
-        ...userMessage,
-        // Incluir metadata adicional si está disponible
-        metadata:
-          typeof aiResponse === 'object'
-            ? {
-                keyPoints: aiResponse.keyPoints || [],
-                suggestedFollowUp: aiResponse.suggestedFollowUp || '',
-                difficulty: aiResponse.difficulty || 'intermediate',
-                relevantTopics: aiResponse.relevantTopics || [],
-              }
-            : undefined,
-      };
+      return await this.messageRepo.save(userMessage);
     } catch (error) {
       throw new BadRequestException(
         `Failed to process message: ${error.message}`,

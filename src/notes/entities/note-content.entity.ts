@@ -12,9 +12,6 @@ export class NoteContent {
     @Column({ type: 'text' })
     content: string;
 
-    @Column({ type: 'varchar', default: 'text' })
-    type: string;
-
     @Column({ type: 'int', nullable: true })
     order: number;
 

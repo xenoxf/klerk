@@ -2,7 +2,11 @@
 
 export const AI_PROMPTS = {
   // ==================== EXAMS ====================
-  generateExamFromTopic: (topic: string, numberOfQuestions: number, difficulty: string) => `
+  generateExamFromTopic: (
+    topic: string,
+    numberOfQuestions: number,
+    difficulty: string,
+  ) => `
     CRITICAL INSTRUCTIONS:
     1. Generate EXACTLY ${numberOfQuestions} multiple choice questions about "${topic}"
     2. Difficulty level: ${difficulty}
@@ -30,7 +34,11 @@ export const AI_PROMPTS = {
     The JSON must be VALID and parseable by JSON.parse().
   `,
 
-  generateExamFromReference: (referenceText: string, numberOfQuestions: number, difficulty: string) => `
+  generateExamFromReference: (
+    referenceText: string,
+    numberOfQuestions: number,
+    difficulty: string,
+  ) => `
     CRITICAL INSTRUCTIONS - STRICT FORMAT REQUIREMENTS:
     1. Generate EXACTLY ${numberOfQuestions} multiple choice questions based SOLELY on this reference text
     2. Difficulty level: ${difficulty}
@@ -61,7 +69,11 @@ export const AI_PROMPTS = {
   `,
 
   // ==================== NOTES ====================
-  generateNoteFromTopic: (topic: string, numberOfNotes: number, levelOfDetail: string) => `
+  generateNoteFromTopic: (
+    topic: string,
+    numberOfNotes: number,
+    levelOfDetail: string,
+  ) => `
     CRITICAL INSTRUCTIONS:
     1. Generate EXACTLY ${numberOfNotes} comprehensive study note(s) for "${topic}"
     2. Level of detail: ${levelOfDetail}
@@ -135,7 +147,11 @@ export const AI_PROMPTS = {
     All text content should be enriched with markdown formatting for better readability.
   `,
 
-  generateNoteFromReference: (referenceText: string, numberOfNotes: number, levelOfDetail: string) => `
+  generateNoteFromReference: (
+    referenceText: string,
+    numberOfNotes: number,
+    levelOfDetail: string,
+  ) => `
     CRITICAL INSTRUCTIONS:
     1. Generate EXACTLY ${numberOfNotes} organized study note(s) based SOLELY on this reference:
     
@@ -255,7 +271,10 @@ export const AI_PROMPTS = {
     Use markdown formatting generously for better learning experience.
   `,
 
-  generateFlashcardsFromReference: (referenceText: string, numberOfCards: number) => `
+  generateFlashcardsFromReference: (
+    referenceText: string,
+    numberOfCards: number,
+  ) => `
     CRITICAL INSTRUCTIONS:
     1. Generate EXACTLY ${numberOfCards} flashcard pairs based SOLELY on this reference:
     
@@ -315,7 +334,10 @@ export const AI_PROMPTS = {
   `,
 
   // ==================== EDUCATIONAL CHAT ====================
-  generateEducationalChatResponse: (userMessage: string, conversationContext?: string) => `
+  generateEducationalChatResponse: (
+    userMessage: string,
+    conversationContext?: string,
+  ) => `
     EDUCATIONAL ASSISTANT INSTRUCTIONS:
     You are an expert educational tutor responding to a student question in an educational chat.
     
@@ -329,32 +351,27 @@ export const AI_PROMPTS = {
     3. Break complex concepts into digestible parts
     4. Encourage critical thinking and deeper understanding
     5. Be supportive and motivating
-    6. Correct misconceptions gently
-    7. Suggest related topics if relevant
-    8. USE MARKDOWN FORMATTING in the "response" field: **bold**, *italic*, \`code\`, lists (- or *), > blockquotes, # headers, etc.
+    6. Keep responses concise and focused
+    7. Use markdown formatting for clarity
     
-    MARKDOWN FORMATTING REQUIREMENTS:
+    MARKDOWN FORMATTING GUIDELINES:
     - Use **bold** for key terms and important concepts
-    - Use *italic* for emphasis and definitions
-    - Use \`code\` for technical terms, formulas, or code snippets
-    - Use > Blockquotes for important notes or tips
-    - Use - or * for bullet lists
-    - Use # Headers for section organization
-    - Use tables if comparisons are needed
+    - Use *italic* for emphasis and emphasis only when needed
+    - Use \`code\` for technical terms and code snippets
+    - Use > for important notes or tips (sparingly)
+    - Use lists with - for organized information
+    - Use # for major sections (use sparingly, 1-2 per response max)
+    - Do NOT use excessive headers or formatting
+    - Keep spacing normal and compact
     
-    RESPONSE FORMAT - Return as JSON:
-    {
-      "response": "Your detailed educational response here WITH MARKDOWN FORMATTING. Use **bold**, *italic*, \`code\`, lists, blockquotes, etc. to make it visually clear and educational.",
-      "keyPoints": ["Important concept 1", "Important concept 2", "Important concept 3"],
-      "suggestedFollowUp": "A follow-up question or topic to deepen understanding",
-      "difficulty": "beginner|intermediate|advanced based on detected level",
-      "relevantTopics": ["Related topic 1", "Related topic 2"]
-    }
-    
-    IMPORTANT: 
-    - Return ONLY valid JSON
-    - The "response" field MUST contain markdown formatting
-    - Other fields can be plain text
+    CRITICAL:
+    - Respond with ONLY markdown content
+    - No JSON wrappers, no "keyPoints", no "suggestedFollowUp"
+    - Do NOT include extra fields like difficulty or topics
+    - Focus on a single, coherent educational response
+    - Maximum 3-4 paragraphs unless explaining complex topics
+    - No unnecessary bullet points or excessive formatting
+    - Professional and serious tone, no fluff
   `,
 
   generateChatTitle: (firstMessage: string) => `
@@ -382,30 +399,28 @@ export const AI_PROMPTS = {
     
     If invalid, provide specific error messages and suggestions for fixing.
     If valid, confirm it meets all requirements.
-  `
+  `,
 };
 
 export const RESPONSE_FORMATS = {
   exam: {
     title: 'string',
-    description: 'string',
     totalQuestions: 'number',
     questions: [
       {
         id: 'number',
         question: 'string',
-        options: [
-          { id: 'string', text: 'string', isCorrect: 'boolean' }
-        ],
+        options: [{ id: 'string', text: 'string', isCorrect: 'boolean' }],
         explanation: 'string',
         difficulty: 'string',
-        category: 'string'
-      }
-    ]
+        category: 'string',
+      },
+    ],
   },
-  
+
   note: {
-    topic: 'string',
+    description: 'string',
+    title: 'string',
     notes: [
       {
         id: 'number',
@@ -414,24 +429,25 @@ export const RESPONSE_FORMATS = {
           {
             type: 'text|definition|list|example|warning|tip|quote|connection',
             content: 'string|string[]',
-            sourceReference: 'string?'
-          }
+            sourceReference: 'string?',
+          },
         ],
         tags: 'string[]',
         summary: 'string',
-        prerequisites: 'string[]'
-      }
+        prerequisites: 'string[]',
+      },
     ],
     metadata: {
       levelOfDetail: 'string',
       targetAudience: 'string',
-      estimatedStudyTime: 'string'
-    }
+      estimatedStudyTime: 'string',
+    },
   },
-  
+
   flashcard: {
-    topic: 'string',
+    title: 'string',
     totalCards: 'number',
+    description: 'string',
     cards: [
       {
         id: 'number',
@@ -442,15 +458,15 @@ export const RESPONSE_FORMATS = {
         category: 'string',
         tags: 'string[]',
         example: 'string?',
-        commonMistakes: 'string[]?'
-      }
+        commonMistakes: 'string[]?',
+      },
     ],
     difficultyBreakdown: {
       easy: 'number',
       medium: 'number',
-      hard: 'number'
-    }
-  }
+      hard: 'number',
+    },
+  },
 };
 
 // Helper para manejo de errores y retry
@@ -469,10 +485,11 @@ export const PROMPT_ERROR_HANDLING = {
     
     Return ONLY the corrected JSON response.
   `,
-  
+
   fallbackPrompt: (type: string) => `
     Simplified ${type} generation request:
     Return minimal valid JSON with basic structure.
     Focus on correctness over completeness if errors persist.
-  `
+  `,
 };
+
