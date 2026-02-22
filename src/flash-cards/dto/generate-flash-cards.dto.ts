@@ -1,4 +1,11 @@
-import { IsString, IsNotEmpty, IsOptional, Min, Max, MinLength } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsOptional,
+  Min,
+  Max,
+  MinLength,
+} from 'class-validator';
 
 export class GenerateFlashCardsDto {
   @IsOptional()
@@ -8,15 +15,15 @@ export class GenerateFlashCardsDto {
 
   @IsOptional()
   @IsString({ message: 'El texto de referencia debe ser un texto' })
-  @MinLength(10, { message: 'El texto de referencia debe tener al menos 10 caracteres' })
+  @MinLength(10, {
+    message: 'El texto de referencia debe tener al menos 10 caracteres',
+  })
   referenceText?: string;
 
-  @IsOptional()
   @Min(1, { message: 'La cantidad debe ser al menos 1' })
   @Max(50, { message: 'La cantidad no puede exceder 50' })
-  quantity?: number;
+  quantity: number;
 
-  @IsOptional()
   @IsString({ message: 'El nivel debe ser un texto' })
-  level?: string;
+  dificulty: string;
 }

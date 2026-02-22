@@ -1,20 +1,16 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { NotesService } from './notes.service';
 import { NotesController } from './notes.controller';
+import { NotesService } from './notes.service';
 import { Note } from './entities/note.entity';
 import { NoteContent } from './entities/note-content.entity';
 import { GroqModule } from '../groq/groq.module';
-import { AuthModule } from '../auth/auth.module';
+import { SharedModule } from '../shared/shared.module';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([Note, NoteContent]),
-    GroqModule,
-    AuthModule,
-  ],
-  providers: [NotesService],
+  imports: [TypeOrmModule.forFeature([Note, NoteContent]), GroqModule, SharedModule],
   controllers: [NotesController],
+  providers: [NotesService],
   exports: [NotesService],
 })
-export class NotesModule { }
+export class NotesModule {}

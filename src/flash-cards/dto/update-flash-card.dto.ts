@@ -1,4 +1,6 @@
-import { IsOptional, IsString, MinLength, MaxLength } from 'class-validator';
+import { IsString, MinLength, MaxLength, IsOptional, ValidateNested, IsArray } from 'class-validator';
+import { Type } from 'class-transformer';
+import { CreateCardDto } from './create-flash-card.dto';
 
 export class UpdateFlashCardDto {
   @IsOptional()
@@ -13,8 +15,8 @@ export class UpdateFlashCardDto {
   description?: string;
 
   @IsOptional()
-  cards?: Array<{
-    question: string;
-    answer: string;
-  }>;
+  @IsArray({ message: 'Las tarjetas deben ser un array' })
+  @ValidateNested({ each: true })
+  @Type(() => CreateCardDto)
+  cards?: CreateCardDto[];
 }

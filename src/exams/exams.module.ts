@@ -1,20 +1,21 @@
 import { Module } from '@nestjs/common';
-import { ExamsService } from './exams.service';
-import { ExamsController } from './exams.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ExamsController } from './exams.controller';
+import { ExamsService } from './exams.service';
 import { Exam } from './entities/exam.entity';
-import { ExamOption } from './entities/exam-option.entity';
 import { ExamQuestion } from './entities/examQuestion.entity';
-import { AuthModule } from '../auth/auth.module';
+import { ExamOption } from './entities/exam-option.entity';
 import { GroqModule } from '../groq/groq.module';
+import { SharedModule } from '../shared/shared.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Exam, ExamOption, ExamQuestion]),
-    AuthModule,
+    TypeOrmModule.forFeature([Exam, ExamQuestion, ExamOption]),
     GroqModule,
+    SharedModule,
   ],
   controllers: [ExamsController],
   providers: [ExamsService],
+  exports: [ExamsService],
 })
 export class ExamsModule {}

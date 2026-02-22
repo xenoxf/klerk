@@ -1,15 +1,26 @@
 import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
-import { MessagesModule } from './messages/messages.module';
-import { NotesModule } from './notes/notes.module';
-import { FlashCardsModule } from './flash-cards/flash-cards.module';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { UsersModule } from './users/users.module';
 import { ExamsModule } from './exams/exams.module';
-import { TypeOrmModule } from '@nestjs/typeorm';
+import { FlashCardsModule } from './flash-cards/flash-cards.module';
+import { NotesModule } from './notes/notes.module';
+import { MessagesModule } from './messages/messages.module';
 import { GroqModule } from './groq/groq.module';
+import { SharedModule } from './shared/shared.module';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { User } from './users/entities/user.entity';
+import { Exam } from './exams/entities/exam.entity';
+import { ExamQuestion } from './exams/entities/examQuestion.entity';
+import { ExamOption } from './exams/entities/exam-option.entity';
+import { FlashCard } from './flash-cards/entities/flash-card.entity';
+import { Card } from './flash-cards/entities/card.entity';
+import { Note } from './notes/entities/note.entity';
+import { NoteContent } from './notes/entities/note-content.entity';
+import { Chat } from './messages/entities/chat.entity';
+import { Message } from './messages/entities/message.entity';
 
 @Module({
   imports: [
@@ -40,13 +51,13 @@ import { GroqModule } from './groq/groq.module';
       inject: [ConfigService],
     }),
 
-    // Tus módulos
-    UsersModule,
+    SharedModule,
     AuthModule,
-    MessagesModule,
-    NotesModule,
-    FlashCardsModule,
+    UsersModule,
     ExamsModule,
+    FlashCardsModule,
+    NotesModule,
+    MessagesModule,
     GroqModule,
   ],
   controllers: [AppController],

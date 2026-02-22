@@ -69,10 +69,13 @@ export class MessagesService {
 
       const createdAt = new Date().toISOString();
 
+      // Extraer solo el campo response que contiene el markdown
       const responseText =
-        typeof aiResponse === 'object'
-          ? JSON.stringify(aiResponse)
-          : String(aiResponse);
+        typeof aiResponse === 'object' && aiResponse.response
+          ? aiResponse.response
+          : typeof aiResponse === 'string'
+            ? aiResponse
+            : JSON.stringify(aiResponse);
 
       // Save user message
       const userMessage = this.messageRepo.create({
@@ -85,17 +88,19 @@ export class MessagesService {
       });
       await this.messageRepo.save(userMessage);
 
-      // Also save AI response metadata
-      const aiMessage = this.messageRepo.create({
-        prompt: input.prompt,
-        response: aiResponse.response || responseText,
-        chat,
-        userId,
-        createdAt,
-      });
-      await this.messageRepo.save(aiMessage);
-
-      return userMessage;
+      return {
+        ...userMessage,
+        // Incluir metadata adicional si está disponible
+        metadata:
+          typeof aiResponse === 'object'
+            ? {
+                keyPoints: aiResponse.keyPoints || [],
+                suggestedFollowUp: aiResponse.suggestedFollowUp || '',
+                difficulty: aiResponse.difficulty || 'intermediate',
+                relevantTopics: aiResponse.relevantTopics || [],
+              }
+            : undefined,
+      };
     } catch (error) {
       throw new BadRequestException(
         `Failed to process message: ${error.message}`,
@@ -143,7 +148,7 @@ export class MessagesService {
       messages:
         (chat as any).messages?.map((msg) => ({
           id: (msg as any).id,
-          prompt: msg.mensaje,
+          prompt: msg.prompt,
           response: msg.response,
           createdAt: msg.createdAt,
         })) || [],

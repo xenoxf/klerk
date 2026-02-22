@@ -1,4 +1,11 @@
-import { IsString, IsOptional, MinLength, Min, Max, IsIn } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  MinLength,
+  Min,
+  Max,
+  IsIn,
+} from 'class-validator';
 
 export class GenerateExamDto {
   @IsOptional()
@@ -17,6 +24,8 @@ export class GenerateExamDto {
   numberOfQuestions?: number;
 
   @IsOptional()
-  @IsIn(['easy', 'medium', 'hard'], { message: 'La dificultad debe ser easy, medium o hard' })
+  @IsIn(['easy', 'medium', 'hard'], {
+    message: 'La dificultad debe ser easy, medium o hard',
+  })
   difficulty?: 'easy' | 'medium' | 'hard';
 }

@@ -1,15 +1,16 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { FlashCardsService } from './flash-cards.service';
 import { FlashCardsController } from './flash-cards.controller';
-import { Card } from './entities/card.entity';
+import { FlashCardsService } from './flash-cards.service';
 import { FlashCard } from './entities/flash-card.entity';
+import { Card } from './entities/card.entity';
 import { GroqModule } from '../groq/groq.module';
-import { AuthModule } from '../auth/auth.module';
+import { SharedModule } from '../shared/shared.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Card, FlashCard]), GroqModule, AuthModule],
+  imports: [TypeOrmModule.forFeature([FlashCard, Card]), GroqModule, SharedModule],
   controllers: [FlashCardsController],
   providers: [FlashCardsService],
+  exports: [FlashCardsService],
 })
-export class FlashCardsModule { }
+export class FlashCardsModule {}

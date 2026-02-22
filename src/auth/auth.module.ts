@@ -1,21 +1,16 @@
 import { Module } from '@nestjs/common';
-import { JwtModule } from '@nestjs/jwt';
-import { PassportModule } from '@nestjs/passport';
-import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { AuthController } from './auth.controller';
 import { JwtStrategy } from './jwt/jwt.strategy';
 import { GoogleStrategy } from './strategies/google.strategy';
+import { UsersModule } from '../users/users.module';
+import { MailService } from './mail.service';
+import { SharedModule } from '../shared/shared.module';
 
 @Module({
-  imports: [
-    PassportModule.register({ defaultStrategy: 'jwt' }),
-    JwtModule.register({
-      secret: process.env.JWT_SECRET || 'your-secret-key',
-      signOptions: { expiresIn: '24h' },
-    }),
-  ],
+  imports: [SharedModule, UsersModule],
+  providers: [AuthService, JwtStrategy, GoogleStrategy, MailService],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, GoogleStrategy],
-  exports: [JwtModule, PassportModule],
+  exports: [AuthService],
 })
 export class AuthModule {}

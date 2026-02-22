@@ -8,7 +8,7 @@ import { Repository } from 'typeorm';
 import { Exam } from './entities/exam.entity';
 import { ExamQuestion } from './entities/examQuestion.entity';
 import { ExamOption } from './entities/exam-option.entity';
-import { CreateExamDto } from './dto/create-exam.dto';
+import { GenerateExamDto } from './dto/generate-exam.dto';
 import { GroqService } from '../groq/groq.service';
 
 @Injectable()
@@ -23,7 +23,7 @@ export class ExamsService {
 
   // ==================== GENERATE EXAM FROM TOPIC ====================
 
-  async generateExamFromTopic(input: CreateExamDto, userId: number) {
+  async generateExamFromTopic(input: GenerateExamDto, userId: number) {
     if (!input.topic || input.numberOfQuestions <= 0) {
       throw new BadRequestException(
         'Topic and valid numberOfQuestions are required',
@@ -97,7 +97,7 @@ export class ExamsService {
   }
 
   // ==================== GENERATE EXAM FROM REFERENCIA ====================
-  async generateExamFromReference(input: CreateExamDto, userId: number) {
+  async generateExamFromReference(input: GenerateExamDto, userId: number) {
     if (!input.reference || input.numberOfQuestions <= 0) {
       throw new BadRequestException(
         'Reference text and valid numberOfQuestions are required',

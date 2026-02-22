@@ -1,15 +1,16 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { MessagesService } from './messages.service';
 import { MessagesController } from './messages.controller';
-import { Message } from './entities/message.entity';
+import { MessagesService } from './messages.service';
 import { Chat } from './entities/chat.entity';
+import { Message } from './entities/message.entity';
 import { GroqModule } from '../groq/groq.module';
-import { AuthModule } from '../auth/auth.module';
+import { SharedModule } from '../shared/shared.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Message, Chat]), GroqModule, AuthModule],
-  providers: [MessagesService],
+  imports: [TypeOrmModule.forFeature([Chat, Message]), GroqModule, SharedModule],
   controllers: [MessagesController],
+  providers: [MessagesService],
+  exports: [MessagesService],
 })
 export class MessagesModule {}

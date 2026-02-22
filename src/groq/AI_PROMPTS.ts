@@ -115,7 +115,7 @@ export const AI_PROMPTS = {
     
     RETURN ONLY PURE VALID JSON with MARKDOWN in content:
     {
-      "title": "**Exam:** Based on Reference Material - ${difficulty} Level",
+      "title": "Título será generado automáticamente",
       "description": "**Questions derived directly** from the *provided reference text*",
       "totalQuestions": ${numberOfQuestions},
       "sourceFidelity": "high",
@@ -411,17 +411,30 @@ export const AI_PROMPTS = {
     5. Be supportive and motivating
     6. Correct misconceptions gently
     7. Suggest related topics if relevant
+    8. USE MARKDOWN FORMATTING in the "response" field: **bold**, *italic*, \`code\`, lists (- or *), > blockquotes, # headers, etc.
+    
+    MARKDOWN FORMATTING REQUIREMENTS:
+    - Use **bold** for key terms and important concepts
+    - Use *italic* for emphasis and definitions
+    - Use \`code\` for technical terms, formulas, or code snippets
+    - Use > Blockquotes for important notes or tips
+    - Use - or * for bullet lists
+    - Use # Headers for section organization
+    - Use tables if comparisons are needed
     
     RESPONSE FORMAT - Return as JSON:
     {
-      "response": "Your detailed educational response here",
+      "response": "Your detailed educational response here WITH MARKDOWN FORMATTING. Use **bold**, *italic*, \`code\`, lists, blockquotes, etc. to make it visually clear and educational.",
       "keyPoints": ["Important concept 1", "Important concept 2", "Important concept 3"],
       "suggestedFollowUp": "A follow-up question or topic to deepen understanding",
       "difficulty": "beginner|intermediate|advanced based on detected level",
       "relevantTopics": ["Related topic 1", "Related topic 2"]
     }
     
-    IMPORTANT: Return ONLY valid JSON, no markdown or additional text.
+    IMPORTANT: 
+    - Return ONLY valid JSON
+    - The "response" field MUST contain markdown formatting
+    - Other fields can be plain text
   `,
 
   generateChatTitle: (firstMessage: string) => `
