@@ -11,7 +11,7 @@ export class MessagesService {
     @InjectRepository(Message) private messageRepo: Repository<Message>,
     @InjectRepository(Chat) private chatRepo: Repository<Chat>,
     private readonly groqService: GroqService,
-  ) { }
+  ) {}
 
   // Obtener o crear un chat para el usuario
   private async getOrCreateChat(userId: number): Promise<Chat> {
@@ -57,10 +57,13 @@ export class MessagesService {
       chat = await this.createChat(userId, chatTitle);
     }
 
+    const contexto = JSON.stringify(chat.messages);
+
     try {
       // Get AI response using educational chat method
       const response = await this.groqService.generateEducationalChatResponse(
         input.prompt,
+        contexto,
       );
 
       if (!response) {

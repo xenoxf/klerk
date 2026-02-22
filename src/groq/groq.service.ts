@@ -257,265 +257,133 @@ export class GroqService {
     conversationContext?: string,
   ) {
     try {
-      const prompt = AI_PROMPTS.generateEducationalChatResponse(
-        userMessage,
-        conversationContext,
-      );
+      const userContent = conversationContext
+        ? `Contexto previo:\n${conversationContext}\n\nMensaje del usuario: ${userMessage}`
+        : userMessage;
 
       const completion = await this.groq.chat.completions.create({
         model: 'llama-3.3-70b-versatile',
         messages: [
           {
             role: 'system',
-            content:
-              'Eres un tutor educativo experto. Responde SOLO con markdown formateado. Sin JSON, sin campos adicionales. Solo la respuesta en markdown puro con **bold**, *italic*, `code`, listas, etc. cuando sea necesario.',
+            content: AI_PROMPTS.SYSTEM_PROMPT(), // 👈 El prompt largo va aquí
           },
           {
             role: 'user',
-            content: prompt,
+            content: userContent, // 👈 Solo el mensaje del usuario
           },
         ],
-        temperature: 0.3,
+        temperature: 0.7, // Un poco más alto para respuestas naturales
         max_tokens: 2048,
       });
 
       const raw = completion.choices[0]?.message?.content?.trim() || '';
-      
-      // Return markdown directly, no JSON parsing
-      return {
-        response: raw,
-      };
+      return { response: raw };
     } catch (error) {
-      return {
-        response: `Error al generar respuesta: ${error.message}`,
-      };
+      return { response: `Error al generar respuesta: ${error.message}` };
     }
   }
-
   async generateChatTitleFromMessage(firstMessage: string): Promise<string> {
     try {
-      const prompt = AI_PROMPTS.generateChatTitle(firstMessage);
-
       const completion = await this.groq.chat.completions.create({
         model: 'llama-3.3-70b-versatile',
         messages: [
           {
             role: 'system',
-            content:
-              'Eres un asistente conciso. Responde SOLO con el título solicitado, sin comillas ni explicación.',
+            content: AI_PROMPTS.CHAT_TITLE_SYSTEM_PROMPT,
           },
           {
             role: 'user',
-            content: prompt,
+            content: `"${firstMessage}"`, // 👈 Solo el mensaje, sin instrucciones mezcladas
           },
         ],
-        temperature: 0.2,
-        max_tokens: 100,
+        temperature: 0.3,
+        max_tokens: 50, // 👈 Títulos cortos, no necesita más
       });
 
       const title =
-        completion.choices[0]?.message?.content?.trim() || 'Nuevo Chat';
+        completion.choices[0]?.message?.content
+          ?.trim()
+          ?.replace(/^["']|["']$/g, '') // Elimina comillas si el modelo las añade
+          ?.replace(/\.$/g, '') || 'Nuevo Chat'; // Elimina punto final si lo añade
+
       return title;
-    } catch (error) {
+    } catch {
       return 'Nuevo Chat';
     }
   }
 
-  async generateExamTitle(topicOrReference: string): Promise<string> {
+  // ==================== MÉTODOS ====================
+
+  private async generateShortText(
+    prompt: string,
+    fallback: string,
+    maxTokens = 50,
+  ): Promise<string> {
     try {
-      const prompt = `Genera un título corto y descriptivo (máximo 8 palabras) para un examen sobre: "${topicOrReference}"
-
-El título debe ser:
-- Conciso y claro
-- Descriptivo del tema
-- Atractivo para estudiantes
-- Sin comillas ni explicación adicional
-
-Responde SOLO con el título, nada más.`;
-
       const completion = await this.groq.chat.completions.create({
         model: 'llama-3.3-70b-versatile',
         messages: [
           {
             role: 'system',
             content:
-              'Eres un asistente que genera títulos concisos. Responde SOLO con el título solicitado, sin comillas ni explicación.',
+              'Responde SOLO con el texto solicitado. Sin comillas, sin puntos al final, sin explicaciones.',
           },
-          {
-            role: 'user',
-            content: prompt,
-          },
+          { role: 'user', content: prompt },
         ],
         temperature: 0.2,
-        max_tokens: 50,
+        max_tokens: maxTokens,
       });
-
-      const title =
-        completion.choices[0]?.message?.content?.trim() ||
-        `Examen sobre ${topicOrReference.substring(0, 30)}`;
-      // Limpiar comillas si las tiene
-      return title.replace(/^["']|["']$/g, '');
-    } catch (error) {
-      return `Examen sobre ${topicOrReference.substring(0, 30)}`;
+      const result = completion.choices[0]?.message?.content?.trim();
+      return result
+        ? result.replace(/^["']|["']$/g, '').replace(/\.$/g, '')
+        : fallback;
+    } catch {
+      return fallback;
     }
   }
 
-  async generateFlashcardTitle(topicOrReference: string): Promise<string> {
-    try {
-      const prompt = `Genera un título corto y descriptivo (máximo 8 palabras) para un conjunto de flashcards sobre: "${topicOrReference}"
+  async generateExamTitle(topic: string): Promise<string> {
+    return this.generateShortText(
+      AI_PROMPTS.generateExamTitle(topic),
+      `Examen sobre ${topic.substring(0, 30)}`,
+    );
+  }
 
-El título debe ser:
-- Conciso y claro
-- Descriptivo del tema
-- Atractivo para estudiantes
-- Sin comillas ni explicación adicional
-
-Responde SOLO con el título, nada más.`;
-
-      const completion = await this.groq.chat.completions.create({
-        model: 'llama-3.3-70b-versatile',
-        messages: [
-          {
-            role: 'system',
-            content:
-              'Eres un asistente que genera títulos concisos. Responde SOLO con el título solicitado, sin comillas ni explicación.',
-          },
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
-        temperature: 0.2,
-        max_tokens: 50,
-      });
-
-      const title =
-        completion.choices[0]?.message?.content?.trim() ||
-        `Flashcards sobre ${topicOrReference.substring(0, 25)}`;
-      return title.replace(/^["']|["']$/g, '');
-    } catch (error) {
-      return `Flashcards sobre ${topicOrReference.substring(0, 25)}`;
-    }
+  async generateFlashcardTitle(topic: string): Promise<string> {
+    return this.generateShortText(
+      AI_PROMPTS.generateFlashcardTitle(topic),
+      `Flashcards sobre ${topic.substring(0, 25)}`,
+    );
   }
 
   async generateFlashcardDescription(
-    topicOrReference: string,
+    topic: string,
     numberOfCards: number,
   ): Promise<string> {
-    try {
-      const prompt = `Genera una descripción breve (máximo 15 palabras) para un conjunto de ${numberOfCards} flashcards sobre: "${topicOrReference}"
-
-La descripción debe ser:
-- Concisa y clara
-- Explicar qué contienen las flashcards
-- Indicar el tema principal
-- Sin comillas ni explicación adicional
-
-Responde SOLO con la descripción, nada más.`;
-
-      const completion = await this.groq.chat.completions.create({
-        model: 'llama-3.3-70b-versatile',
-        messages: [
-          {
-            role: 'system',
-            content:
-              'Eres un asistente que genera descripciones concisas. Responde SOLO con la descripción solicitada, sin comillas ni explicación.',
-          },
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
-        temperature: 0.2,
-        max_tokens: 80,
-      });
-
-      const description =
-        completion.choices[0]?.message?.content?.trim() ||
-        `Conjunto de ${numberOfCards} flashcards sobre ${topicOrReference.substring(0, 20)}`;
-      return description.replace(/^["']|["']$/g, '');
-    } catch (error) {
-      return `Conjunto de ${numberOfCards} flashcards sobre ${topicOrReference.substring(0, 20)}`;
-    }
+    return this.generateShortText(
+      AI_PROMPTS.generateFlashcardDescription(topic, numberOfCards),
+      `${numberOfCards} flashcards sobre ${topic.substring(0, 20)}`,
+      80,
+    );
   }
 
-  async generateNoteTitle(topicOrReference: string): Promise<string> {
-    try {
-      const prompt = `Genera un título corto y descriptivo (máximo 8 palabras) para notas de estudio sobre: "${topicOrReference}"
-
-El título debe ser:
-- Conciso y claro
-- Descriptivo del tema
-- Atractivo para estudiantes
-- Sin comillas ni explicación adicional
-
-Responde SOLO con el título, nada más.`;
-
-      const completion = await this.groq.chat.completions.create({
-        model: 'llama-3.3-70b-versatile',
-        messages: [
-          {
-            role: 'system',
-            content:
-              'Eres un asistente que genera títulos concisos. Responde SOLO con el título solicitado, sin comillas ni explicación.',
-          },
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
-        temperature: 0.2,
-        max_tokens: 50,
-      });
-
-      const title =
-        completion.choices[0]?.message?.content?.trim() ||
-        `Notas sobre ${topicOrReference.substring(0, 28)}`;
-      return title.replace(/^["']|["']$/g, '');
-    } catch (error) {
-      return `Notas sobre ${topicOrReference.substring(0, 28)}`;
-    }
+  async generateNoteTitle(topic: string): Promise<string> {
+    return this.generateShortText(
+      AI_PROMPTS.generateNoteTitle(topic),
+      `Notas sobre ${topic.substring(0, 28)}`,
+    );
   }
 
   async generateNoteDescription(
-    topicOrReference: string,
+    topic: string,
     levelOfDetail: string,
   ): Promise<string> {
-    try {
-      const prompt = `Genera una descripción breve (máximo 15 palabras) para notas de estudio (nivel: ${levelOfDetail}) sobre: "${topicOrReference}"
-
-La descripción debe ser:
-- Concisa y clara
-- Explicar qué contienen las notas
-- Indicar el nivel de detalle
-- Sin comillas ni explicación adicional
-
-Responde SOLO con la descripción, nada más.`;
-
-      const completion = await this.groq.chat.completions.create({
-        model: 'llama-3.3-70b-versatile',
-        messages: [
-          {
-            role: 'system',
-            content:
-              'Eres un asistente que genera descripciones concisas. Responde SOLO con la descripción solicitada, sin comillas ni explicación.',
-          },
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
-        temperature: 0.2,
-        max_tokens: 80,
-      });
-
-      const description =
-        completion.choices[0]?.message?.content?.trim() ||
-        `Notas de estudio (${levelOfDetail}) sobre ${topicOrReference.substring(0, 18)}`;
-      return description.replace(/^["']|["']$/g, '');
-    } catch (error) {
-      return `Notas de estudio (${levelOfDetail}) sobre ${topicOrReference.substring(0, 18)}`;
-    }
+    return this.generateShortText(
+      AI_PROMPTS.generateNoteDescription(topic, levelOfDetail),
+      `Notas (${levelOfDetail}) sobre ${topic.substring(0, 18)}`,
+      80,
+    );
   }
 
   // ==================== HELPER METHODS ====================

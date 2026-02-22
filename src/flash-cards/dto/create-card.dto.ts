@@ -3,7 +3,7 @@
  * Se recomienda eliminar y usar CreateFlashCardDto en su lugar.
  * @deprecated
  */
-import { IsString, IsNotEmpty, MinLength, MaxLength } from 'class-validator';
+import { IsString, IsNotEmpty, MinLength } from 'class-validator';
 
 export class CreateCardDto {
   @IsNotEmpty({ message: 'La pregunta es requerida' })
