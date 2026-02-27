@@ -44,12 +44,12 @@ export class FlashCardsController {
   // ==================== BASIC CRUD ====================
   @Get()
   findAll(@Req() req: any) {
-    return this.flashCardsService.findAll(req.user.id);
+    return this.flashCardsService.findAllCards(req.user.id);
   }
 
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
-    return this.flashCardsService.findOne(id, req.user.id);
+    return this.flashCardsService.findCardById(id, req.user.id);
   }
 
   @Delete(':id')

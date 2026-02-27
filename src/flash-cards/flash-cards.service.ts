@@ -8,6 +8,7 @@ import { Repository } from 'typeorm';
 import { GroqService } from '../groq/groq.service';
 import { FlashCard } from './entities/flash-card.entity';
 import { Card } from './entities/card.entity';
+import { GenerateFlashCardsDto } from './dto/generate-flash-cards.dto';
 
 @Injectable()
 export class FlashCardsService {
@@ -19,15 +20,15 @@ export class FlashCardsService {
     private readonly cardRepo: Repository<Card>,
   ) {}
 
-  async generateFromTopic(input: any, userId: number) {
-    if (!input.topic || input.numberOfCards <= 0) {
-      throw new BadRequestException('Topic and valid numberOfCards required');
+  async generateFromTopic(input: GenerateFlashCardsDto, userId: number) {
+    if (!input.topic || input.quantity <= 0) {
+      throw new BadRequestException('Topic and valid quantity required');
     }
 
     try {
       const response = await this.groqService.generateFlashcardsFromTopic(
         input.topic,
-        input.numberOfCards,
+        input.quantity,
       );
 
       if (!response?.cards || !Array.isArray(response.cards)) {
@@ -38,18 +39,16 @@ export class FlashCardsService {
       const title = await this.groqService.generateFlashcardTitle(input.topic);
       const description = await this.groqService.generateFlashcardDescription(
         input.topic,
-        input.numberOfCards,
+        input.quantity,
       );
 
       // Crear el Card padre con título y descripción
       const card = this.cardRepo.create({
         title,
         description,
-        totalCards: input.numberOfCards,
+        totalCards: input.quantity,
         reviewedCards: 0,
         userId,
-        createdAt: new Date(),
-        updatedAt: new Date(),
       });
       const savedCard = await this.cardRepo.save(card);
 
@@ -57,23 +56,18 @@ export class FlashCardsService {
       const createdFlashCards = [];
       for (const flashCard of response.cards) {
         const fc = this.flashCardRepo.create({
-          question: flashCard.front || flashCard.question || '',
-          answer: flashCard.back || flashCard.answer || '',
+          front: flashCard.front || flashCard.question || '',
+          back: flashCard.back || flashCard.answer || '',
           hint: flashCard.hint || null,
-          difficulty: (flashCard.difficulty ||
-            'medium') as 'easy' | 'medium' | 'hard',
-          tags: flashCard.tags || [],
+          difficulty: flashCard.difficulty || 'medium',
           cardId: savedCard.id,
           userId,
-          createdAt: new Date(),
-          updatedAt: new Date(),
         });
         await this.flashCardRepo.save(fc);
         createdFlashCards.push(fc);
       }
 
       return {
-        success: true,
         card: savedCard,
         totalCreated: createdFlashCards.length,
         flashcards: createdFlashCards,
@@ -85,17 +79,17 @@ export class FlashCardsService {
     }
   }
 
-  async generateFromReference(input: any, userId: number) {
-    if (!input.referenceText || input.numberOfCards <= 0) {
+  async generateFromReference(input: GenerateFlashCardsDto, userId: number) {
+    if (!input.referenceText || input.quantity <= 0) {
       throw new BadRequestException(
-        'Reference text and numberOfCards required',
+        'Reference text and quantity required',
       );
     }
 
     try {
       const response = await this.groqService.generateFlashcardsFromReference(
         input.referenceText,
-        input.numberOfCards,
+        input.quantity,
       );
 
       if (!response?.cards || !Array.isArray(response.cards)) {
@@ -108,18 +102,16 @@ export class FlashCardsService {
       );
       const description = await this.groqService.generateFlashcardDescription(
         'From Reference',
-        input.numberOfCards,
+        input.quantity,
       );
 
       // Crear el Card padre con título y descripción
       const card = this.cardRepo.create({
         title,
         description,
-        totalCards: input.numberOfCards,
+        totalCards: input.quantity,
         reviewedCards: 0,
         userId,
-        createdAt: new Date(),
-        updatedAt: new Date(),
       });
       const savedCard = await this.cardRepo.save(card);
 
@@ -127,23 +119,18 @@ export class FlashCardsService {
       const createdFlashCards = [];
       for (const flashCard of response.cards) {
         const fc = this.flashCardRepo.create({
-          question: flashCard.front || flashCard.question || '',
-          answer: flashCard.back || flashCard.answer || '',
+          front: flashCard.front || flashCard.question || '',
+          back: flashCard.back || flashCard.answer || '',
           hint: flashCard.hint || null,
-          difficulty: (flashCard.difficulty ||
-            'medium') as 'easy' | 'medium' | 'hard',
-          tags: flashCard.tags || [],
+          difficulty: flashCard.difficulty || 'medium',
           cardId: savedCard.id,
           userId,
-          createdAt: new Date(),
-          updatedAt: new Date(),
         });
         await this.flashCardRepo.save(fc);
         createdFlashCards.push(fc);
       }
 
       return {
-        success: true,
         card: savedCard,
         totalCreated: createdFlashCards.length,
         flashcards: createdFlashCards,
@@ -154,26 +141,24 @@ export class FlashCardsService {
       );
     }
   }
-
-  async findAll(userId: number) {
-    return this.flashCardRepo.find({
+  async findAllCards(userId: number) {
+    return this.cardRepo.find({
       where: { userId },
       order: { createdAt: 'DESC' },
     });
   }
 
-  async findOne(id: number, userId: number) {
-    const flashCard = await this.flashCardRepo.findOne({
+  async findCardById(id: number, userId: number) {
+    return this.cardRepo.findOne({
       where: { id, userId },
+      relations: ['flashCards'],
     });
-    if (!flashCard) throw new NotFoundException('Flashcard not found');
-    return flashCard;
   }
 
   async remove(id: number, userId: number) {
-    const flashCard = await this.findOne(id, userId);
-    if (!flashCard) throw new NotFoundException('Flashcard not found');
-    await this.flashCardRepo.delete(id);
+    const cards = await this.findCardById(id, userId);
+    if (!cards) throw new NotFoundException('Cards not found');
+    await this.cardRepo.delete(id);
     return { message: 'Eliminado correctamente' };
   }
 }

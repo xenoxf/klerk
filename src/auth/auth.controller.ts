@@ -9,18 +9,20 @@ import {
   BadRequestException,
   InternalServerErrorException,
   Logger,
+  Query,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { Response } from 'express';
 import { AuthService } from './auth.service';
 import { CreateAuthDto } from './dto/create-auth.dto';
 import { LoginAuthDto } from './dto/login-auth.dto';
+import { Validate } from 'class-validator';
 
 @Controller('auth')
 export class AuthController {
   private readonly logger = new Logger(AuthController.name);
 
-  constructor(private readonly authService: AuthService) {}
+  constructor(private readonly authService: AuthService) { }
 
   @Post('register')
   async register(@Body() createAuthDto: CreateAuthDto) {
@@ -50,7 +52,9 @@ export class AuthController {
   async getGoogleAuthUrl() {
     try {
       const clientId = process.env.GOOGLE_CLIENT_ID;
-      const redirectUri = process.env.GOOGLE_REDIRECT_URI || 'http://localhost:2300/auth/google/callback';
+      const redirectUri =
+        process.env.GOOGLE_REDIRECT_URI ||
+        'http://localhost:2300/auth/google/callback';
 
       if (!clientId) {
         throw new Error('GOOGLE_CLIENT_ID no está configurado');
@@ -72,24 +76,23 @@ export class AuthController {
     } catch (error) {
       this.logger.error('Get Google Auth URL error:', error);
       throw new InternalServerErrorException(
-        error instanceof Error ? error.message : 'Error al obtener URL de Google Auth',
+        error instanceof Error
+          ? error.message
+          : 'Error al obtener URL de Google Auth',
       );
     }
   }
 
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
-  async googleCallback(
-    @Request() req: any,
-    @Res() res: Response,
-  ) {
+  async googleCallback(@Request() req: any, @Res() res: Response) {
     try {
       const result = await this.authService.googleAuth(req.user);
 
       // Redirigir al frontend con el token en URL
       const redirectUrl = new URL(
         process.env.FRONTEND_CALLBACK_URL ||
-          'http://localhost:3000/auth/callback',
+        'http://localhost:3000/auth/callback',
       );
       redirectUrl.searchParams.append('token', result.token);
       redirectUrl.searchParams.append('email', result.user.email);
@@ -98,8 +101,7 @@ export class AuthController {
     } catch (error) {
       this.logger.error('Google callback error:', error);
       const redirectUrl = new URL(
-        process.env.FRONTEND_CALLBACK_URL ||
-          'http://localhost:3000/auth',
+        process.env.FRONTEND_CALLBACK_URL || 'http://localhost:3000/auth',
       );
       redirectUrl.searchParams.append('error', 'google_failed');
       return res.redirect(redirectUrl.toString());
@@ -108,8 +110,8 @@ export class AuthController {
 
   @Post('google/callback')
   async googleCallbackPost(
-    @Body('code') code: string,
-    @Body('state') state?: string,
+    @Query('code') code: string,
+    //@Body('state') state?: string,
   ) {
     try {
       if (!code) {
@@ -121,7 +123,9 @@ export class AuthController {
     } catch (error) {
       this.logger.error('Google callback POST error:', error);
       throw new BadRequestException(
-        error instanceof Error ? error.message : 'Error al procesar Google Auth',
+        error instanceof Error
+          ? error.message
+          : 'Error al procesar Google Auth',
       );
     }
   }
@@ -138,7 +142,9 @@ export class AuthController {
     } catch (error) {
       this.logger.error('Google auth error:', error);
       throw new BadRequestException(
-        error instanceof Error ? error.message : 'Error al autenticar con Google',
+        error instanceof Error
+          ? error.message
+          : 'Error al autenticar con Google',
       );
     }
   }
@@ -164,3 +170,4 @@ export class AuthController {
     };
   }
 }
+

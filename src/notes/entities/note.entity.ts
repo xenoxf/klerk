@@ -19,19 +19,16 @@ export class Note {
   title: string;
 
   @Column({ nullable: true })
-  content?: string;
+  description?: string;
 
   @Column('simple-array', { nullable: true })
   tags?: string[];
 
   @Column({ nullable: true })
-  levelOfDetail?: 'breve' | 'medio' | 'alto';
+  levelOfDetail?: string;
 
   @CreateDateColumn()
   createdAt: Date;
-
-  @UpdateDateColumn()
-  updatedAt: Date;
 
   @Column()
   userId: number;

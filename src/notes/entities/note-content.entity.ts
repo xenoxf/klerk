@@ -7,7 +7,7 @@ export class NoteContent {
     id: number;
 
     @Column({ type: 'varchar', nullable: true })
-    title: string;
+    tema: string;
 
     @Column({ type: 'text' })
     content: string;

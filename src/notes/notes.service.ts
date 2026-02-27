@@ -7,7 +7,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { GroqService } from '../groq/groq.service';
 import { AI_PROMPTS } from '../groq/AI_PROMPTS';
-import { UpdateNoteDto } from './dto/update-note.dto';
 import { Note } from './entities/note.entity';
 import { NoteContent } from './entities/note-content.entity';
 
@@ -18,7 +17,7 @@ export class NotesService {
     @InjectRepository(Note) private readonly noteRepo: Repository<Note>,
     @InjectRepository(NoteContent)
     private readonly noteContentRepo: Repository<NoteContent>,
-  ) {}
+  ) { }
 
   private parseJSON(raw: string): any {
     try {
@@ -38,7 +37,7 @@ export class NotesService {
     input: {
       topic: string;
       numberOfNotes: number;
-      levelOfDetail: 'breve' | 'medio' | 'detallado';
+      levelOfDetail: string;
     },
     userId: number,
   ) {
@@ -77,11 +76,10 @@ export class NotesService {
         const note = this.noteRepo.create({
           title: title,
           description: description,
-          levelOfDetail: input.levelOfDetail || 'medio',
+          levelOfDetail: input.levelOfDetail,
           userId,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        } as any);
+          createdAt: new Date()
+        });
         await this.noteRepo.save(note);
 
         if (Array.isArray(noteData.contents)) {
@@ -122,7 +120,7 @@ export class NotesService {
     input: {
       referenceText: string;
       numberOfNotes: number;
-      levelOfDetail: 'breve' | 'medio' | 'detallado';
+      levelOfDetail: string;
     },
     userId: number,
   ) {
@@ -163,11 +161,10 @@ export class NotesService {
         const note = this.noteRepo.create({
           title: title,
           description: description,
-          levelOfDetail: input.levelOfDetail || 'medio',
+          levelOfDetail: input.levelOfDetail,
           userId,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        } as any);
+          createdAt: new Date()
+        });
         await this.noteRepo.save(note);
 
         if (Array.isArray(noteData.contents)) {
@@ -221,17 +218,11 @@ export class NotesService {
     return note;
   }
 
-  async update(id: number, updateNoteDto: UpdateNoteDto, userId: number) {
-    const note = await this.findOne(id, userId);
-    Object.assign(note, updateNoteDto);
-    note.updatedAt = new Date();
-    return this.noteRepo.save(note);
-  }
-
   async remove(id: number, userId: number) {
     const note = await this.findOne(id, userId);
+    if (!note) throw new NotFoundException('Note not found');
     await this.noteContentRepo.delete({ noteId: id } as any);
     await this.noteRepo.delete(id);
-    return { success: true, deletedId: id };
+    return { message: "Eliminado" };
   }
 }

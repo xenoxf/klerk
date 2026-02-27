@@ -5,6 +5,7 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   ManyToOne,
+  JoinColumn,
 } from 'typeorm';
 import { Card } from './card.entity';
 
@@ -13,36 +14,25 @@ export class FlashCard {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
-  question: string;
+  @Column({ type: 'text', default: '' })
+  front: string;
 
-  @Column()
-  answer: string;
+  @Column({ type: 'text', default: '' })
+  back: string;
 
   @Column({ nullable: true })
   hint?: string;
 
   @Column({ default: 'medium' })
-  difficulty: 'easy' | 'medium' | 'hard';
+  difficulty: string;
 
-  @Column('simple-array', { nullable: true })
-  tags?: string[];
-
-  @CreateDateColumn()
-  createdAt: Date;
-
-  @UpdateDateColumn()
-  updatedAt: Date;
-
-  @Column({ nullable: true })
-  reviewDate?: Date;
+  @ManyToOne(() => Card, (card) => card.flashcards, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'cardId' })
+  card: Card;
 
   @Column()
   cardId: number;
 
-  @Column({ nullable: true })
-  userId?: number;
-
-  @ManyToOne(() => Card, (card) => card.flashcards)
-  card?: Card;
+  @Column()
+  userId: number;
 }

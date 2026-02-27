@@ -470,9 +470,7 @@ export const AI_PROMPTS = {
   6. **NUNCA** uses la estructura Introducción → Desarrollo → Conclusión para conversación casual.
   7. **SIEMPRE** responde en el idioma del usuario.
   8. **FECHA Y HORA** → Si te preguntan qué día o qué hora es, usa los datos reales de este prompt.
-  `;
-  },
-
+  `},
   CHAT_TITLE_SYSTEM_PROMPT: `
   Eres un generador de títulos para chats educativos.
 
@@ -493,24 +491,17 @@ export const AI_PROMPTS = {
   Mensaje: "hola cómo estás" → Conversación General
   Mensaje: "explícame la ley de ohm" → Ley de Ohm y Circuitos
   `,
-
   // ==================== PROMPTS ====================
-
   generateExamTitle: (topic: string) =>
     `Título corto (máximo 6 palabras) para un examen sobre: "${topic}"`,
-
   generateFlashcardTitle: (topic: string) =>
     `Título corto (máximo 6 palabras) para un set de flashcards sobre: "${topic}"`,
-
   generateFlashcardDescription: (topic: string, numberOfCards: number) =>
     `Descripción breve (máximo 15 palabras) para ${numberOfCards} flashcards sobre: "${topic}". Menciona el tema y cantidad de tarjetas.`,
-
   generateNoteTitle: (topic: string) =>
     `Título corto (máximo 6 palabras) para notas de estudio sobre: "${topic}"`,
-
   generateNoteDescription: (topic: string, levelOfDetail: string) =>
     `Descripción breve (máximo 15 palabras) para notas nivel "${levelOfDetail}" sobre: "${topic}". Menciona nivel y tema.`,
-
   // ==================== VALIDATION PROMPT ====================
   validateResponse: (expectedType: 'exam' | 'note' | 'flashcard') => `
     VALIDATION REQUEST:
@@ -543,7 +534,6 @@ export const RESPONSE_FORMATS = {
       },
     ],
   },
-
   note: {
     description: 'string',
     title: 'string',
@@ -569,7 +559,6 @@ export const RESPONSE_FORMATS = {
       estimatedStudyTime: 'string',
     },
   },
-
   flashcard: {
     title: 'string',
     totalCards: 'number',
@@ -611,7 +600,6 @@ export const PROMPT_ERROR_HANDLING = {
 
     Return ONLY the corrected JSON response.
   `,
-
   fallbackPrompt: (type: string) => `
     Simplified ${type} generation request:
     Return minimal valid JSON with basic structure.

@@ -33,8 +33,6 @@ export class Card {
   @CreateDateColumn()
   createdAt: Date;
 
-  @UpdateDateColumn()
-  updatedAt: Date;
 
   @Column({ nullable: true })
   userId?: number;

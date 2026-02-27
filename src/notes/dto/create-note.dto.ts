@@ -1,49 +1,21 @@
 import { IsInt, IsNotEmpty, IsOptional, IsString, MaxLength, Min, MinLength } from 'class-validator';
 
-export class CreateNoteDto {
-    @IsNotEmpty({ message: 'El título es requerido' })
+export class GenerateNoteDto {
+  @IsOptional()
     @IsString({ message: 'El título debe ser un texto' })
     @MinLength(3, { message: 'El título debe tener al menos 3 caracteres' })
-    @MaxLength(100, { message: 'El título no puede exceder 100 caracteres' })
-    title: string;
+    topic?: string;
 
     @IsOptional()
     @IsString({ message: 'El contenido debe ser un texto' })
-    content?: string;
+    reference?: string;
 
-    @IsOptional()
-    @IsString({ message: 'La categoría debe ser un texto' })
-    category?: string;
-
-    @IsOptional()
-    @IsInt()
+    @IsInt({message: 'El número de notas debe ser un entero' })
     @Min(1)
     numberOfNotes?: number;
 
     @IsOptional()
-    @IsString()
+    @IsString({message:"El nivel de detalle debe ser un texto"})
     levelOfDetail?: string;
-
-    @IsOptional()
-    @IsString()
-    @MinLength(2)
-    tema?: string;
-
-    @IsOptional()
-    @IsString()
-    textoReferencia?: string;
 }
 
-export class GenerateNoteDto {
-  @IsOptional()
-  @IsString()
-  topic?: string;
-
-  @IsOptional()
-  @IsString()
-  referenceText?: string;
-
-  @IsOptional()
-  @IsString()
-  color?: string;
-}
