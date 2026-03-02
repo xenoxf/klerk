@@ -4,7 +4,6 @@ import {
   PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
-  UpdateDateColumn,
   OneToMany,
   ManyToOne,
 } from 'typeorm';
@@ -21,9 +20,6 @@ export class Note {
   @Column({ nullable: true })
   description?: string;
 
-  @Column('simple-array', { nullable: true })
-  tags?: string[];
-
   @Column({ nullable: true })
   levelOfDetail?: string;
 
@@ -33,7 +29,9 @@ export class Note {
   @Column()
   userId: number;
 
-  @OneToMany(() => NoteContent, (noteContent) => noteContent.note, { cascade: true })
+  @OneToMany(() => NoteContent, (noteContent) => noteContent.note, {
+    cascade: true,
+  })
   noteContents: NoteContent[];
 
   @ManyToOne(() => User, (user) => user.notes)

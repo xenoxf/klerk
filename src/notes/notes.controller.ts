@@ -20,9 +20,8 @@ import { JwtGuard } from '../auth/jwt/jwt.guard';
 
 @Controller('notes')
 @UseGuards(JwtGuard)
-//@UseGuards(ApiKeyGuard)
 export class NotesController {
-  constructor(private notesService: NotesService) { }
+  constructor(private notesService: NotesService) {}
 
   // ==================== AI GENERATION a @====================
   @Post('generate/topic_or_reference')

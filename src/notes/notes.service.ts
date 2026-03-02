@@ -6,7 +6,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { GroqService } from '../groq/groq.service';
-import { AI_PROMPTS } from '../groq/AI_PROMPTS';
+//import { AI_PROMPTS } from '../groq/AI_PROMPTS';
 import { Note } from './entities/note.entity';
 import { NoteContent } from './entities/note-content.entity';
 
@@ -17,16 +17,16 @@ export class NotesService {
     @InjectRepository(Note) private readonly noteRepo: Repository<Note>,
     @InjectRepository(NoteContent)
     private readonly noteContentRepo: Repository<NoteContent>,
-  ) { }
+  ) {}
 
   private parseJSON(raw: string): any {
     try {
       return JSON.parse(raw);
-    } catch (e) {
+    } catch {
       try {
         const match = raw.match(/\{[\s\S]*\}/);
         return match ? JSON.parse(match[0]) : null;
-      } catch (e2) {
+      } catch {
         return null;
       }
     }
@@ -78,7 +78,7 @@ export class NotesService {
           description: description,
           levelOfDetail: input.levelOfDetail,
           userId,
-          createdAt: new Date()
+          createdAt: new Date(),
         });
         await this.noteRepo.save(note);
 
@@ -86,7 +86,7 @@ export class NotesService {
           let order = 0;
           for (const content of noteData.contents) {
             const noteContent = this.noteContentRepo.create({
-              title: noteData.title,
+              tema: noteData.title,
               content: Array.isArray(content.content)
                 ? JSON.stringify(content.content)
                 : content.content,
@@ -163,7 +163,7 @@ export class NotesService {
           description: description,
           levelOfDetail: input.levelOfDetail,
           userId,
-          createdAt: new Date()
+          createdAt: new Date(),
         });
         await this.noteRepo.save(note);
 
@@ -223,6 +223,6 @@ export class NotesService {
     if (!note) throw new NotFoundException('Note not found');
     await this.noteContentRepo.delete({ noteId: id } as any);
     await this.noteRepo.delete(id);
-    return { message: "Eliminado" };
+    return { message: 'Eliminado' };
   }
 }
