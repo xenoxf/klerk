@@ -44,7 +44,7 @@ export const AI_PROMPTS = {
     2. Difficulty level: ${difficulty}
     3. All questions and answers MUST be directly derived from the reference text
     4. Each question: EXACTLY 4 options, ONE correct answer
-    5. USE MARKDOWN FORMATTING to enhance readability and structure
+    5. USE MARKDOWN FORMATTING to enhance readability and structure recuerde que la forma en la que te expreses con markdow debe ser de forma profecional osea no puedes ir poniendo letras grande porque simplemmnete quieres demostrar que haces caso
 
     REFERENCE TEXT:
     ${referenceText.substring(0, 2000)} ${referenceText.length > 2000 ? '... [text truncated]' : ''}
@@ -56,10 +56,10 @@ export const AI_PROMPTS = {
           "question": "**Question directly from reference?** *Clear and unambiguous*",
           "explanation": "**Explanation:** Detailed markdown explanation with *emphasis* and references to **specific parts** of the text",
           "options": [
-            {"text": "**Option A:** Description with *reference context*", "isCorrect": false},
-            {"text": "**Option B:** Correct option from text", "isCorrect": true},
-            {"text": "**Option C:** Common misinterpretation", "isCorrect": false},
-            {"text": "**Option D:** Option from different context", "isCorrect": false}
+            {"text": " Description with *reference context*", "isCorrect": false},
+            {"text": " Correct option from text", "isCorrect": true},
+            {"text": " Common misinterpretation", "isCorrect": false},
+            {"text": " Option from different context", "isCorrect": false}
           ]
         }
       ]
