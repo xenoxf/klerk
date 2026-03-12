@@ -17,6 +17,7 @@ import { ExamsService } from './exams.service';
 import { JwtGuard } from '../auth/jwt/jwt.guard';
 import { ApiKeyGuard } from '../common/guards/api-key/api-key.guard';
 import { GenerateExamDto } from './dto/generate-exam.dto';
+import { UpdateExamDto } from './dto/update-exam.dto';
 
 // letras mas usadas
 // a & $ e & @ i & ! o & 0 u & v
@@ -36,6 +37,11 @@ export class ExamsController {
   @Get(':id')
   getById(@Param('id', ParseIntPipe) id: number, @Req() req) {
     return this.examsService.getById(id, req.user.id);
+  }
+
+  @Get('score')
+  updateExamScore(@Query() query: UpdateExamDto, @Req() req) {
+    return this.examsService.updateExamScore(query, req.user.id);
   }
 
   @Delete(':id')

@@ -10,6 +10,7 @@ import { ExamQuestion } from './entities/examQuestion.entity';
 import { ExamOption } from './entities/exam-option.entity';
 import { GenerateExamDto } from './dto/generate-exam.dto';
 import { GroqService } from '../groq/groq.service';
+import { UpdateExamDto } from './dto/update-exam.dto';
 
 @Injectable()
 export class ExamsService {
@@ -19,7 +20,7 @@ export class ExamsService {
     private questionRepo: Repository<ExamQuestion>,
     @InjectRepository(ExamOption) private optionRepo: Repository<ExamOption>,
     private readonly groqService: GroqService,
-  ) {}
+  ) { }
 
   // ==================== GENERATE EXAM FROM TOPIC ====================
 
@@ -40,7 +41,6 @@ export class ExamsService {
         input.numberOfQuestions,
         input.difficulty,
       );
-
 
       const { questions } = response as any;
       const title = await this.groqService.generateExamTitle(input.topic);
@@ -102,7 +102,7 @@ export class ExamsService {
         input.difficulty,
       );
 
-      const {questions} = response as any
+      const { questions } = response as any;
 
       const title = await this.groqService.generateExamTitle(input.reference);
 
@@ -167,8 +167,16 @@ export class ExamsService {
     return exam;
   }
 
+  async updateExamScore(query: UpdateExamDto, userId: number) {
+    const examReferido = this.getById(query.id, userId);
+    if (!examReferido) throw new NotFoundException('Exam not found');
+    this.examRepo.update(query.id, { score: query.score });
+    return this.getAll(userId);
+  }
+
   async delete(id: number, userId: number) {
     const exam = await this.getById(id, userId);
+    if (!exam) throw new NotFoundException('Exam not found');
     await this.questionRepo.delete({ exam: { id } } as any);
     await this.examRepo.delete(id);
     return { message: 'Exam deleted' };
