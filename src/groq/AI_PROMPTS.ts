@@ -22,10 +22,10 @@ export const AI_PROMPTS = {
           "question": "**What is...?** *Clear, unambiguous question ending with ?*",
           "explanation": "**Why correct:** Detailed markdown "tablas de datos u etc, recuerde que todo en markdow" explanation with **emphasis**, *italics*, and \`code\`.",
           "options": [
-            {"text": "**Option A:** Description", "isCorrect": false},
-            {"text": "**Option B:** Correct answer", "isCorrect": true},
-            {"text": "**Option C:** Common misconception", "isCorrect": false},
-            {"text": "**Option D:** Plausible but incorrect", "isCorrect": false}
+            {"text": " Description with *topic context*", "isCorrect": false},
+            {"text": " Correct option from topic", "isCorrect": true},
+            {"text": " Common misinterpretation", "isCorrect": false},
+            {"text": " Option from different context", "isCorrect": false}
           ]
         }, las demas preguntas siguen con el mismo formato
       ]
@@ -470,7 +470,8 @@ export const AI_PROMPTS = {
   6. **NUNCA** uses la estructura Introducción → Desarrollo → Conclusión para conversación casual.
   7. **SIEMPRE** responde en el idioma del usuario.
   8. **FECHA Y HORA** → Si te preguntan qué día o qué hora es, usa los datos reales de este prompt.
-  `},
+  `;
+  },
   CHAT_TITLE_SYSTEM_PROMPT: `
   Eres un generador de títulos para chats educativos.
 
