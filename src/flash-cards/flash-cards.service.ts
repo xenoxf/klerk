@@ -9,6 +9,8 @@ import { GroqService } from '../groq/groq.service';
 import { FlashCard } from './entities/flash-card.entity';
 import { Card } from './entities/card.entity';
 import { GenerateFlashCardsDto } from './dto/generate-flash-cards.dto';
+import { CardResponse } from './types';
+import { title } from 'process';
 
 @Injectable()
 export class FlashCardsService {
@@ -46,8 +48,6 @@ export class FlashCardsService {
       const card = this.cardRepo.create({
         title,
         description,
-        totalCards: input.quantity,
-        reviewedCards: 0,
         userId,
       });
       const savedCard = await this.cardRepo.save(card);
@@ -56,22 +56,18 @@ export class FlashCardsService {
       const createdFlashCards = [];
       for (const flashCard of response.cards) {
         const fc = this.flashCardRepo.create({
-          front: flashCard.front || flashCard.question || '',
-          back: flashCard.back || flashCard.answer || '',
+          front: flashCard.front,
+          back: flashCard.back,
           hint: flashCard.hint || null,
-          difficulty: flashCard.difficulty || 'medium',
-          cardId: savedCard.id,
+          card: savedCard,
           userId,
         });
         await this.flashCardRepo.save(fc);
         createdFlashCards.push(fc);
       }
 
-      return {
-        card: savedCard,
-        totalCreated: createdFlashCards.length,
-        flashcards: createdFlashCards,
-      };
+      return {message: 'Creadaaa, pruebalas'}
+
     } catch (error) {
       throw new BadRequestException(
         `Error generating flashcards from topic: ${error.message}`,
@@ -87,65 +83,48 @@ export class FlashCardsService {
     }
 
     try {
-      const response = await this.groqService.generateFlashcardsFromReference(
+      const response: CardResponse = await this.groqService.generateFlashcardsFromReference(
         input.referenceText,
         input.quantity,
       );
 
-      if (!response?.cards || !Array.isArray(response.cards)) {
+      if (!response.cards || !Array.isArray(response.cards)) {
         throw new BadRequestException('Invalid AI response');
       }
 
-      // Generar título y descripción por IA
-      const title = await this.groqService.generateFlashcardTitle(
-        'Reference-based Flashcards',
-      );
-      const description = await this.groqService.generateFlashcardDescription(
-        'From Reference',
-        input.quantity,
-      );
+      
 
-      // Crear el Card padre con título y descripción
       const card = this.cardRepo.create({
-        title,
-        description,
-        totalCards: input.quantity,
-        reviewedCards: 0,
+        title: response.metadata.title,
+        description: response.metadata.description,
+        tema: response.metadata.tema,
+        area: response.metadata.area,
         userId,
+        code: await this.generateCode(),
+        acceso: input.acceso
       });
       const savedCard = await this.cardRepo.save(card);
 
       // Crear los FlashCard hijos
+      // Crear los FlashCard hijos
       const createdFlashCards = [];
       for (const flashCard of response.cards) {
         const fc = this.flashCardRepo.create({
-          front: flashCard.front || flashCard.question || '',
-          back: flashCard.back || flashCard.answer || '',
+          front: flashCard.front,
+          back: flashCard.back,
           hint: flashCard.hint || null,
-          difficulty: flashCard.difficulty || 'medium',
-          cardId: savedCard.id,
+          card: savedCard,
           userId,
         });
         await this.flashCardRepo.save(fc);
         createdFlashCards.push(fc);
       }
-
-      return {
-        card: savedCard,
-        totalCreated: createdFlashCards.length,
-        flashcards: createdFlashCards,
-      };
+      return {message: 'Creadaaa, pruebalas'}
     } catch (error) {
       throw new BadRequestException(
         `Error generating flashcards from reference: ${error.message}`,
       );
     }
-  }
-  async findAllCards(userId: number) {
-    return this.cardRepo.find({
-      where: { userId },
-      order: { createdAt: 'DESC' },
-    });
   }
 
   async findCardById(id: number, userId: number) {
@@ -155,10 +134,76 @@ export class FlashCardsService {
     });
   }
 
+  async generateCode() {
+    // debe tener 5 caracteres de letras mayúsculas y números
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let code = '';
+    for (let i = 0; i < 5; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    const existing = await this.cardRepo.findOne({ where: { code } });
+    if (existing) {
+      return this.generateCode(); // Regenerar si ya existe
+    }
+    return code;
+  }
+
+  async deckRefactor(cards: Card[] | Card) {
+    if (Array.isArray(cards)) {
+      return cards.map((card) => ({
+        id: card.id,
+        title: card.title,
+        description: card.description,
+        code: card.code,
+      }));
+    }
+    return {
+      id: cards.id,
+      title: cards.title,
+      description: cards.description,
+      code: cards.code,
+    };
+  }
+
+  async findPublicCardsDeck() {
+    const cards = await this.cardRepo.find({
+      where: {acceso: 'public'}
+    })
+
+    return this.deckRefactor(cards);
+  }
+
+  // |
+
+  async findOne(id: number, userId: number) {
+    const card = await this.cardRepo.findOne({
+      where: {id, userId}
+    });
+    if (!card) throw new NotFoundException('Card not found');
+    return this.deckRefactor(card);
+  }
+
+  async findMyCardsDeck(userId: number) {
+    const cards = await this.cardRepo.find({
+      where: {userId },
+      order: { createdAt: 'DESC' },
+    })
+    return this.deckRefactor(cards);
+  }
+
   async remove(id: number, userId: number) {
     const cards = await this.findCardById(id, userId);
     if (!cards) throw new NotFoundException('Cards not found');
     await this.cardRepo.delete(id);
     return { message: 'Eliminado correctamente' };
+  }
+
+  async getCardByCode(code: string) {
+    const card = await this.cardRepo.findOne({
+      where: { code },
+      relations: ['flashCards'],
+    });
+    if (!card) throw new NotFoundException('Card not found');
+    return this.deckRefactor(card);
   }
 }

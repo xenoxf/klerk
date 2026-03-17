@@ -3,7 +3,6 @@ import {
   PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
-  UpdateDateColumn,
   OneToMany,
   ManyToOne,
 } from 'typeorm';
@@ -19,6 +18,20 @@ export class Exam {
   @Column()
   title: string;
 
+  @Column({ nullable: true })
+  tema: string;
+
+  @Column({ nullable: true })
+  area: string;
+
+  @Column({ nullable: true })
+  description: string;
+
+  @Column({ default: 'publico' })
+  acceso: string;
+
+  @Column({ nullable: true })
+  code: string;
 
   @Column({ default: 0 })
   totalQuestions: number;
@@ -31,9 +44,6 @@ export class Exam {
 
   @CreateDateColumn()
   createdAt: Date;
-
-  @UpdateDateColumn()
-  updatedAt: Date;
 
   @Column({ nullable: true })
   userId?: number;

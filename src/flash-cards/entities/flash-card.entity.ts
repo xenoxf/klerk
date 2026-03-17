@@ -23,15 +23,9 @@ export class FlashCard {
   @Column({ nullable: true })
   hint?: string;
 
-  @Column({ default: 'medium' })
-  difficulty: string;
-
   @ManyToOne(() => Card, (card) => card.flashcards, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'cardId' })
   card: Card;
-
-  @Column()
-  cardId: number;
 
   @Column()
   userId: number;

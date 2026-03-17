@@ -31,7 +31,22 @@ export class ExamsController {
 
   @Get()
   getAll(@Req() req) {
-    return this.examsService.getAll(req.user.id);
+    return this.examsService.getPublicExamsDeck();
+  }
+
+  @Get('my/deck')
+  getMyExamsDeck(@Req() req) {
+    return this.examsService.getMyExamsDeck(req.user.id);
+  }
+
+  @Get('public/deck')
+  getPublicExamsDeck() {
+    return this.examsService.getPublicExamsDeck();
+  }
+
+  @Get('code/:code')
+  getByCode(@Param('code') code: string) {
+    return this.examsService.getExamByCode(code);
   }
 
   @Get(':id')

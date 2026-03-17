@@ -43,13 +43,17 @@ export class ExamsService {
       );
 
       const { questions } = response as any;
-      const title = await this.groqService.generateExamTitle(input.topic);
+      
       const exam = this.examRepo.create({
-        title,
+        title: response.metadata.title,
         difficulty: input.difficulty,
         userId,
         totalQuestions: input.numberOfQuestions,
         createdAt: new Date().toISOString(),
+        description: response.metadata.description,
+        tema: response.metadata.tema,
+        area: response.metadata.area,
+        acceso: input.acceso
       });
 
       const savedExam = await this.examRepo.save(exam);
@@ -77,7 +81,7 @@ export class ExamsService {
         }
       }
 
-      return savedExam;
+      return {message: 'Examen generado, respondelo ya¡¡¡'};
     } catch (error) {
       throw new BadRequestException(`Error generating exam: ${error.message}`);
     }
@@ -104,14 +108,17 @@ export class ExamsService {
 
       const { questions } = response as any;
 
-      const title = await this.groqService.generateExamTitle(input.reference);
 
       const exam = this.examRepo.create({
-        title,
+        title: response.metadata.title,
         difficulty: input.difficulty,
         userId,
         totalQuestions: input.numberOfQuestions,
         createdAt: new Date().toISOString(),
+        description: response.metadata.description,
+        tema: response.metadata.tema,
+        area: response.metadata.area,
+        acceso: input.acceso
       });
 
       const savedExam = await this.examRepo.save(exam);
@@ -139,7 +146,7 @@ export class ExamsService {
         }
       }
 
-      return savedExam;
+      return {message: 'Examen generado, respondelo ya¡¡¡'};
     } catch (error) {
       throw new BadRequestException(
         `Error generating exam from reference: ${error.message}`,
@@ -149,6 +156,19 @@ export class ExamsService {
 
   // ==================== BASIC CRUD ====================
 
+  async generateCode() {
+    // debe tener 5 caracteres de letras mayúsculas y números
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let code = '';
+    for (let i = 0; i < 5; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    const existing = await this.examRepo.findOne({ where: { code } });
+    if (existing) {
+      return this.generateCode(); // Regenerar si ya existe
+    }
+    return code;
+  }
   async getAll(userId: number) {
     return this.examRepo.find({
       where: { userId },
@@ -180,5 +200,47 @@ export class ExamsService {
     await this.questionRepo.delete({ exam: { id } } as any);
     await this.examRepo.delete(id);
     return { message: 'Exam deleted' };
+  }
+
+  // ==================== REFACTOR DECKS (OPTIMIZAR DATOS) ====================
+  async examRefactor(exams: Exam[] | Exam) {
+    if (Array.isArray(exams)) {
+      return exams.map((exam) => ({
+        id: exam.id,
+        title: exam.title,
+        description: exam.description,
+        difficulty: exam.difficulty,
+      }));
+    }
+    return {
+      id: exams.id,
+      title: exams.title,
+      difficulty: exams.difficulty,
+      description: exams.description,
+    };
+  }
+
+  async getPublicExamsDeck() {
+    const exams = await this.examRepo.find({
+      order: { createdAt: 'DESC' },
+    });
+    return this.examRefactor(exams);
+  }
+
+  async getMyExamsDeck(userId: number) {
+    const exams = await this.examRepo.find({
+      where: { userId },
+      order: { createdAt: 'DESC' },
+    });
+    return this.examRefactor(exams);
+  }
+
+  async getExamByCode(code: string) {
+    const exam = await this.examRepo.findOne({
+      where: { code },
+      relations: ['questions', 'questions.options'],
+    });
+    if (!exam) throw new NotFoundException('Exam not found');
+    return this.examRefactor(exam);
   }
 }

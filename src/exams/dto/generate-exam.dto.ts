@@ -5,7 +5,13 @@ import {
   Min,
   Max,
   IsIn,
+  IsEnum,
 } from 'class-validator';
+
+enum Acceso {
+  PUBLIC = 'public',
+  PRIVATE = 'private',
+}
 
 export class GenerateExamDto {
   @IsOptional()
@@ -22,8 +28,12 @@ export class GenerateExamDto {
   @Max(50, { message: 'La cantidad no puede exceder 50' })
   numberOfQuestions: number;
 
-  @IsIn(['easy', 'medium', 'hard'], {
-    message: 'La dificultad debe ser easy, medium o hard',
+  @IsIn(['facil', 'medio', 'dificil'], {
+    message: 'La dificultad debe ser facil, medio o dificil',
   })
   difficulty: string;
+
+  @IsOptional()
+    @IsEnum(Acceso, {message: 'El acceso debe ser "public" o "private"'})
+    acceso: Acceso;
 }

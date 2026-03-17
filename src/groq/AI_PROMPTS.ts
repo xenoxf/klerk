@@ -28,7 +28,13 @@ export const AI_PROMPTS = {
             {"text": " Option from different context", "isCorrect": false}
           ]
         }, las demas preguntas siguen con el mismo formato
-      ]
+      ],   a   q
+      "metadata": {
+        "title": "Debes crear un titulo referente al examen",
+        "description":"Una descripcion referente al examen",
+        "area" : "EL area al ue permanese este examenen ejemplo, biologia, calculo I o II o III etc, o fisica etc",
+        "tema": "debe ser el tema al ue permanece el examen ejemplo: Segunda Guerra Mundial, Revolucion industrial, Tercera ley de Newton, Derivadas, proporciones etc osea debe ser el tema del examen. ok"
+      }
     }
 
     The JSON must be VALID and parseable by JSON.parse().
@@ -62,7 +68,13 @@ export const AI_PROMPTS = {
             {"text": " Option from different context", "isCorrect": false}
           ]
         }
-      ]
+      ],
+      "metadata": {
+        "title": "Debes crear un titulo referente al examen",
+        "description":"Una descripcion referente al examen",
+        "area" : "EL area al ue permanese este examenen ejemplo, biologia, calculo I o II o III etc, o fisica etc",
+        "tema": "debe ser el tema al ue permanece el examen ejemplo: Segunda Guerra Mundial, Revolucion industrial, Tercera ley de Newton, Derivadas, proporciones etc osea debe ser el tema del examen. ok"
+      }
     }
 
     The JSON must be VALID and parseable by JSON.parse().
@@ -241,14 +253,10 @@ export const AI_PROMPTS = {
 
     RETURN ONLY PURE VALID JSON with MARKDOWN in content:
     {
-      "topic": "${topic}",
-      "totalCards": ${numberOfCards},
       "cards": [
         {
-          "id": 1,
           "front": "**Question?** *Concise key concept*",
           "back": "**Detailed answer** with *emphasis*, \`code\`, and **important points**. Include context and why it matters.",
-          "difficulty": "easy|medium|hard",
           "hint": "**Hint:** Practical memory aid with *emphasis*",
           "category": "definition|concept|application|comparison",
           "tags": ["relevant", "subtopic", "tags"],
@@ -256,15 +264,12 @@ export const AI_PROMPTS = {
           "commonMistakes": ["**Mistake 1:** *Common error*", "**Mistake 2:** *Another error*"]
         }
       ],
-      "difficultyBreakdown": {
-        "easy": ${Math.round(numberOfCards * 0.3)},
-        "medium": ${Math.round(numberOfCards * 0.5)},
-        "hard": ${Math.round(numberOfCards * 0.2)}
-      },
-      "studyTips": [
-        "**Tip 1:** Spaced repetition schedule recommendation",
-        "**Tip 2:** How to use these cards effectively"
-      ]
+      "metadata": {
+        "title": "Debes crear un titulo referente alas Cards",
+        "description":"Una descripcion referente alas Cards",
+        "area" : "EL area al ue permanese alas Cards ejemplo, biologia, calculo I o II o III etc, o fisica etc",
+        "tema": "debe ser el tema al ue permanece alas Cards ejemplo: Segunda Guerra Mundial, Revolucion industrial, Tercera ley de Newton, Derivadas, proporciones etc osea debe ser el tema del examen. ok"
+      }
     }
 
     The JSON must be VALID and parseable by JSON.parse().
@@ -302,30 +307,19 @@ export const AI_PROMPTS = {
 
     RETURN ONLY PURE VALID JSON with MARKDOWN in content:
     {
-      "source": "Reference-based flashcards",
-      "totalCards": ${numberOfCards},
       "cards": [
         {
-          "id": 1,
           "front": "**Key term or question** from text",
           "back": "**Accurate information** directly from reference with *emphasis* and \`technical terms\`",
           "difficulty": "easy|medium|hard",
           "hint": "**Hint:** Context clue from the text",
-          "textReference": "Specific location in source material",
-          "cardType": "fact|definition|relationship|sequence",
-          "importance": "high|medium|low based on text emphasis",
-          "verification": "Directly verifiable in reference text"
         }
       ],
-      "coverage": {
-        "keyConceptsCovered": ["List of main concepts"],
-        "factualAccuracy": "All cards must be verifiable in source",
-        "comprehensiveness": "Coverage of important reference content"
-      },
-      "sourceIntegrity": {
-        "faithfulToSource": true,
-        "noExternalKnowledge": true,
-        "directQuotes": ["Important quotes if applicable"]
+      "metadata": {
+        "title": "Debes crear un titulo referente alas Cards",
+        "description":"Una descripcion referente alas Cards",
+        "area" : "EL area al ue permanese alas Cards ejemplo, biologia, calculo I o II o III etc, o fisica etc",
+        "tema": "debe ser el tema al ue permanece alas Cards ejemplo: Segunda Guerra Mundial, Revolucion industrial, Tercera ley de Newton, Derivadas, proporciones etc osea debe ser el tema del examen. ok"
       }
     }
 
@@ -336,14 +330,14 @@ export const AI_PROMPTS = {
   // ==================== EDUCATIONAL CHAT ====================
   generateEducationalChatResponse: (
     userMessage: string,
-    conversationContext?: string,
+    conversationContext: string,
   ) => `
     EDUCATIONAL ASSISTANT INSTRUCTIONS:
     You are an expert educational tutor responding to a student question in an educational chat.
 
     User's question: "${userMessage}"
 
-    ${conversationContext ? `Previous conversation:\n${conversationContext}\n\n` : ''}
+    ${`Previous conversation:\n${conversationContext}\n\n`}
 
     RESPONSE REQUIREMENTS:
     1. Provide clear, accurate, and educational explanations
@@ -363,6 +357,7 @@ export const AI_PROMPTS = {
     - Use # for major sections (use sparingly, 1-2 per response max)
     - Do NOT use excessive headers or formatting
     - Keep spacing normal and compact
+    - No debes usar negrina ni cosas exageradas, la comunicacion debe ser normal
 
     CRITICAL:
     - Respond with ONLY markdown content
@@ -382,21 +377,12 @@ export const AI_PROMPTS = {
       day: 'numeric',
       timeZone: 'America/Bogota',
     });
-    const hora = now.toLocaleTimeString('es-CO', {
-      hour: '2-digit',
-      minute: '2-digit',
-      timeZone: 'America/Bogota',
-      hour12: true,
-    });
-    const año = now.getFullYear();
 
     return `
   ## CONTEXTO DEL SISTEMA
   - 📅 Fecha actual: ${fecha}
-  - 🕐 Hora actual: ${hora} (Colombia, UTC-5)
-  - 📆 Año académico: ${año}
   - 🌍 Región: Colombia / Latinoamérica
-  - 🤖 Modelo: Tutor educativo IA — versión ${año}
+  - 🤖 Modelo: Tutor educativo IA
 
   ---
 

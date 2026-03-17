@@ -4,7 +4,6 @@ import {
   PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
-  UpdateDateColumn,
   OneToMany,
   ManyToOne,
 } from 'typeorm';
@@ -15,24 +14,26 @@ export class Card {
   @PrimaryGeneratedColumn()
   id: number;
 
+  @Column({ nullable: true })
+  code: string;
+
   @Column()
   title: string;
 
   @Column({ nullable: true })
-  description?: string;
-
-  @Column({ default: 0 })
-  totalCards: number;
-
-  @Column({ default: 0 })
-  reviewedCards: number;
+  tema: string;
 
   @Column({ nullable: true })
-  lastReviewDate?: Date;
+  area: string;
+
+  @Column({ nullable: true })
+  description: string;
+
+  @Column({ default: 'publico' })
+  acceso: string;
 
   @CreateDateColumn()
   createdAt: Date;
-
 
   @Column({ nullable: true })
   userId?: number;

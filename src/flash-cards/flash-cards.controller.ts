@@ -12,10 +12,9 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { FlashCardsService } from './flash-cards.service';
-import { CreateFlashCardDto } from './dto/create-flash-card.dto';
-import { FlashCardFiltersDto, CardFiltersDto } from './dto/filters.dto';
 import { JwtGuard } from '../auth/jwt/jwt.guard';
 import { ApiKeyGuard } from '../common/guards/api-key/api-key.guard';
+import { GenerateFlashCardsDto } from './dto/generate-flash-cards.dto';
 
 @UseGuards(JwtGuard)
 //@UseGuards(ApiKeyGuard)
@@ -25,7 +24,7 @@ export class FlashCardsController {
 
   // ==================== AI GENERATION ====================
   @Post('generate/topic_or_reference')
-  generate(@Body() input: any, @Req() req: any) {
+  generate(@Body() input: GenerateFlashCardsDto, @Req() req: any) {
     if (!input.topic && !input.referenceText) {
       throw new BadRequestException(
         'Debe proporcionar un "topic" o "referenceText" para generar tarjetas.',
@@ -42,9 +41,14 @@ export class FlashCardsController {
   }
 
   // ==================== BASIC CRUD ====================
+  @Get('public')
+  findAll() {
+    return this.flashCardsService.findPublicCardsDeck();
+  }
+
   @Get()
-  findAll(@Req() req: any) {
-    return this.flashCardsService.findAllCards(req.user.id);
+  findMyCards(@Req() req: any) {
+    return this.flashCardsService.findMyCardsDeck(req.user.id);
   }
 
   @Get(':id')
@@ -55,5 +59,10 @@ export class FlashCardsController {
   @Delete(':id')
   remove(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
     return this.flashCardsService.remove(id, req.user.id);
+  }
+
+  @Get('code/:code')
+  findByCode(@Param('code') code: string) {
+    return this.flashCardsService.getCardByCode(code);
   }
 }

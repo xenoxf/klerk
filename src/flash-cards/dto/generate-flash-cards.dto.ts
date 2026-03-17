@@ -1,4 +1,9 @@
-import { IsString, IsNotEmpty, IsOptional, Min, Max, MinLength } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, Min, Max, MinLength, IsEnum } from 'class-validator';
+
+enum Acceso {
+  PUBLIC = 'public',
+  PRIVATE = 'private',
+}
 
 export class GenerateFlashCardsDto {
   @IsOptional()
@@ -17,6 +22,6 @@ export class GenerateFlashCardsDto {
   quantity?: number;
 
   @IsOptional()
-  @IsString({ message: 'El nivel debe ser un texto' })
-  level?: string;
+  @IsEnum(Acceso, {message: 'El acceso debe ser "public" o "private"'})
+  acceso: Acceso;
 }
