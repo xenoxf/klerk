@@ -35,7 +35,7 @@ export class FlashCardsController {
 
   // ==================== BASIC CRUD ====================
   @Get('public')
-  findAll() {
+  findAllPublic() {
     return this.flashCardsService.findPublicCardsDeck();
   }
 
@@ -57,5 +57,10 @@ export class FlashCardsController {
   @Get('code/:code')
   findByCode(@Param('code') code: string) {
     return this.flashCardsService.getCardByCode(code);
+  }
+
+  @Get('all')
+  findAllPrivate(@Req() req: any) {
+    return this.findAllPrivate(req.user.id);
   }
 }
