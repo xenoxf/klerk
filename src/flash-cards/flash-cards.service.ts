@@ -22,61 +22,8 @@ export class FlashCardsService {
     private readonly cardRepo: Repository<Card>,
   ) {}
 
-  async generateFromTopic(input: GenerateFlashCardsDto, userId: number) {
-    if (!input.topic || input.quantity <= 0) {
-      throw new BadRequestException('Topic and valid quantity required');
-    }
-
-    try {
-      const response = await this.groqService.generateFlashcardsFromTopic(
-        input.topic,
-        input.quantity,
-      );
-
-      if (!response?.cards || !Array.isArray(response.cards)) {
-        throw new BadRequestException('Invalid AI response');
-      }
-
-      // Generar título y descripción por IA
-      const title = await this.groqService.generateFlashcardTitle(input.topic);
-      const description = await this.groqService.generateFlashcardDescription(
-        input.topic,
-        input.quantity,
-      );
-
-      // Crear el Card padre con título y descripción
-      const card = this.cardRepo.create({
-        title,
-        description,
-        userId,
-      });
-      const savedCard = await this.cardRepo.save(card);
-
-      // Crear los FlashCard hijos
-      const createdFlashCards = [];
-      for (const flashCard of response.cards) {
-        const fc = this.flashCardRepo.create({
-          front: flashCard.front,
-          back: flashCard.back,
-          hint: flashCard.hint || null,
-          card: savedCard,
-          userId,
-        });
-        await this.flashCardRepo.save(fc);
-        createdFlashCards.push(fc);
-      }
-
-      return {message: 'Creadaaa, pruebalas'}
-
-    } catch (error) {
-      throw new BadRequestException(
-        `Error generating flashcards from topic: ${error.message}`,
-      );
-    }
-  }
-
   async generateFromReference(input: GenerateFlashCardsDto, userId: number) {
-    if (!input.referenceText || input.quantity <= 0) {
+    if (!input.reference || input.quantity <= 0) {
       throw new BadRequestException(
         'Reference text and quantity required',
       );
@@ -84,15 +31,13 @@ export class FlashCardsService {
 
     try {
       const response: CardResponse = await this.groqService.generateFlashcardsFromReference(
-        input.referenceText,
+        input.reference,
         input.quantity,
       );
 
       if (!response.cards || !Array.isArray(response.cards)) {
         throw new BadRequestException('Invalid AI response');
       }
-
-      
 
       const card = this.cardRepo.create({
         title: response.metadata.title,
@@ -105,7 +50,6 @@ export class FlashCardsService {
       });
       const savedCard = await this.cardRepo.save(card);
 
-      // Crear los FlashCard hijos
       // Crear los FlashCard hijos
       const createdFlashCards = [];
       for (const flashCard of response.cards) {

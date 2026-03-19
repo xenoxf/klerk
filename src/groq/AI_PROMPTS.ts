@@ -281,23 +281,23 @@ export const AI_PROMPTS = {
     numberOfCards: number,
   ) => `
     CRITICAL INSTRUCTIONS:
-    1. Generate EXACTLY ${numberOfCards} flashcard pairs based SOLELY on this reference:
+    1. Generate EXACTLY ${numberOfCards} flashcard pairs based SOLELY on this reference text provided by the user:
 
-    REFERENCE TEXT:
+    REFERENCE TEXT (User Input):
     ${referenceText.substring(0, 2500)} ${referenceText.length > 2500 ? '... [text truncated]' : ''}
 
     2. Extract key information for effective spaced repetition
-    3. Focus on important facts, concepts, and relationships
-    4. Ensure cards are testable and unambiguous
+    3. Focus on important facts, concepts, and relationships from the reference
+    4. Ensure cards are testable and unambiguous based on the reference
     5. USE MARKDOWN FORMATTING (**bold**, *italic*, \`code\`) for emphasis
-    6. ALL CONTENT MUST BE DIRECTLY FROM THE REFERENCE TEXT
+    6. ALL CONTENT MUST BE DIRECTLY FROM THE REFERENCE TEXT PROVIDED
 
     EXTRACTION GUIDELINES:
-    - Identify key terms and their definitions
-    - Extract important facts, dates, numbers
-    - Note cause-effect relationships
-    - Highlight comparisons and contrasts
-    - Capture sequences or processes
+    - Identify key terms and their definitions from reference
+    - Extract important facts, dates, numbers from reference
+    - Note cause-effect relationships in the reference
+    - Highlight comparisons and contrasts from the reference
+    - Capture sequences or processes mentioned in reference
 
     MARKDOWN USAGE:
     - **Bold** for key terms from the reference

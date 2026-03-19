@@ -25,17 +25,10 @@ export class FlashCardsController {
   // ==================== AI GENERATION ====================
   @Post('generate/topic_or_reference')
   generate(@Body() input: GenerateFlashCardsDto, @Req() req: any) {
-    if (!input.topic && !input.referenceText) {
+    if (!input.reference) {
       throw new BadRequestException(
-        'Debe proporcionar un "topic" o "referenceText" para generar tarjetas.',
+        'Debe proporcionar un "reference" (texto de referencia) para generar tarjetas.',
       );
-    }
-    if (input.topic && input.referenceText)
-      throw new BadRequestException(
-        'No puede proporcionar ambos "topic" y "referenceText". Por favor, elija uno :).',
-      );
-    if (!input.referenceText) {
-      return this.flashCardsService.generateFromTopic(input, req.user.id);
     }
     return this.flashCardsService.generateFromReference(input, req.user.id);
   }

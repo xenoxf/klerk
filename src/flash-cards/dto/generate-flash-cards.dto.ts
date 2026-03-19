@@ -6,20 +6,16 @@ enum Acceso {
 }
 
 export class GenerateFlashCardsDto {
-  @IsOptional()
-  @IsString({ message: 'El tema debe ser un texto' })
-  @MinLength(3, { message: 'El tema debe tener al menos 3 caracteres' })
-  topic?: string;
 
-  @IsOptional()
+  @IsNotEmpty({ message: 'El texto de referencia es obligatorio' })
   @IsString({ message: 'El texto de referencia debe ser un texto' })
   @MinLength(10, { message: 'El texto de referencia debe tener al menos 10 caracteres' })
-  referenceText?: string;
+  reference: string;
 
-  @IsOptional()
+  @IsNotEmpty({ message: 'La cantidad es obligatoria' })
   @Min(1, { message: 'La cantidad debe ser al menos 1' })
   @Max(50, { message: 'La cantidad no puede exceder 50' })
-  quantity?: number;
+  quantity: number;
 
   @IsOptional()
   @IsEnum(Acceso, {message: 'El acceso debe ser "public" o "private"'})
