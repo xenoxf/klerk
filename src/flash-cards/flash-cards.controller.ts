@@ -59,7 +59,7 @@ export class FlashCardsController {
     return this.flashCardsService.getCardByCode(code);
   }
 
-  @Get('all')
+  @Get('private')
   findAllPrivate(@Req() req: any) {
     return this.findAllPrivate(req.user.id);
   }
