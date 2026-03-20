@@ -20,7 +20,7 @@ import { GenerateFlashCardsDto } from './dto/generate-flash-cards.dto';
 //@UseGuards(ApiKeyGuard)
 @Controller('flash-cards')
 export class FlashCardsController {
-  constructor(private readonly flashCardsService: FlashCardsService) { }
+  constructor(private readonly flashCardsService: FlashCardsService) {}
 
   // ==================== AI GENERATION ====================
   @Post('generate/topic_or_reference')
@@ -45,13 +45,13 @@ export class FlashCardsController {
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
-    return this.flashCardsService.findCardById(id, req.user.id);
+  findOne(@Param('id') id: string, @Req() req: any) {
+    return this.flashCardsService.findCardById(+id, req.user.id);
   }
 
   @Delete(':id')
-  remove(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
-    return this.flashCardsService.remove(id, req.user.id);
+  remove(@Param('id') id: string, @Req() req: any) {
+    return this.flashCardsService.remove(+id, req.user.id);
   }
 
   @Get('code/:code')

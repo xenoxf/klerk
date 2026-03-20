@@ -20,21 +20,11 @@ export class ExamsService {
     private questionRepo: Repository<ExamQuestion>,
     @InjectRepository(ExamOption) private optionRepo: Repository<ExamOption>,
     private readonly groqService: GroqService,
-  ) { }
+  ) {}
 
   // ==================== GENERATE EXAM FROM TOPIC ====================
 
   async generateExamFromTopic(input: GenerateExamDto, userId: number) {
-    if (!input.topic || input.numberOfQuestions <= 0) {
-      throw new BadRequestException(
-        'Topic and valid numberOfQuestions are required',
-      );
-    }
-
-    if (!['easy', 'medium', 'hard'].includes(input.difficulty)) {
-      throw new BadRequestException('Invalid difficulty level');
-    }
-
     try {
       const response = await this.groqService.generateExamFromTopic(
         input.topic,
@@ -43,7 +33,7 @@ export class ExamsService {
       );
 
       const { questions } = response as any;
-      
+
       const exam = this.examRepo.create({
         title: response.metadata.title,
         difficulty: input.difficulty,
@@ -53,7 +43,7 @@ export class ExamsService {
         description: response.metadata.description,
         tema: response.metadata.tema,
         area: response.metadata.area,
-        acceso: input.acceso
+        acceso: input.acceso,
       });
 
       const savedExam = await this.examRepo.save(exam);
@@ -81,7 +71,7 @@ export class ExamsService {
         }
       }
 
-      return {message: 'Examen generado, respondelo ya¡¡¡'};
+      return { message: 'Examen generado, respondelo ya¡¡¡' };
     } catch (error) {
       throw new BadRequestException(`Error generating exam: ${error.message}`);
     }
@@ -89,16 +79,6 @@ export class ExamsService {
 
   // ==================== GENERATE EXAM FROM REFERENCIA ====================
   async generateExamFromReference(input: GenerateExamDto, userId: number) {
-    if (!input.reference || input.numberOfQuestions <= 0) {
-      throw new BadRequestException(
-        'Reference text and valid numberOfQuestions are required',
-      );
-    }
-
-    if (!['easy', 'medium', 'hard'].includes(input.difficulty)) {
-      throw new BadRequestException('Invalid difficulty level');
-    }
-
     try {
       const response = await this.groqService.generateExamFromReference(
         input.reference,
@@ -107,7 +87,6 @@ export class ExamsService {
       );
 
       const { questions } = response as any;
-
 
       const exam = this.examRepo.create({
         title: response.metadata.title,
@@ -118,7 +97,7 @@ export class ExamsService {
         description: response.metadata.description,
         tema: response.metadata.tema,
         area: response.metadata.area,
-        acceso: input.acceso
+        acceso: input.acceso,
       });
 
       const savedExam = await this.examRepo.save(exam);
@@ -146,7 +125,7 @@ export class ExamsService {
         }
       }
 
-      return {message: 'Examen generado, respondelo ya¡¡¡'};
+      return { message: 'Examen generado, respondelo ya¡¡¡' };
     } catch (error) {
       throw new BadRequestException(
         `Error generating exam from reference: ${error.message}`,

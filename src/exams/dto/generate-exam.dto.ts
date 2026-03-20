@@ -28,12 +28,10 @@ export class GenerateExamDto {
   @Max(50, { message: 'La cantidad no puede exceder 50' })
   numberOfQuestions: number;
 
-  @IsIn(['facil', 'medio', 'dificil'], {
-    message: 'La dificultad debe ser facil, medio o dificil',
-  })
+  @MinLength(2, { message: 'La dificultad debe tener al manos 2 letras' })
   difficulty: string;
 
   @IsOptional()
-    @IsEnum(Acceso, {message: 'El acceso debe ser "public" o "private"'})
-    acceso: Acceso;
+  @IsEnum(Acceso, { message: 'El acceso debe ser "public" o "private"' })
+  acceso: Acceso;
 }

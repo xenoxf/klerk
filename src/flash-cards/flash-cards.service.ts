@@ -23,17 +23,12 @@ export class FlashCardsService {
   ) {}
 
   async generateFromReference(input: GenerateFlashCardsDto, userId: number) {
-    if (!input.reference || input.quantity <= 0) {
-      throw new BadRequestException(
-        'Reference text and quantity required',
-      );
-    }
-
     try {
-      const response: CardResponse = await this.groqService.generateFlashcardsFromReference(
-        input.reference,
-        input.quantity,
-      );
+      const response: CardResponse =
+        await this.groqService.generateFlashcardsFromReference(
+          input.reference,
+          input.quantity,
+        );
 
       if (!response.cards || !Array.isArray(response.cards)) {
         throw new BadRequestException('Invalid AI response');
@@ -46,7 +41,7 @@ export class FlashCardsService {
         area: response.metadata.area,
         userId,
         code: await this.generateCode(),
-        acceso: input.acceso
+        acceso: input.acceso,
       });
       const savedCard = await this.cardRepo.save(card);
 
@@ -63,7 +58,7 @@ export class FlashCardsService {
         await this.flashCardRepo.save(fc);
         createdFlashCards.push(fc);
       }
-      return {message: 'Creadaaa, pruebalas'}
+      return { message: 'Creadaaa, pruebalas' };
     } catch (error) {
       throw new BadRequestException(
         `Error generating flashcards from reference: ${error.message}`,
@@ -74,7 +69,7 @@ export class FlashCardsService {
   async findCardById(id: number, userId: number) {
     return this.cardRepo.findOne({
       where: { id, userId },
-      relations: ['flashCards'],
+      relations: ['flashcards'],
     });
   }
 
@@ -111,8 +106,8 @@ export class FlashCardsService {
 
   async findPublicCardsDeck() {
     const cards = await this.cardRepo.find({
-      where: {acceso: 'public'}
-    })
+      where: { acceso: 'public' },
+    });
 
     return this.deckRefactor(cards);
   }
@@ -121,7 +116,7 @@ export class FlashCardsService {
 
   async findOne(id: number, userId: number) {
     const card = await this.cardRepo.findOne({
-      where: {id, userId}
+      where: { id, userId },
     });
     if (!card) throw new NotFoundException('Card not found');
     return this.deckRefactor(card);
@@ -129,9 +124,9 @@ export class FlashCardsService {
 
   async findMyCardsDeck(userId: number) {
     const cards = await this.cardRepo.find({
-      where: {userId },
+      where: { userId },
       order: { createdAt: 'DESC' },
-    })
+    });
     return this.deckRefactor(cards);
   }
 
@@ -145,7 +140,6 @@ export class FlashCardsService {
   async getCardByCode(code: string) {
     const card = await this.cardRepo.findOne({
       where: { code },
-      relations: ['flashCards'],
     });
     if (!card) throw new NotFoundException('Card not found');
     return this.deckRefactor(card);
