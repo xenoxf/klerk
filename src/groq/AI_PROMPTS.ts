@@ -28,8 +28,9 @@ export const AI_PROMPTS = {
             {"text": " Option from different context", "isCorrect": false}
           ]
         }, las demas preguntas siguen con el mismo formato
-      ],   a   q
-      "metadata": {
+      ],  
+      "metadata": {// esta seccion no debe tener markdown, debes escribir texto normal dentro del formato JSON
+
         "title": "Debes crear un titulo referente al examen",
         "description":"Una descripcion referente al examen",
         "area" : "EL area al ue permanese este examenen ejemplo, biologia, calculo I o II o III etc, o fisica etc",
@@ -69,7 +70,8 @@ export const AI_PROMPTS = {
           ]
         }
       ],
-      "metadata": {
+      "metadata": {// esta seccion no debe tener markdown, debes escribir texto normal dentro del formato JSON
+
         "title": "Debes crear un titulo referente al examen",
         "description":"Una descripcion referente al examen",
         "area" : "EL area al ue permanese este examenen ejemplo, biologia, calculo I o II o III etc, o fisica etc",
@@ -112,47 +114,19 @@ export const AI_PROMPTS = {
 
     RETURN ONLY PURE VALID JSON with MARKDOWN in content:
     {
-      "topic": "${topic}",
-      "notes": [
+         "notes": [
         {
-          "id": 1,
-          "title": "# **Main Concept Title**",
-          "contents": [
-            {
-              "type": "text",
-              "content": "Comprehensive explanation with **key terms**, *emphasis*, and \`code\` where applicable..."
-            },
-            {
-              "type": "definition",
-              "content": "**Key Term:** *Clear definition with context and examples*"
-            },
-            {
-              "type": "list",
-              "content": "- Important point 1\\n- Important point 2\\n- Important point 3"
-            },
-            {
-              "type": "example",
-              "content": "**Example:** \`\`\`code\\nExample code or scenario\\n\`\`\`"
-            },
-            {
-              "type": "warning",
-              "content": "> **⚠️ Warning:** *Common mistake to avoid with emphasis*"
-            },
-            {
-              "type": "tip",
-              "content": "> **💡 Tip:** **Memory aid** with *important details*"
-            }
-          ],
-          "tags": ["relevant", "tags", "based", "on", "content"],
-          "summary": "**Brief summary** with *key emphasis* - one sentence",
-          "prerequisites": ["**Basic concept 1**", "*Foundational knowledge 2*"]
-        }
+          "Escribes nota en markdown"
+          }, {las demas notas}
       ],
-      "metadata": {
-        "levelOfDetail": "${levelOfDetail}",
-        "targetAudience": "${levelOfDetail === 'high' ? 'Advanced learners' : levelOfDetail === 'medium' ? 'Intermediate learners' : 'Beginner learners'}",
-        "estimatedStudyTime": "${numberOfNotes * 10} minutes"
+      "metadata": {// esta seccion no debe tener markdown, debes escribir texto normal dentro del formato JSON
+
+        "title": "Debes crear un titulo referente alas Notes",
+        "description":"Una descripcion referente alas Notes",
+        "area" : "EL area al ue permanese alas Notes ejemplo, biologia, calculo I o II o III etc, o fisica etc",
+        "tema": "debe ser el tema al ue permanece las Notes ejemplo: Segunda Guerra Mundial, Revolucion industrial, Tercera ley de Newton, Derivadas, proporciones etc osea debe ser el tema del examen. ok"
       }
+
     }
 
     The JSON must be VALID and parseable by JSON.parse().
@@ -194,40 +168,17 @@ export const AI_PROMPTS = {
     {
       "sourceSummary": "**Brief description** of *reference content*",
       "notes": [
-        {
-          "id": 1,
-          "title": "## **Topic extracted from reference**",
-          "contents": [
-            {
-              "type": "text",
-              "content": "**Summary** of *key idea* from reference with markdown formatting...",
-              "sourceReference": "Relevant part of original text"
-            },
-            {
-              "type": "quote",
-              "content": "> **Important quote** if applicable with *emphasis*",
-              "sourceLocation": "Context of quote"
-            },
-            {
-              "type": "list",
-              "content": "- **Key finding 1**\\n- *Key finding 2*\\n- \`Key finding 3\`"
-            },
-            {
-              "type": "connection",
-              "content": "**How this connects** to *other parts* of the text"
-            }
-          ],
-          "tags": ["extracted", "tags", "from", "reference"],
-          "keyTakeaways": ["**Main point 1**", "*Main point 2*"],
-          "sourceCitations": ["Specific references to original text"]
-        }
-      ],
-      "coverageAnalysis": {
-        "topicsCovered": ["List of main topics extracted"],
-        "depth": "${levelOfDetail}",
-        "completeness": "partial|comprehensive based on text length"
+  {
+          "Escribes nota en markdown"
+          }, {las demas notas}
+
+        ], "metadata": {// esta seccion no debe tener markdown, debes escribir texto normal dentro del formato JSON
+
+        "title": "Debes crear un titulo referente alas Notes",
+        "description":"Una descripcion referente alas Notes",
+        "area" : "EL area al ue permanese alas Notes ejemplo, biologia, calculo I o II o III etc, o fisica etc",
+        "tema": "debe ser el tema al ue permanece las Notes ejemplo: Segunda Guerra Mundial, Revolucion industrial, Tercera ley de Newton, Derivadas, proporciones etc osea debe ser el tema del examen. ok"
       }
-    }
 
     The JSON must be VALID and parseable by JSON.parse().
     Enrich all text with markdown formatting.
@@ -264,13 +215,15 @@ export const AI_PROMPTS = {
           "commonMistakes": ["**Mistake 1:** *Common error*", "**Mistake 2:** *Another error*"]
         }
       ],
-      "metadata": {
+"metadata": {
+// esta seccion no debe tener markdown, debes escribir texto normal dentro del formato JSON
         "title": "Debes crear un titulo referente alas Cards",
         "description":"Una descripcion referente alas Cards",
         "area" : "EL area al ue permanese alas Cards ejemplo, biologia, calculo I o II o III etc, o fisica etc",
         "tema": "debe ser el tema al ue permanece alas Cards ejemplo: Segunda Guerra Mundial, Revolucion industrial, Tercera ley de Newton, Derivadas, proporciones etc osea debe ser el tema del examen. ok"
       }
-    }
+
+          }
 
     The JSON must be VALID and parseable by JSON.parse().
     Use markdown formatting generously for better learning experience.
@@ -316,6 +269,8 @@ export const AI_PROMPTS = {
         }
       ],
       "metadata": {
+// esta seccion no debe tener markdown, debes escribir texto normal dentro del formato JSON
+
         "title": "Debes crear un titulo referente alas Cards",
         "description":"Una descripcion referente alas Cards",
         "area" : "EL area al ue permanese alas Cards ejemplo, biologia, calculo I o II o III etc, o fisica etc",

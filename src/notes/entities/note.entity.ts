@@ -13,12 +13,23 @@ import { NoteContent } from './note-content.entity';
 export class Note {
   @PrimaryGeneratedColumn()
   id: number;
+  @Column({ nullable: true })
+  code: string;
 
-  @Column()
+  @Column({ nullable: true })
   title: string;
 
   @Column({ nullable: true })
-  description?: string;
+  tema: string;
+
+  @Column({ nullable: true })
+  area: string;
+
+  @Column({ nullable: true })
+  description: string;
+
+  @Column({ default: 'publico' })
+  acceso: string;
 
   @Column({ nullable: true })
   levelOfDetail?: string;

@@ -20,7 +20,7 @@ export class FlashCardsService {
     private readonly flashCardRepo: Repository<FlashCard>,
     @InjectRepository(Card)
     private readonly cardRepo: Repository<Card>,
-  ) {}
+  ) { }
 
   async generateFromReference(input: GenerateFlashCardsDto, userId: number) {
     try {
@@ -94,6 +94,7 @@ export class FlashCardsService {
         title: card.title,
         description: card.description,
         code: card.code,
+        area: card.area,
       }));
     }
     return {
@@ -101,6 +102,7 @@ export class FlashCardsService {
       title: cards.title,
       description: cards.description,
       code: cards.code,
+      area: cards.area,
     };
   }
 
@@ -114,14 +116,6 @@ export class FlashCardsService {
 
   // |
 
-  async findOne(id: number, userId: number) {
-    const card = await this.cardRepo.findOne({
-      where: { id, userId },
-    });
-    if (!card) throw new NotFoundException('Card not found');
-    return this.deckRefactor(card);
-  }
-
   async findMyCardsDeck(userId: number) {
     const cards = await this.cardRepo.find({
       where: { userId },
@@ -130,8 +124,13 @@ export class FlashCardsService {
     return this.deckRefactor(cards);
   }
 
+  async returnIdByCard(id: number, userId: number) {
+    const card = await this.cardRepo.findOneBy({ id, userId });
+    return card.id;
+  }
+
   async remove(id: number, userId: number) {
-    const cards = await this.findCardById(id, userId);
+    const cards = await this.returnIdByCard(id, userId);
     if (!cards) throw new NotFoundException('Cards not found');
     await this.cardRepo.delete(id);
     return { message: 'Eliminado correctamente' };
