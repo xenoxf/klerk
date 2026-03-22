@@ -2,6 +2,7 @@ import {
   Injectable,
   BadRequestException,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -11,6 +12,7 @@ import { Card } from './entities/card.entity';
 import { GenerateFlashCardsDto } from './dto/generate-flash-cards.dto';
 import { CardResponse } from './types';
 import { title } from 'process';
+import { map } from 'rxjs';
 
 @Injectable()
 export class FlashCardsService {
@@ -20,7 +22,7 @@ export class FlashCardsService {
     private readonly flashCardRepo: Repository<FlashCard>,
     @InjectRepository(Card)
     private readonly cardRepo: Repository<Card>,
-  ) { }
+  ) {}
 
   async generateFromReference(input: GenerateFlashCardsDto, userId: number) {
     try {
@@ -87,6 +89,19 @@ export class FlashCardsService {
     return code;
   }
 
+  klekRefactor(card: Card) {
+    return {
+      id: card.id,
+      area: card.area,
+      title: card.title,
+      flashCards: card.flashcards.map((flash) => ({
+        front: flash.front,
+        back: flash.back,
+        id: flash.id,
+      })),
+    };
+  }
+
   async deckRefactor(cards: Card[] | Card) {
     if (Array.isArray(cards)) {
       return cards.map((card) => ({
@@ -109,6 +124,7 @@ export class FlashCardsService {
   async findPublicCardsDeck() {
     const cards = await this.cardRepo.find({
       where: { acceso: 'public' },
+      relations: ['flashcards'],
     });
 
     return this.deckRefactor(cards);
@@ -139,8 +155,21 @@ export class FlashCardsService {
   async getCardByCode(code: string) {
     const card = await this.cardRepo.findOne({
       where: { code },
+      relations: ['flashcards'],
     });
     if (!card) throw new NotFoundException('Card not found');
     return this.deckRefactor(card);
+  }
+
+  async getCardKlekById(id: number, userId: number) {
+    const tuyo = await this.cardRepo.findOneBy({ id });
+    if (!tuyo) throw new NotFoundException('Card not found');
+    if (tuyo.acceso === 'private') {
+      if (userId === tuyo.userId) {
+        return this.klekRefactor(tuyo);
+      } else throw new UnauthorizedException('No tienes acceso a este lugar');
+    } else {
+      return this.klekRefactor(tuyo);
+    }
   }
 }
