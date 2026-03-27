@@ -10,12 +10,10 @@ import {
   Query,
   ParseIntPipe,
   Req,
-  Request,
   BadRequestException,
 } from '@nestjs/common';
 import { ExamsService } from './exams.service';
 import { JwtGuard } from '../auth/jwt/jwt.guard';
-import { ApiKeyGuard } from '../common/guards/api-key/api-key.guard';
 import { GenerateExamDto } from './dto/generate-exam.dto';
 import { UpdateExamDto } from './dto/update-exam.dto';
 
@@ -23,23 +21,23 @@ import { UpdateExamDto } from './dto/update-exam.dto';
 // a & $ e & @ i & ! o & 0 u & v
 
 @Controller('exams')
-@UseGuards(JwtGuard)
 export class ExamsController {
   constructor(private examsService: ExamsService) { }
 
   // ==================== BASIC CRUD ====================
 
   @Get()
-  getAll(@Req() req) {
+  getAll() {
     return this.examsService.getPublicExamsDeck();
   }
 
-  @Get('my/deck')
-  getMyExamsDeck(@Req() req) {
+  @Get('private')
+  @UseGuards(JwtGuard)
+  getMyExamsDeck(@Req() req: any) {
     return this.examsService.getMyExamsDeck(req.user.id);
   }
 
-  @Get('public/deck')
+  @Get('public')
   getPublicExamsDeck() {
     return this.examsService.getPublicExamsDeck();
   }
@@ -49,17 +47,31 @@ export class ExamsController {
     return this.examsService.getExamByCode(code);
   }
 
-  @Get(':id')
-  getById(@Param('id', ParseIntPipe) id: number, @Req() req) {
-    return this.examsService.getById(id, req.user.id);
+  @Post()
+  @UseGuards(JwtGuard)
+  create(@Body() body: any, @Req() req: any) {
+    return this.examsService.create(body, req.user.id);
+  }
+
+  @Patch(':id')
+  @UseGuards(JwtGuard)
+  update(@Param('id', ParseIntPipe) id: number, @Body() body: any, @Req() req: any) {
+    return this.examsService.update(id, body, req.user.id);
   }
 
   @Get('score')
+  @UseGuards(JwtGuard)
   updateExamScore(@Query() query: UpdateExamDto, @Req() req) {
     return this.examsService.updateExamScore(query, req.user.id);
   }
 
+  @Get(':id')
+  getById(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+    return this.examsService.getByIdWithAccess(id, req?.user?.id);
+  }
+
   @Delete(':id')
+  @UseGuards(JwtGuard)
   delete(@Param('id', ParseIntPipe) id: number, @Req() req) {
     return this.examsService.delete(id, req.user.id);
   }
@@ -67,6 +79,7 @@ export class ExamsController {
   // ==================== AI GENERATION ====================
 
   @Post('generate/topic_or_reference')
+  @UseGuards(JwtGuard)
   generateFromTopic(@Body() input: GenerateExamDto, @Req() req) {
     if (!input.topic && !input.reference) {
       throw new BadRequestException(

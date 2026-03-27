@@ -11,8 +11,6 @@ import { FlashCard } from './entities/flash-card.entity';
 import { Card } from './entities/card.entity';
 import { GenerateFlashCardsDto } from './dto/generate-flash-cards.dto';
 import { CardResponse } from './types';
-import { title } from 'process';
-import { map } from 'rxjs';
 
 @Injectable()
 export class FlashCardsService {
@@ -66,6 +64,11 @@ export class FlashCardsService {
         `Error generating flashcards from reference: ${error.message}`,
       );
     }
+  }
+
+  private isPublicAccess(acceso?: string | null): boolean {
+    const normalized = (acceso ?? '').toLowerCase();
+    return normalized === 'public' || normalized === 'publico';
   }
 
   async findCardById(id: number, userId: number) {
@@ -122,12 +125,8 @@ export class FlashCardsService {
   }
 
   async findPublicCardsDeck() {
-    const cards = await this.cardRepo.find({
-      where: { acceso: 'public' },
-      relations: ['flashcards'],
-    });
-
-    return this.deckRefactor(cards);
+    const cards = await this.cardRepo.find({ relations: ['flashcards'] });
+    return this.deckRefactor(cards.filter((card) => this.isPublicAccess(card.acceso)));
   }
 
   // |
@@ -142,7 +141,7 @@ export class FlashCardsService {
 
   async returnIdByCard(id: number, userId: number) {
     const card = await this.cardRepo.findOneBy({ id, userId });
-    return card.id;
+    return card?.id;
   }
 
   async remove(id: number, userId: number) {
@@ -158,18 +157,103 @@ export class FlashCardsService {
       relations: ['flashcards'],
     });
     if (!card) throw new NotFoundException('Card not found');
+    if (!this.isPublicAccess(card.acceso)) {
+      throw new UnauthorizedException('No tienes acceso a este mazo');
+    }
     return this.deckRefactor(card);
   }
 
   async getCardKlekById(id: number, userId: number) {
-    const tuyo = await this.cardRepo.findOneBy({ id });
+    const tuyo = await this.cardRepo.findOne({
+      where: { id },
+      relations: ['flashcards'],
+    });
     if (!tuyo) throw new NotFoundException('Card not found');
-    if (tuyo.acceso === 'private') {
+    if (!this.isPublicAccess(tuyo.acceso)) {
       if (userId === tuyo.userId) {
         return this.klekRefactor(tuyo);
       } else throw new UnauthorizedException('No tienes acceso a este lugar');
     } else {
       return this.klekRefactor(tuyo);
     }
+  }
+
+  async getCardById(id: number, userId?: number) {
+    const card = await this.cardRepo.findOne({
+      where: { id },
+      relations: ['flashcards'],
+    });
+    if (!card) throw new NotFoundException('Card not found');
+    if (!this.isPublicAccess(card.acceso) && card.userId !== userId) {
+      throw new UnauthorizedException('No tienes acceso a este mazo');
+    }
+    return card;
+  }
+
+  async create(
+    payload: {
+      title: string;
+      description?: string;
+      tema?: string;
+      area?: string;
+      acceso?: string;
+      flashcards?: Array<{ front: string; back: string; hint?: string }>;
+    },
+    userId: number,
+  ) {
+    if (!payload?.title?.trim()) {
+      throw new BadRequestException('El título es requerido');
+    }
+
+    const card = await this.cardRepo.save(
+      this.cardRepo.create({
+        title: payload.title.trim(),
+        description: payload.description ?? '',
+        tema: payload.tema ?? '',
+        area: payload.area ?? '',
+        acceso: payload.acceso ?? 'private',
+        code: await this.generateCode(),
+        userId,
+      }),
+    );
+
+    if (Array.isArray(payload.flashcards) && payload.flashcards.length > 0) {
+      for (const flash of payload.flashcards) {
+        await this.flashCardRepo.save(
+          this.flashCardRepo.create({
+            front: flash.front,
+            back: flash.back,
+            hint: flash.hint ?? null,
+            card,
+            userId,
+          }),
+        );
+      }
+    }
+
+    return this.getCardById(card.id, userId);
+  }
+
+  async update(
+    id: number,
+    payload: {
+      title?: string;
+      description?: string;
+      tema?: string;
+      area?: string;
+      acceso?: string;
+    },
+    userId: number,
+  ) {
+    const card = await this.cardRepo.findOneBy({ id, userId });
+    if (!card) throw new NotFoundException('Card not found');
+    await this.cardRepo.update(id, {
+      title: payload.title ?? card.title,
+      description: payload.description ?? card.description,
+      tema: payload.tema ?? card.tema,
+      area: payload.area ?? card.area,
+      acceso: payload.acceso ?? card.acceso,
+    });
+    return this.getCardById(id, userId);
   }
 }

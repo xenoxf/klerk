@@ -2,7 +2,7 @@ import {
   Controller,
   Get,
   Post,
-  // Patch,
+  Patch,
   Delete,
   Body,
   Param,
@@ -19,12 +19,12 @@ import { JwtGuard } from '../auth/jwt/jwt.guard';
 //import { ApiKeyGuard } from '../common/guards/api-key/api-key.guard';
 
 @Controller('notes')
-@UseGuards(JwtGuard)
 export class NotesController {
   constructor(private notesService: NotesService) {}
 
   // ==================== AI GENERATION a @====================
   @Post('generate/topic_or_reference')
+  @UseGuards(JwtGuard)
   generate(@Body() input: any, @Req() req: any) {
     if (!input.topic && !input.referenceText) {
       throw new BadRequestException(
@@ -38,16 +38,50 @@ export class NotesController {
   }
 
   @Get()
+  @UseGuards(JwtGuard)
   async getAll(@Req() req: any) {
     return this.notesService.findAll(req.user.id);
   }
 
+  @Get('public')
+  async getPublic() {
+    return this.notesService.findPublic();
+  }
+
+  @Get('private')
+  @UseGuards(JwtGuard)
+  async getPrivate(@Req() req: any) {
+    return this.notesService.findPrivate(req.user.id);
+  }
+
+  @Get('code/:code')
+  async getByCode(@Param('code') code: string, @Req() req: any) {
+    return this.notesService.findOneByCode(code, req?.user?.id);
+  }
+
+  @Post()
+  @UseGuards(JwtGuard)
+  async create(@Body() body: any, @Req() req: any) {
+    return this.notesService.create(body, req.user.id);
+  }
+
+  @Patch(':id')
+  @UseGuards(JwtGuard)
+  async update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: any,
+    @Req() req: any,
+  ) {
+    return this.notesService.update(id, body, req.user.id);
+  }
+
   @Get(':id')
   async getById(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
-    return this.notesService.findOne(id, req.user.id);
+    return this.notesService.findOneByAccess(id, req?.user?.id);
   }
 
   @Delete(':id')
+  @UseGuards(JwtGuard)
   async delete(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
     return this.notesService.remove(id, req.user.id);
   }

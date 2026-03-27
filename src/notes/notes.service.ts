@@ -2,6 +2,7 @@ import {
   Injectable,
   BadRequestException,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -30,6 +31,22 @@ export class NotesService {
         return null;
       }
     }
+  }
+
+  private isPublicAccess(acceso?: string | null): boolean {
+    const normalized = (acceso ?? '').toLowerCase();
+    return normalized === 'public' || normalized === 'publico';
+  }
+
+  private async generateCode(): Promise<string> {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let code = '';
+    for (let i = 0; i < 5; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    const existing = await this.noteRepo.findOne({ where: { code } });
+    if (existing) return this.generateCode();
+    return code;
   }
 
   // ==================== GENERATE NOTE FROM TOPIC ====================
@@ -78,6 +95,8 @@ export class NotesService {
           description: description,
           levelOfDetail: input.levelOfDetail,
           userId,
+          code: await this.generateCode(),
+          acceso: 'private',
           createdAt: new Date(),
         });
         await this.noteRepo.save(note);
@@ -163,6 +182,8 @@ export class NotesService {
           description: description,
           levelOfDetail: input.levelOfDetail,
           userId,
+          code: await this.generateCode(),
+          acceso: 'private',
           createdAt: new Date(),
         });
         await this.noteRepo.save(note);
@@ -209,6 +230,18 @@ export class NotesService {
     });
   }
 
+  async findPrivate(userId: number) {
+    return this.findAll(userId);
+  }
+
+  async findPublic() {
+    const notes = await this.noteRepo.find({
+      relations: ['noteContents'],
+      order: { createdAt: 'DESC' },
+    });
+    return notes.filter((note) => this.isPublicAccess(note.acceso));
+  }
+
   async findOne(id: number, userId: number) {
     const note = await this.noteRepo.findOne({
       where: { id, userId },
@@ -216,6 +249,92 @@ export class NotesService {
     });
     if (!note) throw new NotFoundException('Note not found');
     return note;
+  }
+
+  async findOneByAccess(id: number, userId?: number) {
+    const note = await this.noteRepo.findOne({
+      where: { id },
+      relations: ['noteContents'],
+    });
+    if (!note) throw new NotFoundException('Note not found');
+    if (!this.isPublicAccess(note.acceso) && note.userId !== userId) {
+      throw new UnauthorizedException('No tienes acceso a esta nota');
+    }
+    return note;
+  }
+
+  async findOneByCode(code: string, userId?: number) {
+    const note = await this.noteRepo.findOne({
+      where: { code },
+      relations: ['noteContents'],
+    });
+    if (!note) throw new NotFoundException('Note not found');
+    if (!this.isPublicAccess(note.acceso) && note.userId !== userId) {
+      throw new UnauthorizedException('No tienes acceso a esta nota');
+    }
+    return note;
+  }
+
+  async create(
+    payload: {
+      title: string;
+      description?: string;
+      levelOfDetail?: string;
+      acceso?: string;
+      noteContents?: Array<{ tema?: string; content: string; order?: number }>;
+    },
+    userId: number,
+  ) {
+    if (!payload?.title?.trim()) {
+      throw new BadRequestException('El título es requerido');
+    }
+
+    const note = this.noteRepo.create({
+      title: payload.title.trim(),
+      description: payload.description ?? '',
+      levelOfDetail: payload.levelOfDetail ?? 'medio',
+      acceso: payload.acceso ?? 'private',
+      code: await this.generateCode(),
+      userId,
+    });
+    const savedNote = await this.noteRepo.save(note);
+
+    if (Array.isArray(payload.noteContents) && payload.noteContents.length > 0) {
+      for (let i = 0; i < payload.noteContents.length; i++) {
+        const item = payload.noteContents[i];
+        await this.noteContentRepo.save(
+          this.noteContentRepo.create({
+            tema: item.tema ?? payload.title,
+            content: item.content,
+            order: item.order ?? i,
+            noteId: savedNote.id,
+            userId,
+          } as any),
+        );
+      }
+    }
+
+    return this.findOne(savedNote.id, userId);
+  }
+
+  async update(
+    id: number,
+    payload: {
+      title?: string;
+      description?: string;
+      levelOfDetail?: string;
+      acceso?: string;
+    },
+    userId: number,
+  ) {
+    const note = await this.findOne(id, userId);
+    await this.noteRepo.update(id, {
+      title: payload.title ?? note.title,
+      description: payload.description ?? note.description,
+      levelOfDetail: payload.levelOfDetail ?? note.levelOfDetail,
+      acceso: payload.acceso ?? note.acceso,
+    });
+    return this.findOne(id, userId);
   }
 
   async remove(id: number, userId: number) {

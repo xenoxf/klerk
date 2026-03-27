@@ -2,6 +2,7 @@ import {
   Injectable,
   BadRequestException,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -44,6 +45,7 @@ export class ExamsService {
         tema: response.metadata.tema,
         area: response.metadata.area,
         acceso: input.acceso,
+        code: await this.generateCode(),
       });
 
       const savedExam = await this.examRepo.save(exam);
@@ -98,6 +100,7 @@ export class ExamsService {
         tema: response.metadata.tema,
         area: response.metadata.area,
         acceso: input.acceso,
+        code: await this.generateCode(),
       });
 
       const savedExam = await this.examRepo.save(exam);
@@ -135,6 +138,11 @@ export class ExamsService {
 
   // ==================== BASIC CRUD ====================
 
+  private isPublicAccess(acceso?: string | null): boolean {
+    const normalized = (acceso ?? '').toLowerCase();
+    return normalized === 'public' || normalized === 'publico';
+  }
+
   async generateCode() {
     // debe tener 5 caracteres de letras mayúsculas y números
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -163,6 +171,18 @@ export class ExamsService {
     });
 
     if (!exam) throw new NotFoundException('Exam not found');
+    return exam;
+  }
+
+  async getByIdWithAccess(id: number, userId?: number) {
+    const exam = await this.examRepo.findOne({
+      where: { id },
+      relations: ['questions', 'questions.options'],
+    });
+    if (!exam) throw new NotFoundException('Exam not found');
+    if (!this.isPublicAccess(exam.acceso) && exam.userId !== userId) {
+      throw new UnauthorizedException('No tienes acceso a este quiz');
+    }
     return exam;
   }
 
@@ -203,7 +223,7 @@ export class ExamsService {
     const exams = await this.examRepo.find({
       order: { createdAt: 'DESC' },
     });
-    return this.examRefactor(exams);
+    return this.examRefactor(exams.filter((exam) => this.isPublicAccess(exam.acceso)));
   }
 
   async getMyExamsDeck(userId: number) {
@@ -220,6 +240,89 @@ export class ExamsService {
       relations: ['questions', 'questions.options'],
     });
     if (!exam) throw new NotFoundException('Exam not found');
+    if (!this.isPublicAccess(exam.acceso)) {
+      throw new UnauthorizedException('No tienes acceso a este quiz');
+    }
     return this.examRefactor(exam);
+  }
+
+  async create(
+    payload: {
+      title: string;
+      description?: string;
+      difficulty?: string;
+      acceso?: string;
+      tema?: string;
+      area?: string;
+      questions?: Array<{
+        question: string;
+        explanation?: string;
+        options: Array<{ text: string; isCorrect: boolean }>;
+      }>;
+    },
+    userId: number,
+  ) {
+    if (!payload?.title?.trim()) {
+      throw new BadRequestException('El título es requerido');
+    }
+    const exam = await this.examRepo.save(
+      this.examRepo.create({
+        title: payload.title.trim(),
+        description: payload.description ?? '',
+        difficulty: payload.difficulty ?? 'medium',
+        acceso: payload.acceso ?? 'private',
+        tema: payload.tema ?? '',
+        area: payload.area ?? '',
+        totalQuestions: Array.isArray(payload.questions) ? payload.questions.length : 0,
+        code: await this.generateCode(),
+        userId,
+      }),
+    );
+
+    if (Array.isArray(payload.questions)) {
+      for (const q of payload.questions) {
+        const savedQuestion = await this.questionRepo.save(
+          this.questionRepo.create({
+            question: q.question,
+            explanation: q.explanation ?? '',
+            exam,
+          }),
+        );
+        for (const opt of q.options ?? []) {
+          await this.optionRepo.save(
+            this.optionRepo.create({
+              text: opt.text,
+              isCorrect: opt.isCorrect,
+              question: savedQuestion,
+            }),
+          );
+        }
+      }
+    }
+    return this.getById(exam.id, userId);
+  }
+
+  async update(
+    id: number,
+    payload: {
+      title?: string;
+      description?: string;
+      difficulty?: string;
+      acceso?: string;
+      tema?: string;
+      area?: string;
+    },
+    userId: number,
+  ) {
+    const exam = await this.getById(id, userId);
+    await this.examRepo.update(id, {
+      title: payload.title ?? exam.title,
+      description: payload.description ?? exam.description,
+      difficulty: payload.difficulty ?? exam.difficulty,
+      acceso: payload.acceso ?? exam.acceso,
+      tema: payload.tema ?? exam.tema,
+      area: payload.area ?? exam.area,
+    });
+    return this.getById(id, userId);
   }
 }
