@@ -10,6 +10,7 @@ import { GroqService } from '../groq/groq.service';
 //import { AI_PROMPTS } from '../groq/AI_PROMPTS';
 import { Note } from './entities/note.entity';
 import { NoteContent } from './entities/note-content.entity';
+import { GenerateNoteDto } from './dto/create-note.dto';
 
 @Injectable()
 export class NotesService {
@@ -50,29 +51,10 @@ export class NotesService {
   }
 
   // ==================== GENERATE NOTE FROM TOPIC ====================
-  async generateFromTopic(
-    input: {
-      topic: string;
-      numberOfNotes: number;
-      levelOfDetail: string;
-    },
-    userId: number,
-  ) {
-    if (!input.topic || input.numberOfNotes <= 0) {
-      throw new BadRequestException(
-        'Topic and valid numberOfNotes are required',
-      );
-    }
-
-    if (!['breve', 'medio', 'detallado'].includes(input.levelOfDetail)) {
-      throw new BadRequestException(
-        'Invalid levelOfDetail. Must be: breve, medio, or detallado',
-      );
-    }
-
+  async generateNote(input: GenerateNoteDto, userId: number) {
     try {
-      const response = await this.groqService.generateNoteFromTopic(
-        input.topic,
+      const response = await this.groqService.generateNote(
+        input.reference,
         input.numberOfNotes,
         input.levelOfDetail,
       );
@@ -81,23 +63,20 @@ export class NotesService {
         throw new BadRequestException('Invalid AI response format');
       }
 
-      // Generar título y descripción por IA
-      const title = await this.groqService.generateNoteTitle(input.topic);
-      const description = await this.groqService.generateNoteDescription(
-        input.topic,
-        input.levelOfDetail,
-      );
+      const { title, description, area, tema } = response.metadata;
 
       const createdNotes = [];
       for (const noteData of response.notes) {
         const note = this.noteRepo.create({
-          title: title,
-          description: description,
+          title,
+          description,
           levelOfDetail: input.levelOfDetail,
           userId,
           code: await this.generateCode(),
           acceso: 'private',
           createdAt: new Date(),
+          area,
+          tema,
         });
         await this.noteRepo.save(note);
 
@@ -133,94 +112,6 @@ export class NotesService {
       );
     }
   }
-
-  // ==================== GENERATE NOTE FROM REFERENCE ====================
-  async generateFromReference(
-    input: {
-      referenceText: string;
-      numberOfNotes: number;
-      levelOfDetail: string;
-    },
-    userId: number,
-  ) {
-    if (!input.referenceText || input.numberOfNotes <= 0) {
-      throw new BadRequestException(
-        'Reference text and valid numberOfNotes are required',
-      );
-    }
-
-    if (!['breve', 'medio', 'detallado'].includes(input.levelOfDetail)) {
-      throw new BadRequestException(
-        'Invalid levelOfDetail. Must be: breve, medio, or detallado',
-      );
-    }
-
-    try {
-      const response = await this.groqService.generateNoteFromReference(
-        input.referenceText,
-        input.numberOfNotes,
-        input.levelOfDetail,
-      );
-
-      if (!response?.notes || !Array.isArray(response.notes)) {
-        throw new BadRequestException('Invalid AI response format');
-      }
-
-      // Generar título y descripción por IA
-      const title = await this.groqService.generateNoteTitle(
-        'Reference-based Notes',
-      );
-      const description = await this.groqService.generateNoteDescription(
-        'From Reference',
-        input.levelOfDetail,
-      );
-
-      const createdNotes = [];
-      for (const noteData of response.notes) {
-        const note = this.noteRepo.create({
-          title: title,
-          description: description,
-          levelOfDetail: input.levelOfDetail,
-          userId,
-          code: await this.generateCode(),
-          acceso: 'private',
-          createdAt: new Date(),
-        });
-        await this.noteRepo.save(note);
-
-        if (Array.isArray(noteData.contents)) {
-          let order = 0;
-          for (const content of noteData.contents) {
-            const noteContent = this.noteContentRepo.create({
-              title: noteData.title,
-              content: Array.isArray(content.content)
-                ? JSON.stringify(content.content)
-                : content.content,
-              type: content.type || 'text',
-              order,
-              noteId: (note as any).id,
-              userId,
-            } as any);
-            await this.noteContentRepo.save(noteContent as any);
-            order++;
-          }
-        }
-
-        const savedNote = await this.noteRepo.findOne({
-          where: { id: (note as any).id },
-          relations: ['noteContents'],
-        });
-        createdNotes.push(savedNote);
-      }
-
-      return { success: true, notes: createdNotes };
-    } catch (error) {
-      throw new BadRequestException(
-        `Error generating notes from reference: ${error.message}`,
-      );
-    }
-  }
-
   // ==================== BASIC CRUD ====================
   async findAll(userId: number) {
     return this.noteRepo.find({
@@ -299,7 +190,10 @@ export class NotesService {
     });
     const savedNote = await this.noteRepo.save(note);
 
-    if (Array.isArray(payload.noteContents) && payload.noteContents.length > 0) {
+    if (
+      Array.isArray(payload.noteContents) &&
+      payload.noteContents.length > 0
+    ) {
       for (let i = 0; i < payload.noteContents.length; i++) {
         const item = payload.noteContents[i];
         await this.noteContentRepo.save(

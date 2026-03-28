@@ -11,29 +11,24 @@ export class GroqService {
 
   // ==================== MÉTODOS ESPECÍFICOS USANDO PROMPTS MEJORADOS ====================
 
-  async generateExamFromTopic(
+  async generateExam(
     topic: string,
     numberOfQuestions: number,
     difficulty: string,
   ) {
     try {
-      const prompt = AI_PROMPTS.generateExamFromTopic(
-        topic,
-        numberOfQuestions,
-        difficulty,
-      );
+      const prompt = AI_PROMPTS.generateExam(numberOfQuestions, difficulty);
 
       const completion = await this.groq.chat.completions.create({
         model: 'llama-3.3-70b-versatile',
         messages: [
           {
             role: 'system',
-            content:
-              'Responde EXCLUSIVAMENTE con JSON válido. Los campos de texto (question, text, explanation) DEBEN contener markdown formateado (**bold**, *italic*, `code`, etc.). El JSON debe ser válido y parseable.',
+            content: prompt,
           },
           {
             role: 'user',
-            content: prompt,
+            content: topic,
           },
         ],
         temperature: 0.2,
@@ -51,71 +46,24 @@ export class GroqService {
       };
     }
   }
-
-  async generateExamFromReference(
-    referenceText: string,
-    numberOfQuestions: number,
-    difficulty: string,
-  ) {
-    try {
-      const prompt = AI_PROMPTS.generateExamFromReference(
-        referenceText,
-        numberOfQuestions,
-        difficulty,
-      );
-
-      const completion = await this.groq.chat.completions.create({
-        model: 'llama-3.3-70b-versatile',
-        messages: [
-          {
-            role: 'system',
-            content:
-              'Responde EXCLUSIVAMENTE con JSON válido. Los campos de texto (content, front, back, etc.) DEBEN contener markdown formateado (**bold**, *italic*, `code`, etc.). El JSON debe ser válido y parseable.',
-          },
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
-        temperature: 0.2,
-        max_tokens: 8192,
-      });
-
-      const raw = completion.choices[0]?.message?.content?.trim() || '';
-      const cleaned = this.cleanJsonResponse(raw);
-      return JSON.parse(cleaned);
-    } catch (error) {
-      return {
-        error: true,
-        message: 'Error generando examen desde referencia',
-        detail: error.message,
-      };
-    }
-  }
-
-  async generateNoteFromTopic(
+  async generateNote(
     topic: string,
     numberOfNotes: number,
     levelOfDetail: string,
   ) {
     try {
-      const prompt = AI_PROMPTS.generateNoteFromTopic(
-        topic,
-        numberOfNotes,
-        levelOfDetail,
-      );
+      const prompt = AI_PROMPTS.generateNote(numberOfNotes, levelOfDetail);
 
       const completion = await this.groq.chat.completions.create({
         model: 'llama-3.3-70b-versatile',
         messages: [
           {
             role: 'system',
-            content:
-              'Responde EXCLUSIVAMENTE con JSON válido. Los campos de texto (content, front, back, etc.) DEBEN contener markdown formateado (**bold**, *italic*, `code`, etc.). El JSON debe ser válido y parseable.',
+            content: prompt,
           },
           {
             role: 'user',
-            content: prompt,
+            content: topic,
           },
         ],
         temperature: 0.2,
@@ -133,66 +81,20 @@ export class GroqService {
       };
     }
   }
-
-  async generateNoteFromReference(
-    referenceText: string,
-    numberOfNotes: number,
-    levelOfDetail: string,
-  ) {
+  async generateFlashcards(topic: string, numberOfCards: number) {
     try {
-      const prompt = AI_PROMPTS.generateNoteFromReference(
-        referenceText,
-        numberOfNotes,
-        levelOfDetail,
-      );
+      const prompt = AI_PROMPTS.generateFlashcards(numberOfCards);
 
       const completion = await this.groq.chat.completions.create({
         model: 'llama-3.3-70b-versatile',
         messages: [
           {
             role: 'system',
-            content:
-              'Responde EXCLUSIVAMENTE con JSON válido. Los campos de texto (content, front, back, etc.) DEBEN contener markdown formateado (**bold**, *italic*, `code`, etc.). El JSON debe ser válido y parseable.',
+            content: prompt,
           },
           {
             role: 'user',
-            content: prompt,
-          },
-        ],
-        temperature: 0.2,
-        max_tokens: 8192,
-      });
-
-      const raw = completion.choices[0]?.message?.content?.trim() || '';
-      const cleaned = this.cleanJsonResponse(raw);
-      return JSON.parse(cleaned);
-    } catch (error) {
-      return {
-        error: true,
-        message: 'Error generando notas desde referencia',
-        detail: error.message,
-      };
-    }
-  }
-
-  async generateFlashcardsFromTopic(topic: string, numberOfCards: number) {
-    try {
-      const prompt = AI_PROMPTS.generateFlashcardsFromTopic(
-        topic,
-        numberOfCards,
-      );
-
-      const completion = await this.groq.chat.completions.create({
-        model: 'llama-3.3-70b-versatile',
-        messages: [
-          {
-            role: 'system',
-            content:
-              'Responde EXCLUSIVAMENTE con JSON válido. Los campos de texto (content, front, back, etc.) DEBEN contener markdown formateado (**bold**, *italic*, `code`, etc.). El JSON debe ser válido y parseable.',
-          },
-          {
-            role: 'user',
-            content: prompt,
+            content: topic,
           },
         ],
         temperature: 0.2,
@@ -210,46 +112,6 @@ export class GroqService {
       };
     }
   }
-
-  async generateFlashcardsFromReference(
-    referenceText: string,
-    numberOfCards: number,
-  ) {
-    try {
-      const prompt = AI_PROMPTS.generateFlashcardsFromReference(
-        referenceText,
-        numberOfCards,
-      );
-
-      const completion = await this.groq.chat.completions.create({
-        model: 'llama-3.3-70b-versatile',
-        messages: [
-          {
-            role: 'system',
-            content:
-              'Responde EXCLUSIVAMENTE con JSON válido. Los campos de texto (content, front, back, etc.) DEBEN contener markdown formateado (**bold**, *italic*, `code`, etc.). El JSON debe ser válido y parseable.',
-          },
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
-        temperature: 0.2,
-        max_tokens: 8192,
-      });
-
-      const raw = completion.choices[0]?.message?.content?.trim() || '';
-      const cleaned = this.cleanJsonResponse(raw);
-      return JSON.parse(cleaned);
-    } catch (error) {
-      return {
-        error: true,
-        message: 'Error generando flashcards desde referencia',
-        detail: error.message,
-      };
-    }
-  }
-
   // ==================== EDUCATIONAL CHAT METHODS ====================
 
   async generateEducationalChatResponse(

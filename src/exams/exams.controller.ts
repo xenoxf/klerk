@@ -2,7 +2,6 @@ import {
   Controller,
   Get,
   Post,
-  Patch,
   Delete,
   Body,
   Param,
@@ -10,7 +9,6 @@ import {
   Query,
   ParseIntPipe,
   Req,
-  BadRequestException,
 } from '@nestjs/common';
 import { ExamsService } from './exams.service';
 import { JwtGuard } from '../auth/jwt/jwt.guard';
@@ -22,7 +20,7 @@ import { UpdateExamDto } from './dto/update-exam.dto';
 
 @Controller('exams')
 export class ExamsController {
-  constructor(private examsService: ExamsService) { }
+  constructor(private examsService: ExamsService) {}
 
   // ==================== BASIC CRUD ====================
 
@@ -47,21 +45,9 @@ export class ExamsController {
     return this.examsService.getExamByCode(code);
   }
 
-  @Post()
-  @UseGuards(JwtGuard)
-  create(@Body() body: any, @Req() req: any) {
-    return this.examsService.create(body, req.user.id);
-  }
-
-  @Patch(':id')
-  @UseGuards(JwtGuard)
-  update(@Param('id', ParseIntPipe) id: number, @Body() body: any, @Req() req: any) {
-    return this.examsService.update(id, body, req.user.id);
-  }
-
   @Get('score')
   @UseGuards(JwtGuard)
-  updateExamScore(@Query() query: UpdateExamDto, @Req() req) {
+  updateExamScore(@Query() query: UpdateExamDto, @Req() req: any) {
     return this.examsService.updateExamScore(query, req.user.id);
   }
 
@@ -72,7 +58,7 @@ export class ExamsController {
 
   @Delete(':id')
   @UseGuards(JwtGuard)
-  delete(@Param('id', ParseIntPipe) id: number, @Req() req) {
+  delete(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
     return this.examsService.delete(id, req.user.id);
   }
 
@@ -80,19 +66,7 @@ export class ExamsController {
 
   @Post('generate/topic_or_reference')
   @UseGuards(JwtGuard)
-  generateFromTopic(@Body() input: GenerateExamDto, @Req() req) {
-    if (!input.topic && !input.reference) {
-      throw new BadRequestException(
-        'Debe proporcionar un "topic" o "reference" para generar el examen.',
-      );
-    }
-    if (input.topic && input.reference)
-      throw new BadRequestException(
-        'Debe proporcionar o un "topic"  una "reference" para generar el examen',
-      );
-    if (!input.topic) {
-      return this.examsService.generateExamFromReference(input, req.user.id);
-    }
-    return this.examsService.generateExamFromTopic(input, req.user.id);
+  generateFromTopic(@Body() input: GenerateExamDto, @Req() req: any) {
+    return this.examsService.generateExam(input, req.user.id);
   }
 }

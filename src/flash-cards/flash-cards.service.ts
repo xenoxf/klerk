@@ -22,23 +22,24 @@ export class FlashCardsService {
     private readonly cardRepo: Repository<Card>,
   ) {}
 
-  async generateFromReference(input: GenerateFlashCardsDto, userId: number) {
+  async generateFrom(input: GenerateFlashCardsDto, userId: number) {
     try {
-      const response: CardResponse =
-        await this.groqService.generateFlashcardsFromReference(
-          input.reference,
-          input.quantity,
-        );
+      const response: CardResponse = await this.groqService.generateFlashcards(
+        input.reference,
+        input.quantity,
+      );
 
       if (!response.cards || !Array.isArray(response.cards)) {
         throw new BadRequestException('Invalid AI response');
       }
 
+      const { title, description, area, tema } = response.metadata;
+
       const card = this.cardRepo.create({
-        title: response.metadata.title,
-        description: response.metadata.description,
-        tema: response.metadata.tema,
-        area: response.metadata.area,
+        area,
+        title,
+        description,
+        tema,
         userId,
         code: await this.generateCode(),
         acceso: input.acceso,
@@ -126,7 +127,9 @@ export class FlashCardsService {
 
   async findPublicCardsDeck() {
     const cards = await this.cardRepo.find({ relations: ['flashcards'] });
-    return this.deckRefactor(cards.filter((card) => this.isPublicAccess(card.acceso)));
+    return this.deckRefactor(
+      cards.filter((card) => this.isPublicAccess(card.acceso)),
+    );
   }
 
   // |

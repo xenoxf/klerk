@@ -2,13 +2,9 @@
 
 export const AI_PROMPTS = {
   // ==================== EXAMS ====================
-  generateExamFromTopic: (
-    topic: string,
-    numberOfQuestions: number,
-    difficulty: string,
-  ) => `
+  generateExam: (numberOfQuestions: number, difficulty: string) => `
     CRITICAL INSTRUCTIONS:
-    1. Generate EXACTLY ${numberOfQuestions} multiple choice questions about "${topic}"
+    1. Generate EXACTLY ${numberOfQuestions} multiple choice questions 
     2. Difficulty level: ${difficulty}
     3. Each question MUST have EXACTLY 4 options
     4. EXACTLY ONE option per question must be correct
@@ -40,57 +36,11 @@ export const AI_PROMPTS = {
 
     The JSON must be VALID and parseable by JSON.parse().
   `,
-
-  generateExamFromReference: (
-    referenceText: string,
-    numberOfQuestions: number,
-    difficulty: string,
-  ) => `
-    CRITICAL INSTRUCTIONS - STRICT FORMAT REQUIREMENTS:
-    1. Generate EXACTLY ${numberOfQuestions} multiple choice questions based SOLELY on this reference text
-    2. Difficulty level: ${difficulty}
-    3. All questions and answers MUST be directly derived from the reference text
-    4. Each question: EXACTLY 4 options, ONE correct answer
-    5. USE MARKDOWN FORMATTING to enhance readability and structure recuerde que la forma en la que te expreses con markdow debe ser de forma profecional osea no puedes ir poniendo letras grande porque simplemmnete quieres demostrar que haces caso
-
-    REFERENCE TEXT:
-    ${referenceText.substring(0, 2000)} ${referenceText.length > 2000 ? '... [text truncated]' : ''}
-
-    RETURN ONLY PURE VALID JSON:
-    {
-      "questions": [
-        {
-          "question": "**Question directly from reference?** *Clear and unambiguous*",
-          "explanation": "**Explanation:** Detailed markdown explanation with *emphasis* and references to **specific parts** of the text",
-          "options": [
-            {"text": " Description with *reference context*", "isCorrect": false},
-            {"text": " Correct option from text", "isCorrect": true},
-            {"text": " Common misinterpretation", "isCorrect": false},
-            {"text": " Option from different context", "isCorrect": false}
-          ]
-        }
-      ],
-      "metadata": {// esta seccion no debe tener markdown, debes escribir texto normal dentro del formato JSON
-
-        "title": "Debes crear un titulo referente al examen",
-        "description":"Una descripcion referente al examen",
-        "area" : "EL area al ue permanese este examenen ejemplo, biologia, calculo I o II o III etc, o fisica etc",
-        "tema": "debe ser el tema al ue permanece el examen ejemplo: Segunda Guerra Mundial, Revolucion industrial, Tercera ley de Newton, Derivadas, proporciones etc osea debe ser el tema del examen. ok"
-      }
-    }
-
-    The JSON must be VALID and parseable by JSON.parse().
-  `,
-
   // ==================== NOTES ====================
-  generateNoteFromTopic: (
-    topic: string,
-    numberOfNotes: number,
-    levelOfDetail: string,
-  ) => `
+  generateNote: (numberOfNotes: number, levelOfDetail: string) => `
     CRITICAL INSTRUCTIONS:
-    1. Generate EXACTLY ${numberOfNotes} comprehensive study note(s) for "${topic}"
-    2. Level of detail: ${levelOfDetail}
+    1. Generate EXACTLY ${numberOfNotes} comprehensive study note(s)  
+2. Level of detail: ${levelOfDetail}
     3. Each note should be self-contained and educational
     4. Use hierarchical organization: main concepts -> subtopics -> details
     5. ${levelOfDetail === 'high' ? 'Include examples, analogies, and applications' : levelOfDetail === 'medium' ? 'Include key concepts and explanations' : 'Focus on essential facts only'}
@@ -132,64 +82,11 @@ export const AI_PROMPTS = {
     The JSON must be VALID and parseable by JSON.parse().
     All text content should be enriched with markdown formatting for better readability.
   `,
-
-  generateNoteFromReference: (
-    referenceText: string,
-    numberOfNotes: number,
-    levelOfDetail: string,
-  ) => `
-    CRITICAL INSTRUCTIONS:
-    1. Generate EXACTLY ${numberOfNotes} organized study note(s) based SOLELY on this reference:
-
-    REFERENCE TEXT:
-    ${referenceText.substring(0, 3000)} ${referenceText.length > 3000 ? '... [text truncated for processing]' : ''}
-
-    2. Level of detail: ${levelOfDetail}
-    3. Extract and organize information from the reference text
-    4. Preserve the original meaning and context
-    5. Group related concepts together logically
-    6. USE MARKDOWN FORMATTING for rich text (**bold**, *italic*, \`code\`, > blockquotes, etc.)
-
-    STRUCTURE REQUIREMENTS:
-    - Identify main themes from the text
-    - Extract key concepts, definitions, and examples with markdown
-    - Note relationships between concepts
-    - Highlight important quotes or data points
-    - Use markdown formatting for emphasis and organization
-
-    MARKDOWN FORMATTING:
-    - **Bold** for key terms from reference
-    - *Italic* for emphasis
-    - \`code\` for technical terms
-    - > Blockquotes for important excerpts
-    - # Headers for organization
-
-    RETURN ONLY PURE VALID JSON with MARKDOWN in content:
-    {
-      "sourceSummary": "**Brief description** of *reference content*",
-      "notes": [
-  {
-          "Escribes nota en markdown"
-          }, {las demas notas}
-
-        ], "metadata": {// esta seccion no debe tener markdown, debes escribir texto normal dentro del formato JSON
-
-        "title": "Debes crear un titulo referente alas Notes",
-        "description":"Una descripcion referente alas Notes",
-        "area" : "EL area al ue permanese alas Notes ejemplo, biologia, calculo I o II o III etc, o fisica etc",
-        "tema": "debe ser el tema al ue permanece las Notes ejemplo: Segunda Guerra Mundial, Revolucion industrial, Tercera ley de Newton, Derivadas, proporciones etc osea debe ser el tema del examen. ok"
-      }
-
-    The JSON must be VALID and parseable by JSON.parse().
-    Enrich all text with markdown formatting.
-  `,
-
   // ==================== FLASHCARDS ====================
-  generateFlashcardsFromTopic: (topic: string, numberOfCards: number) => `
+  generateFlashcards: (numberOfCards: number) => `
     CRITICAL INSTRUCTIONS:
-    1. Generate EXACTLY ${numberOfCards} high-quality flashcard pairs about "${topic}"
-    2. Difficulty distribution: 30% easy, 50% medium, 20% hard
-    3. Cards should test both recall and understanding
+    1. Generate EXACTLY ${numberOfCards} high-quality flashcard pairsn 
+       3. Cards should test both recall and understanding
     4. Mix card types: definitions, concepts, applications, comparisons
     5. USE MARKDOWN FORMATTING in card content (**bold**, *italic*, \`code\`, etc.)
     6. Front: Clear question with markdown if needed (max 15 words)
@@ -228,60 +125,6 @@ export const AI_PROMPTS = {
     The JSON must be VALID and parseable by JSON.parse().
     Use markdown formatting generously for better learning experience.
   `,
-
-  generateFlashcardsFromReference: (
-    referenceText: string,
-    numberOfCards: number,
-  ) => `
-    CRITICAL INSTRUCTIONS:
-    1. Generate EXACTLY ${numberOfCards} flashcard pairs based SOLELY on this reference text provided by the user:
-
-    REFERENCE TEXT (User Input):
-    ${referenceText.substring(0, 2500)} ${referenceText.length > 2500 ? '... [text truncated]' : ''}
-
-    2. Extract key information for effective spaced repetition
-    3. Focus on important facts, concepts, and relationships from the reference
-    4. Ensure cards are testable and unambiguous based on the reference
-    5. USE MARKDOWN FORMATTING (**bold**, *italic*, \`code\`) for emphasis
-    6. ALL CONTENT MUST BE DIRECTLY FROM THE REFERENCE TEXT PROVIDED
-
-    EXTRACTION GUIDELINES:
-    - Identify key terms and their definitions from reference
-    - Extract important facts, dates, numbers from reference
-    - Note cause-effect relationships in the reference
-    - Highlight comparisons and contrasts from the reference
-    - Capture sequences or processes mentioned in reference
-
-    MARKDOWN USAGE:
-    - **Bold** for key terms from the reference
-    - *Italic* for emphasis and important concepts
-    - \`code\` for formulas, technical terms, or citations
-    - > Blockquotes for direct quotes from reference
-
-    RETURN ONLY PURE VALID JSON with MARKDOWN in content:
-    {
-      "cards": [
-        {
-          "front": "**Key term or question** from text",
-          "back": "**Accurate information** directly from reference with *emphasis* and \`technical terms\`",
-          "difficulty": "easy|medium|hard",
-          "hint": "**Hint:** Context clue from the text",
-        }
-      ],
-      "metadata": {
-// esta seccion no debe tener markdown, debes escribir texto normal dentro del formato JSON
-
-        "title": "Debes crear un titulo referente alas Cards",
-        "description":"Una descripcion referente alas Cards",
-        "area" : "EL area al ue permanese alas Cards ejemplo, biologia, calculo I o II o III etc, o fisica etc",
-        "tema": "debe ser el tema al ue permanece alas Cards ejemplo: Segunda Guerra Mundial, Revolucion industrial, Tercera ley de Newton, Derivadas, proporciones etc osea debe ser el tema del examen. ok"
-      }
-    }
-
-    The JSON must be VALID and parseable by JSON.parse().
-    Use markdown formatting while maintaining source fidelity.
-  `,
-
   // ==================== EDUCATIONAL CHAT ====================
   generateEducationalChatResponse: (
     userMessage: string,

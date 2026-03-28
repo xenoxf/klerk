@@ -25,25 +25,26 @@ export class ExamsService {
 
   // ==================== GENERATE EXAM FROM TOPIC ====================
 
-  async generateExamFromTopic(input: GenerateExamDto, userId: number) {
+  async generateExam(input: GenerateExamDto, userId: number) {
     try {
-      const response = await this.groqService.generateExamFromTopic(
+      const response = await this.groqService.generateExam(
         input.topic,
         input.numberOfQuestions,
         input.difficulty,
       );
 
-      const { questions } = response as any;
+      const { questions } = response.questions;
+      const { title, description, tema, area } = response.metadata;
 
       const exam = this.examRepo.create({
-        title: response.metadata.title,
+        area,
+        tema,
+        title,
+        description,
         difficulty: input.difficulty,
         userId,
         totalQuestions: input.numberOfQuestions,
         createdAt: new Date().toISOString(),
-        description: response.metadata.description,
-        tema: response.metadata.tema,
-        area: response.metadata.area,
         acceso: input.acceso,
         code: await this.generateCode(),
       });
@@ -78,64 +79,6 @@ export class ExamsService {
       throw new BadRequestException(`Error generating exam: ${error.message}`);
     }
   }
-
-  // ==================== GENERATE EXAM FROM REFERENCIA ====================
-  async generateExamFromReference(input: GenerateExamDto, userId: number) {
-    try {
-      const response = await this.groqService.generateExamFromReference(
-        input.reference,
-        input.numberOfQuestions,
-        input.difficulty,
-      );
-
-      const { questions } = response as any;
-
-      const exam = this.examRepo.create({
-        title: response.metadata.title,
-        difficulty: input.difficulty,
-        userId,
-        totalQuestions: input.numberOfQuestions,
-        createdAt: new Date().toISOString(),
-        description: response.metadata.description,
-        tema: response.metadata.tema,
-        area: response.metadata.area,
-        acceso: input.acceso,
-        code: await this.generateCode(),
-      });
-
-      const savedExam = await this.examRepo.save(exam);
-
-      for (const q of questions) {
-        if (!q.question) {
-          throw new BadRequestException('Invalid question format from AI');
-        }
-
-        const question = this.questionRepo.create({
-          question: q.question,
-          explanation: q.explanation || '',
-          exam: savedExam,
-        });
-
-        const savedQuestion = await this.questionRepo.save(question);
-
-        for (const opt of q.options) {
-          const option = this.optionRepo.create({
-            text: opt.text,
-            isCorrect: opt.isCorrect,
-            question: savedQuestion,
-          });
-          await this.optionRepo.save(option);
-        }
-      }
-
-      return { message: 'Examen generado, respondelo ya¡¡¡' };
-    } catch (error) {
-      throw new BadRequestException(
-        `Error generating exam from reference: ${error.message}`,
-      );
-    }
-  }
-
   // ==================== BASIC CRUD ====================
 
   private isPublicAccess(acceso?: string | null): boolean {
@@ -223,7 +166,9 @@ export class ExamsService {
     const exams = await this.examRepo.find({
       order: { createdAt: 'DESC' },
     });
-    return this.examRefactor(exams.filter((exam) => this.isPublicAccess(exam.acceso)));
+    return this.examRefactor(
+      exams.filter((exam) => this.isPublicAccess(exam.acceso)),
+    );
   }
 
   async getMyExamsDeck(userId: number) {
@@ -244,85 +189,5 @@ export class ExamsService {
       throw new UnauthorizedException('No tienes acceso a este quiz');
     }
     return this.examRefactor(exam);
-  }
-
-  async create(
-    payload: {
-      title: string;
-      description?: string;
-      difficulty?: string;
-      acceso?: string;
-      tema?: string;
-      area?: string;
-      questions?: Array<{
-        question: string;
-        explanation?: string;
-        options: Array<{ text: string; isCorrect: boolean }>;
-      }>;
-    },
-    userId: number,
-  ) {
-    if (!payload?.title?.trim()) {
-      throw new BadRequestException('El título es requerido');
-    }
-    const exam = await this.examRepo.save(
-      this.examRepo.create({
-        title: payload.title.trim(),
-        description: payload.description ?? '',
-        difficulty: payload.difficulty ?? 'medium',
-        acceso: payload.acceso ?? 'private',
-        tema: payload.tema ?? '',
-        area: payload.area ?? '',
-        totalQuestions: Array.isArray(payload.questions) ? payload.questions.length : 0,
-        code: await this.generateCode(),
-        userId,
-      }),
-    );
-
-    if (Array.isArray(payload.questions)) {
-      for (const q of payload.questions) {
-        const savedQuestion = await this.questionRepo.save(
-          this.questionRepo.create({
-            question: q.question,
-            explanation: q.explanation ?? '',
-            exam,
-          }),
-        );
-        for (const opt of q.options ?? []) {
-          await this.optionRepo.save(
-            this.optionRepo.create({
-              text: opt.text,
-              isCorrect: opt.isCorrect,
-              question: savedQuestion,
-            }),
-          );
-        }
-      }
-    }
-    return this.getById(exam.id, userId);
-  }
-
-  async update(
-    id: number,
-    payload: {
-      title?: string;
-      description?: string;
-      difficulty?: string;
-      acceso?: string;
-      tema?: string;
-      area?: string;
-    },
-    userId: number,
-  ) {
-    const exam = await this.getById(id, userId);
-    await this.examRepo.update(id, {
-      title: payload.title ?? exam.title,
-      description: payload.description ?? exam.description,
-      difficulty: payload.difficulty ?? exam.difficulty,
-      acceso: payload.acceso ?? exam.acceso,
-      tema: payload.tema ?? exam.tema,
-      area: payload.area ?? exam.area,
-    });
-    return this.getById(id, userId);
   }
 }

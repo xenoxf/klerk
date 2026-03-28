@@ -56,19 +56,13 @@ export class GroqController {
       modules: {
         exams: {
           status: '✅ Operacional',
-          methods: [
-            'generateExamFromTopic()',
-            'generateExamFromReference()',
-          ],
+          methods: ['generateExamFromTopic()', 'generateExamFromReference()'],
           prompts: 2,
           jsonValidation: true,
         },
         notes: {
           status: '✅ Operacional',
-          methods: [
-            'generateNoteFromTopic()',
-            'generateNoteFromReference()',
-          ],
+          methods: ['generateNoteFromTopic()', 'generateNoteFromReference()'],
           prompts: 2,
           contentTypes: [
             'text',
@@ -138,8 +132,7 @@ export class GroqController {
       benefits: {
         consistency: 'Todos los módulos usan prompts validados',
         quality: 'Respuestas educativas de alta calidad',
-        maintainability:
-          'Cambios centralizados en AI_PROMPTS.ts',
+        maintainability: 'Cambios centralizados en AI_PROMPTS.ts',
         robustness: 'Manejo robusto de errores',
         scalability: 'Fácil agregar nuevos módulos',
       },

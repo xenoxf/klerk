@@ -8,7 +8,6 @@ import {
   Patch,
   UseGuards,
   Req,
-  BadRequestException,
 } from '@nestjs/common';
 import { FlashCardsService } from './flash-cards.service';
 import { JwtGuard } from '../auth/jwt/jwt.guard';
@@ -17,18 +16,13 @@ import { GenerateFlashCardsDto } from './dto/generate-flash-cards.dto';
 //@UseGuards(ApiKeyGuard)
 @Controller('flash-cards')
 export class FlashCardsController {
-  constructor(private readonly flashCardsService: FlashCardsService) { }
+  constructor(private readonly flashCardsService: FlashCardsService) {}
 
   // ==================== AI GENERATION ====================
   @Post('generate/topic_or_reference')
   @UseGuards(JwtGuard)
   generate(@Body() input: GenerateFlashCardsDto, @Req() req: any) {
-    if (!input.reference) {
-      throw new BadRequestException(
-        'Debe proporcionar un "reference" (texto de referencia) para generar tarjetas.',
-      );
-    }
-    return this.flashCardsService.generateFromReference(input, req.user.id);
+    return this.flashCardsService.generateFrom(input, req.user.id);
   }
 
   // ==================== BASIC CRUD ====================

@@ -10,12 +10,12 @@ import {
   // Query,
   ParseIntPipe,
   Req,
-  BadRequestException,
 } from '@nestjs/common';
 //import { Request } from 'express';
 import { NotesService } from './notes.service';
 //import { UpdateNoteDto } from './dto/update-note.dto';
 import { JwtGuard } from '../auth/jwt/jwt.guard';
+import { GenerateNoteDto } from './dto/create-note.dto';
 //import { ApiKeyGuard } from '../common/guards/api-key/api-key.guard';
 
 @Controller('notes')
@@ -25,16 +25,8 @@ export class NotesController {
   // ==================== AI GENERATION a @====================
   @Post('generate/topic_or_reference')
   @UseGuards(JwtGuard)
-  generate(@Body() input: any, @Req() req: any) {
-    if (!input.topic && !input.referenceText) {
-      throw new BadRequestException(
-        'Debe proporcionar un "topic" o "referenceText" para generar notas.',
-      );
-    }
-    if (!input.referenceText) {
-      return this.notesService.generateFromTopic(input, req.user.id);
-    }
-    return this.notesService.generateFromReference(input, req.user.id);
+  generate(@Body() input: GenerateNoteDto, @Req() req: any) {
+    return this.notesService.generateNote(input, req.user.id);
   }
 
   @Get()
