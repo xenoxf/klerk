@@ -21,14 +21,14 @@ export class ExamsService {
     private questionRepo: Repository<ExamQuestion>,
     @InjectRepository(ExamOption) private optionRepo: Repository<ExamOption>,
     private readonly groqService: GroqService,
-  ) {}
+  ) { }
 
   // ==================== GENERATE EXAM FROM TOPIC ====================
 
   async generateExam(input: GenerateExamDto, userId: number) {
     try {
       const response = await this.groqService.generateExam(
-        input.topic,
+        input.reference,
         input.numberOfQuestions,
         input.difficulty,
       );

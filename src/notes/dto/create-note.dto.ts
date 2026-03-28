@@ -1,6 +1,17 @@
-import { IsInt, IsOptional, IsString, Min } from 'class-validator';
-
+import {
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  Min,
+  IsEnum,
+} from 'class-validator';
+enum Acceso {
+  PUBLIC = 'public',
+  PRIVATE = 'private',
+}
 export class GenerateNoteDto {
+  @IsNotEmpty({ message: 'Este campo debe ser obligatorio' })
   @IsString({ message: 'Debe ser un string' })
   reference: string;
 
@@ -11,4 +22,8 @@ export class GenerateNoteDto {
   @IsOptional()
   @IsString({ message: 'El nivel de detalle debe ser un texto' })
   levelOfDetail?: string;
+
+  @IsOptional()
+  @IsEnum(Acceso, { message: 'El acceso debe ser "public" o "private"' })
+  acceso: Acceso;
 }

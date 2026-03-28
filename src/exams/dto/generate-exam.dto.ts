@@ -4,8 +4,8 @@ import {
   MinLength,
   Min,
   Max,
-  IsIn,
   IsEnum,
+  IsNotEmpty,
 } from 'class-validator';
 
 enum Acceso {
@@ -14,15 +14,10 @@ enum Acceso {
 }
 
 export class GenerateExamDto {
-  @IsOptional()
-  @IsString({ message: 'El tema debe ser un texto' })
-  @MinLength(3, { message: 'El tema debe tener al menos 3 caracteres' })
-  topic?: string;
-
-  @IsOptional()
+  @IsNotEmpty({ message: 'Este campo debe ser obligatorio' })
   @IsString({ message: 'La referencia debe ser un texto' })
-  @MinLength(10, { message: 'La referencia debe tener al menos 10 caracteres' })
-  reference?: string;
+  @MinLength(3, { message: 'La referencia debe tener al menos 3 caracteres' })
+  reference: string;
 
   @Min(1, { message: 'La cantidad debe ser al menos 1' })
   @Max(50, { message: 'La cantidad no puede exceder 50' })
