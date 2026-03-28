@@ -9,7 +9,6 @@ import {
   BadRequestException,
   InternalServerErrorException,
   Logger,
-  Query,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { Response } from 'express';
@@ -54,7 +53,8 @@ export class AuthController {
       const clientId = process.env.GOOGLE_CLIENT_ID;
       const redirectUri =
         process.env.GOOGLE_REDIRECT_URI ||
-        'http://localhost:2300/auth/google/callback';
+        process.env.GOOGLE_CALLBACK_URL ||
+        'http://localhost:3000/auth/callback';
 
       if (!clientId) {
         throw new Error('GOOGLE_CLIENT_ID no está configurado');
@@ -109,11 +109,9 @@ export class AuthController {
   }
 
   @Post('google/callback')
-  async googleCallbackPost(
-    @Query('code') code: string,
-    //@Body('state') state?: string,
-  ) {
+  async googleCallbackPost(@Body() body: { code?: string }) {
     try {
+      const code = body?.code?.trim();
       if (!code) {
         throw new BadRequestException('Código de autorización requerido');
       }

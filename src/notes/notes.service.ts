@@ -50,60 +50,140 @@ export class NotesService {
     return code;
   }
 
-  // ==================== GENERATE NOTE FROM TOPIC ====================
+  private resolveNotePrompt(input: GenerateNoteDto): string {
+    const parts = [input.reference, input.referenceText, input.topic]
+      .filter((s): s is string => typeof s === 'string' && s.trim().length > 0)
+      .map((s) => s.trim());
+    const ref = parts[0];
+    if (!ref) {
+      throw new BadRequestException(
+        'Debe enviar reference, referenceText o topic para generar notas.',
+      );
+    }
+    return ref;
+  }
+
+  /** Normaliza lo que devuelve la IA: strings markdown o bloques { title, contents[] }. */
+  private normalizeAiNoteItems(rawNotes: unknown): Array<{
+    markdown: string;
+    sectionTitle?: string;
+  }> {
+    if (!Array.isArray(rawNotes)) return [];
+    const out: Array<{ markdown: string; sectionTitle?: string }> = [];
+    for (const item of rawNotes) {
+      if (typeof item === 'string') {
+        out.push({ markdown: item });
+        continue;
+      }
+      if (item && typeof item === 'object') {
+        const o = item as Record<string, unknown>;
+        if (Array.isArray(o.contents)) {
+          const title = typeof o.title === 'string' ? o.title : undefined;
+          const chunks: string[] = [];
+          for (const block of o.contents) {
+            if (!block || typeof block !== 'object') continue;
+            const b = block as Record<string, unknown>;
+            const type = typeof b.type === 'string' ? b.type : 'text';
+            const c = b.content;
+            const text = Array.isArray(c)
+              ? c.map((x) => String(x)).join('\n')
+              : String(c ?? '');
+            chunks.push(`**${type}**\n\n${text}`);
+          }
+          out.push({
+            markdown: chunks.join('\n\n'),
+            sectionTitle: title,
+          });
+        } else if (typeof o.markdown === 'string') {
+          out.push({
+            markdown: o.markdown,
+            sectionTitle: typeof o.title === 'string' ? o.title : undefined,
+          });
+        } else {
+          out.push({ markdown: JSON.stringify(item, null, 2) });
+        }
+      }
+    }
+    return out;
+  }
+
+  // ==================== GENERATE NOTE FROM TOPIC / REFERENCE ====================
   async generateNote(input: GenerateNoteDto, userId: number) {
     try {
-      const response = await this.groqService.generateNote(
-        input.reference,
-        input.numberOfNotes,
-        input.levelOfDetail,
-      );
+      const promptText = this.resolveNotePrompt(input);
+      const numberOfNotes = input.numberOfNotes ?? 3;
+      const level = input.levelOfDetail ?? 'medio';
+      const acceso = input.acceso === 'public' ? 'public' : 'private';
 
-      const { title, description, area, tema } = response.metadata || {};
+      const response = (await this.groqService.generateNote(
+        promptText,
+        numberOfNotes,
+        level,
+      )) as Record<string, unknown> & { error?: boolean; message?: string };
 
-      const createdNotes = [];
+      if (response?.error === true) {
+        throw new BadRequestException(
+          String(response.message || response['detail'] || 'Error generando notas'),
+        );
+      }
 
-      for (const noteText of response.notes || []) {
+      const meta = (response.metadata || {}) as Record<string, unknown>;
+      const title = (meta.title as string) || 'Notas generadas';
+      const description = (meta.description as string) || '';
+      const area = meta.area as string | undefined;
+      const tema = meta.tema as string | undefined;
+
+      let blocks = this.normalizeAiNoteItems(response.notes);
+      if (blocks.length === 0) {
+        throw new BadRequestException(
+          'La IA no devolvió notas en el formato esperado (array "notes").',
+        );
+      }
+
+      const createdNotes: Note[] = [];
+      for (const block of blocks) {
         const note = this.noteRepo.create({
-          title: title || 'Sin título',
-          description: description,
-          levelOfDetail: input.levelOfDetail,
+          title,
+          description,
+          levelOfDetail: level,
           userId,
           code: await this.generateCode(),
-          acceso: 'private',
+          acceso,
           createdAt: new Date(),
-          area: area,
-          tema: tema,
+          area,
+          tema,
         });
 
         const savedNote = await this.noteRepo.save(note);
 
-        // 🔥 noteText ya es string (o lo forzamos)
-        const contentString =
-          typeof noteText === 'string' ? noteText : JSON.stringify(noteText);
-
         const noteContent = this.noteContentRepo.create({
-          content: contentString,
+          tema: block.sectionTitle || tema || title,
+          content: block.markdown,
+          order: 0,
           noteId: savedNote.id,
           userId,
-        });
+        } as any);
 
-        await this.noteContentRepo.save(noteContent);
+        await this.noteContentRepo.save(noteContent as any);
 
         const fullNote = await this.noteRepo.findOne({
           where: { id: savedNote.id },
           relations: ['noteContents'],
         });
-
-        createdNotes.push(fullNote);
+        if (fullNote) createdNotes.push(fullNote);
       }
 
       return {
-        message: 'Notas creadas correctamente, ¡pruébalas!',
+        success: true,
+        notes: createdNotes,
+        message: 'Notas creadas correctamente',
         data: createdNotes,
       };
     } catch (error) {
-      throw new BadRequestException(error.message);
+      if (error instanceof BadRequestException) throw error;
+      throw new BadRequestException(
+        error instanceof Error ? error.message : 'Error al generar notas',
+      );
     }
   }
   // ==================== BASIC CRUD ====================

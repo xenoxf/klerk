@@ -243,7 +243,9 @@ export class AuthService {
       const clientId = process.env.GOOGLE_CLIENT_ID;
       const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
       const redirectUri =
-        process.env.GOOGLE_CALLBACK_URL;
+        process.env.GOOGLE_REDIRECT_URI ||
+        process.env.GOOGLE_CALLBACK_URL ||
+        'http://localhost:3000/auth/callback';
 
       if (!clientId || !clientSecret) {
         throw new Error('Google OAuth credentials no están configuradas');
@@ -268,14 +270,46 @@ export class AuthService {
       );
 
       if (!tokenResponse.ok) {
-        throw new Error('Error al obtener token de Google');
+        const errBody = await tokenResponse.text().catch(() => '');
+        this.logger.error(
+          `Google token exchange failed: ${tokenResponse.status} ${errBody}`,
+        );
+        throw new Error(
+          `Error al obtener token de Google: ${tokenResponse.status}. Verifica que GOOGLE_REDIRECT_URI coincida con la URL de autorización.`,
+        );
       }
 
       const tokens = await tokenResponse.json();
-      const idToken = tokens.id_token;
+      const idToken = tokens.id_token as string | undefined;
+      const accessToken = tokens.access_token as string | undefined;
 
-      // Verificar y decodificar ID token
-      const userInfo = await this.verifyGoogleToken(idToken);
+      let userInfo: {
+        sub: string;
+        email: string;
+        name?: string;
+        picture?: string;
+      };
+
+      if (idToken) {
+        userInfo = (await this.verifyGoogleToken(idToken)) as typeof userInfo;
+      } else if (accessToken) {
+        const profileRes = await fetch(
+          'https://www.googleapis.com/oauth2/v3/userinfo',
+          { headers: { Authorization: `Bearer ${accessToken}` } },
+        );
+        if (!profileRes.ok) {
+          throw new Error('No se pudo obtener el perfil de Google');
+        }
+        const p = await profileRes.json();
+        userInfo = {
+          sub: String(p.sub || p.id),
+          email: String(p.email),
+          name: p.name,
+          picture: p.picture,
+        };
+      } else {
+        throw new Error('Respuesta de Google sin id_token ni access_token');
+      }
 
       return this.googleAuth({
         providerId: userInfo.sub,
