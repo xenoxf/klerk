@@ -12,14 +12,8 @@ export class NoteContent {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ type: 'varchar', nullable: true })
-  tema: string;
-
   @Column({ type: 'text' })
   content: string;
-
-  @Column({ type: 'int', nullable: true })
-  order: number;
 
   @Column()
   noteId: number;

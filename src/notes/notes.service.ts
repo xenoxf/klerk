@@ -59,57 +59,51 @@ export class NotesService {
         input.levelOfDetail,
       );
 
-      if (!response?.notes || !Array.isArray(response.notes)) {
-        throw new BadRequestException('Invalid AI response format');
-      }
-
-      const { title, description, area, tema } = response.metadata;
+      const { title, description, area, tema } = response.metadata || {};
 
       const createdNotes = [];
-      for (const noteData of response.notes) {
+
+      for (const noteText of response.notes || []) {
         const note = this.noteRepo.create({
-          title,
-          description,
+          title: title || 'Sin título',
+          description: description,
           levelOfDetail: input.levelOfDetail,
           userId,
           code: await this.generateCode(),
           acceso: 'private',
           createdAt: new Date(),
-          area,
-          tema,
+          area: area,
+          tema: tema,
         });
-        await this.noteRepo.save(note);
 
-        if (Array.isArray(noteData.contents)) {
-          let order = 0;
-          for (const content of noteData.contents) {
-            const noteContent = this.noteContentRepo.create({
-              tema: noteData.title,
-              content: Array.isArray(content.content)
-                ? JSON.stringify(content.content)
-                : content.content,
-              type: content.type || 'text',
-              order,
-              noteId: (note as any).id,
-              userId,
-            } as any);
-            await this.noteContentRepo.save(noteContent as any);
-            order++;
-          }
-        }
+        const savedNote = await this.noteRepo.save(note);
 
-        const savedNote = await this.noteRepo.findOne({
-          where: { id: (note as any).id },
+        // 🔥 noteText ya es string (o lo forzamos)
+        const contentString =
+          typeof noteText === 'string' ? noteText : JSON.stringify(noteText);
+
+        const noteContent = this.noteContentRepo.create({
+          content: contentString,
+          noteId: savedNote.id,
+          userId,
+        });
+
+        await this.noteContentRepo.save(noteContent);
+
+        const fullNote = await this.noteRepo.findOne({
+          where: { id: savedNote.id },
           relations: ['noteContents'],
         });
-        createdNotes.push(savedNote);
+
+        createdNotes.push(fullNote);
       }
 
-      return { success: true, notes: createdNotes };
+      return {
+        message: 'Notas creadas correctamente, ¡pruébalas!',
+        data: createdNotes,
+      };
     } catch (error) {
-      throw new BadRequestException(
-        `Error generating notes from topic: ${error.message}`,
-      );
+      throw new BadRequestException(error.message);
     }
   }
   // ==================== BASIC CRUD ====================

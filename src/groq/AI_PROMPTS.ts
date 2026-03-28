@@ -4,7 +4,7 @@ export const AI_PROMPTS = {
   // ==================== EXAMS ====================
   generateExam: (numberOfQuestions: number, difficulty: string) => `
     CRITICAL INSTRUCTIONS:
-    1. Generate EXACTLY ${numberOfQuestions} multiple choice questions 
+    1. Generate EXACTLY ${numberOfQuestions} multiple choice questions
     2. Difficulty level: ${difficulty}
     3. Each question MUST have EXACTLY 4 options
     4. EXACTLY ONE option per question must be correct
@@ -24,7 +24,7 @@ export const AI_PROMPTS = {
             {"text": " Option from different context", "isCorrect": false}
           ]
         }, las demas preguntas siguen con el mismo formato
-      ],  
+      ],
       "metadata": {// esta seccion no debe tener markdown, debes escribir texto normal dentro del formato JSON
 
         "title": "Debes crear un titulo referente al examen",
@@ -39,7 +39,7 @@ export const AI_PROMPTS = {
   // ==================== NOTES ====================
   generateNote: (numberOfNotes: number, levelOfDetail: string) => `
     CRITICAL INSTRUCTIONS:
-    1. Generate EXACTLY ${numberOfNotes} comprehensive study note(s)  
+    1. Generate EXACTLY ${numberOfNotes} comprehensive study note(s)
 2. Level of detail: ${levelOfDetail}
     3. Each note should be self-contained and educational
     4. Use hierarchical organization: main concepts -> subtopics -> details
@@ -65,10 +65,8 @@ export const AI_PROMPTS = {
     RETURN ONLY PURE VALID JSON with MARKDOWN in content:
     {
          "notes": [
-        {
-          "Escribes nota en markdown"
-          }, {las demas notas}
-      ],
+         "UNA NOTA","LA OTRA NOTA"," Y ASI CONSECUTIVAMENTE CON LAS DEMAS NOTAS"
+         ],
       "metadata": {// esta seccion no debe tener markdown, debes escribir texto normal dentro del formato JSON
 
         "title": "Debes crear un titulo referente alas Notes",
@@ -85,7 +83,7 @@ export const AI_PROMPTS = {
   // ==================== FLASHCARDS ====================
   generateFlashcards: (numberOfCards: number) => `
     CRITICAL INSTRUCTIONS:
-    1. Generate EXACTLY ${numberOfCards} high-quality flashcard pairsn 
+    1. Generate EXACTLY ${numberOfCards} high-quality flashcard pairsn
        3. Cards should test both recall and understanding
     4. Mix card types: definitions, concepts, applications, comparisons
     5. USE MARKDOWN FORMATTING in card content (**bold**, *italic*, \`code\`, etc.)
