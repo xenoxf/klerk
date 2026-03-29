@@ -84,10 +84,20 @@ export class AuthController {
   }
 
   @Get('google/callback')
-  @UseGuards(AuthGuard('google'))
-  async googleCallback(@Request() req: any, @Res() res: Response) {
+  async googleCallbackGet(@Request() req: any, @Res() res: Response) {
     try {
-      const result = await this.authService.googleAuth(req.user);
+      const code = req.query.code;
+      
+      if (!code) {
+        this.logger.warn('Google callback without code');
+        const redirectUrl = new URL(
+          process.env.FRONTEND_CALLBACK_URL || 'http://localhost:3000/auth',
+        );
+        redirectUrl.searchParams.append('error', 'no_code');
+        return res.redirect(redirectUrl.toString());
+      }
+
+      const result = await this.authService.googleAuthWithCode(code as string);
 
       // Redirigir al frontend con el token en URL
       const redirectUrl = new URL(
@@ -99,7 +109,7 @@ export class AuthController {
 
       return res.redirect(redirectUrl.toString());
     } catch (error) {
-      this.logger.error('Google callback error:', error);
+      this.logger.error('Google callback GET error:', error);
       const redirectUrl = new URL(
         process.env.FRONTEND_CALLBACK_URL || 'http://localhost:3000/auth',
       );
