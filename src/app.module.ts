@@ -10,6 +10,7 @@ import { NotesModule } from './notes/notes.module';
 import { MessagesModule } from './messages/messages.module';
 import { GroqModule } from './groq/groq.module';
 import { SharedModule } from './shared/shared.module';
+import { GlobalChatModule } from './global-chat/global-chat.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { User } from './users/entities/user.entity';
 import { Exam } from './exams/entities/exam.entity';
@@ -21,6 +22,7 @@ import { Note } from './notes/entities/note.entity';
 import { NoteContent } from './notes/entities/note-content.entity';
 import { Chat } from './messages/entities/chat.entity';
 import { Message } from './messages/entities/message.entity';
+import { GlobalChatMessage } from './global-chat/entities/global-chat-message.entity';
 
 @Module({
   imports: [
@@ -59,6 +61,7 @@ import { Message } from './messages/entities/message.entity';
     NotesModule,
     MessagesModule,
     GroqModule,
+    GlobalChatModule,
   ],
   controllers: [AppController],
   providers: [AppService],
