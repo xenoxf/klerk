@@ -106,7 +106,7 @@ export class FlashCardsService {
     };
   }
 
-  async deckRefactor(cards: Card[] | Card) {
+  async deckRefactor(cards: Card[] | Card, userId?: number) {
     if (Array.isArray(cards)) {
       return cards.map((card) => ({
         id: card.id,
@@ -114,6 +114,7 @@ export class FlashCardsService {
         description: card.description,
         code: card.code,
         area: card.area,
+        canDelete: userId ? card.userId === userId : false,
       }));
     }
     return {
@@ -122,13 +123,15 @@ export class FlashCardsService {
       description: cards.description,
       code: cards.code,
       area: cards.area,
+      canDelete: userId ? cards.userId === userId : false,
     };
   }
 
-  async findPublicCardsDeck() {
+  async findPublicCardsDeck(userId?: number) {
     const cards = await this.cardRepo.find({ relations: ['flashcards'] });
     return this.deckRefactor(
       cards.filter((card) => this.isPublicAccess(card.acceso)),
+      userId,
     );
   }
 
@@ -139,7 +142,7 @@ export class FlashCardsService {
       where: { userId },
       order: { createdAt: 'DESC' },
     });
-    return this.deckRefactor(cards);
+    return this.deckRefactor(cards, userId);
   }
 
   async returnIdByCard(id: number, userId: number) {

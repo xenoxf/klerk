@@ -145,13 +145,14 @@ export class ExamsService {
   }
 
   // ==================== REFACTOR DECKS (OPTIMIZAR DATOS) ====================
-  async examRefactor(exams: Exam[] | Exam) {
+  async examRefactor(exams: Exam[] | Exam, userId?: number) {
     if (Array.isArray(exams)) {
       return exams.map((exam) => ({
         id: exam.id,
         title: exam.title,
         description: exam.description,
         difficulty: exam.difficulty,
+        canDelete: userId ? exam.userId === userId : false,
       }));
     }
     return {
@@ -159,15 +160,17 @@ export class ExamsService {
       title: exams.title,
       difficulty: exams.difficulty,
       description: exams.description,
+      canDelete: userId ? exams.userId === userId : false,
     };
   }
 
-  async getPublicExamsDeck() {
+  async getPublicExamsDeck(userId?: number) {
     const exams = await this.examRepo.find({
       order: { createdAt: 'DESC' },
     });
     return this.examRefactor(
       exams.filter((exam) => this.isPublicAccess(exam.acceso)),
+      userId,
     );
   }
 
@@ -176,10 +179,10 @@ export class ExamsService {
       where: { userId },
       order: { createdAt: 'DESC' },
     });
-    return this.examRefactor(exams);
+    return this.examRefactor(exams, userId);
   }
 
-  async getExamByCode(code: string) {
+  async getExamByCode(code: string, userId?: number) {
     const exam = await this.examRepo.findOne({
       where: { code },
       relations: ['questions', 'questions.options'],
@@ -188,6 +191,6 @@ export class ExamsService {
     if (!this.isPublicAccess(exam.acceso)) {
       throw new UnauthorizedException('No tienes acceso a este quiz');
     }
-    return this.examRefactor(exam);
+    return this.examRefactor(exam, userId);
   }
 }

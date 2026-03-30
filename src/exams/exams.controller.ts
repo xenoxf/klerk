@@ -25,8 +25,8 @@ export class ExamsController {
   // ==================== BASIC CRUD ====================
 
   @Get()
-  getAll() {
-    return this.examsService.getPublicExamsDeck();
+  getAll(@Req() req: any) {
+    return this.examsService.getPublicExamsDeck(req?.user?.id);
   }
 
   @Get('private')
@@ -36,13 +36,13 @@ export class ExamsController {
   }
 
   @Get('public')
-  getPublicExamsDeck() {
-    return this.examsService.getPublicExamsDeck();
+  getPublicExamsDeck(@Req() req: any) {
+    return this.examsService.getPublicExamsDeck(req?.user?.id);
   }
 
   @Get('code/:code')
-  getByCode(@Param('code') code: string) {
-    return this.examsService.getExamByCode(code);
+  getByCode(@Param('code') code: string, @Req() req: any) {
+    return this.examsService.getExamByCode(code, req?.user?.id);
   }
 
   @Get('score')

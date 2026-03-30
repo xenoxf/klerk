@@ -188,35 +188,51 @@ export class NotesService {
   }
   // ==================== BASIC CRUD ====================
   async findAll(userId: number) {
-    return this.noteRepo.find({
+    const notes = await this.noteRepo.find({
       where: { userId },
       relations: ['noteContents'],
       order: { createdAt: 'DESC' },
     });
+    return this.noteRefactorArray(notes, userId);
   }
 
   async findPrivate(userId: number) {
     return this.findAll(userId);
   }
 
-  async findPublic() {
+  async findPublic(userId?: number) {
     const notes = await this.noteRepo.find({
       relations: ['noteContents'],
       order: { createdAt: 'DESC' },
     });
-    return notes.filter((note) => this.isPublicAccess(note.acceso));
+    const publicNotes = notes.filter((note) => this.isPublicAccess(note.acceso));
+    return this.noteRefactorArray(publicNotes, userId);
   }
 
-  async findOne(id: number, userId: number) {
+  noteRefactor(note: Note, userId?: number): Note & { canDelete: boolean } {
+    return {
+      ...note,
+      canDelete: userId ? note.userId === userId : false,
+    };
+  }
+
+  noteRefactorArray(notes: Note[], userId?: number): (Note & { canDelete: boolean })[] {
+    return notes.map((note) => ({
+      ...note,
+      canDelete: userId ? note.userId === userId : false,
+    }));
+  }
+
+  async findOne(id: number, userId: number): Promise<Note & { canDelete: boolean }> {
     const note = await this.noteRepo.findOne({
       where: { id, userId },
       relations: ['noteContents'],
     });
     if (!note) throw new NotFoundException('Note not found');
-    return note;
+    return this.noteRefactor(note, userId);
   }
 
-  async findOneByAccess(id: number, userId?: number) {
+  async findOneByAccess(id: number, userId?: number): Promise<Note & { canDelete: boolean }> {
     const note = await this.noteRepo.findOne({
       where: { id },
       relations: ['noteContents'],
@@ -225,10 +241,10 @@ export class NotesService {
     if (!this.isPublicAccess(note.acceso) && note.userId !== userId) {
       throw new UnauthorizedException('No tienes acceso a esta nota');
     }
-    return note;
+    return this.noteRefactor(note, userId);
   }
 
-  async findOneByCode(code: string, userId?: number) {
+  async findOneByCode(code: string, userId?: number): Promise<Note & { canDelete: boolean }> {
     const note = await this.noteRepo.findOne({
       where: { code },
       relations: ['noteContents'],
@@ -237,7 +253,7 @@ export class NotesService {
     if (!this.isPublicAccess(note.acceso) && note.userId !== userId) {
       throw new UnauthorizedException('No tienes acceso a esta nota');
     }
-    return note;
+    return this.noteRefactor(note, userId);
   }
 
   async create(

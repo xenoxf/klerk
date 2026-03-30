@@ -36,8 +36,8 @@ export class NotesController {
   }
 
   @Get('public')
-  async getPublic() {
-    return this.notesService.findPublic();
+  async getPublic(@Req() req: any) {
+    return this.notesService.findPublic(req?.user?.id);
   }
 
   @Get('private')

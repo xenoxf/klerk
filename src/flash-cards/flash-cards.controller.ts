@@ -27,8 +27,8 @@ export class FlashCardsController {
 
   // ==================== BASIC CRUD ====================
   @Get('public')
-  findAllPublic() {
-    return this.flashCardsService.findPublicCardsDeck();
+  findAllPublic(@Req() req: any) {
+    return this.flashCardsService.findPublicCardsDeck(req?.user?.id);
   }
 
   @Get('private')
