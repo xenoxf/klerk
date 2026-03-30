@@ -230,23 +230,26 @@ export class ExamsService {
       canDelete: userId ? exam.userId === userId : false,
     };
 
-    if (includeQuestionsAndOptions && exam.questions) {
+    if (includeQuestionsAndOptions && exam.questions && exam.questions.length > 0) {
       return {
         ...base,
         questions: exam.questions.map((q) => ({
           id: q.id,
           question: q.question,
           explanation: q.explanation || '',
-          options: q.options.map((opt) => ({
+          options: q.options && q.options.length > 0 ? q.options.map((opt) => ({
             id: opt.id,
             text: opt.text,
             isCorrect: opt.isCorrect,
-          })),
+          })) : [],
         })),
       };
     }
 
-    return base;
+    return {
+      ...base,
+      questions: [],
+    };
   }
 
   async getPublicExamsDeck(userId?: number) {
