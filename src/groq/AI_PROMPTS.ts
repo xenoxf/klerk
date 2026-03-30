@@ -11,7 +11,7 @@ INSTRUCCIONES CRÍTICAS:
 2. Nivel de dificultad: ${difficulty}
 3. Cada pregunta DEBE tener EXACTAMENTE 4 opciones
 4. EXACTAMENTE UNA opción por pregunta debe ser correcta
-5. NO uses formato markdown. Texto plano solamente.
+5. NO uses formato markdown. Texto plano solamente. a menos que quieras poner enunciados con tablas o latex, quimica etc, ahi si puedes usar markdown
 6. Las preguntas deben ser claras y evaluar comprensión real
 
 RETORNA SOLO JSON VÁLIDO:
@@ -71,11 +71,12 @@ El contenido debe ser PROFESIONAL, adecuado para estudiantes que buscan comprens
 Eres un tutor creando flashcards efectivas. Tolera errores del usuario e infiere el tema de aprendizaje.
 
 INSTRUCCIONES:
+
 1. Genera EXACTAMENTE ${numberOfCards} pares de flashcards
-2. Front: Pregunta clara en texto plano (máx 15 palabras)
-3. Back: Respuesta completa en TEXTO PLANO, sin markdown
-4. Incluye hint cuando sea útil
+2. Front: Pregunta clara
+3. Back: Respuesta completa
 5. Mezcla tipos: definiciones, conceptos, aplicaciones
+6. Puedes usar markdow, latex, etc. usa para que sea mas dinamica el aprendisaje
 
 RETORNA SOLO JSON VÁLIDO:
 {
@@ -83,9 +84,7 @@ RETORNA SOLO JSON VÁLIDO:
     {
       "front": "¿Pregunta clara?",
       "back": "Respuesta detallada en texto plano, sin asteriscos ni formato",
-      "hint": "Pista util",
       "category": "definition|concept|application|comparison",
-      "tags": ["tag1", "tag2"]
     }
   ],
   "metadata": {
@@ -186,71 +185,6 @@ Ejemplos:
     If invalid, provide specific error messages and suggestions for fixing.
     If valid, confirm it meets all requirements.
   `,
-};
-
-export const RESPONSE_FORMATS = {
-  exam: {
-    title: 'string',
-    totalQuestions: 'number',
-    questions: [
-      {
-        id: 'number',
-        question: 'string',
-        options: [{ id: 'string', text: 'string', isCorrect: 'boolean' }],
-        explanation: 'string',
-        difficulty: 'string',
-        category: 'string',
-      },
-    ],
-  },
-  note: {
-    description: 'string',
-    title: 'string',
-    notes: [
-      {
-        id: 'number',
-        title: 'string',
-        contents: [
-          {
-            type: 'text|definition|list|example|warning|tip|quote|connection',
-            content: 'string|string[]',
-            sourceReference: 'string?',
-          },
-        ],
-        tags: 'string[]',
-        summary: 'string',
-        prerequisites: 'string[]',
-      },
-    ],
-    metadata: {
-      levelOfDetail: 'string',
-      targetAudience: 'string',
-      estimatedStudyTime: 'string',
-    },
-  },
-  flashcard: {
-    title: 'string',
-    totalCards: 'number',
-    description: 'string',
-    cards: [
-      {
-        id: 'number',
-        front: 'string',
-        back: 'string',
-        difficulty: 'easy|medium|hard',
-        hint: 'string',
-        category: 'string',
-        tags: 'string[]',
-        example: 'string?',
-        commonMistakes: 'string[]?',
-      },
-    ],
-    difficultyBreakdown: {
-      easy: 'number',
-      medium: 'number',
-      hard: 'number',
-    },
-  },
 };
 
 // Helper para manejo de errores y retry

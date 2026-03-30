@@ -141,8 +141,8 @@ export class ExamsService {
   }
 
   async delete(id: number, userId: number) {
-    const exam = await this.getById(id, userId);
-    if (!exam) throw new NotFoundException('Exam not found');
+    const exam = await this.examRepo.findOne({ where: { id, userId } });
+    if (!exam) throw new NotFoundException('Exam not found or not owned by user');
     await this.questionRepo.delete({ exam: { id } } as any);
     await this.examRepo.delete(id);
     return { message: 'Exam deleted' };

@@ -162,8 +162,8 @@ export class FlashCardsService {
   }
 
   async remove(id: number, userId: number) {
-    const cards = await this.returnIdByCard(id, userId);
-    if (!cards) throw new NotFoundException('Cards not found');
+    const card = await this.cardRepo.findOne({ where: { id, userId } });
+    if (!card) throw new NotFoundException('Card not found or not owned by user');
     await this.cardRepo.delete(id);
     return { message: 'Eliminado correctamente' };
   }

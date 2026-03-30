@@ -51,12 +51,6 @@ export class NotesController {
     return this.notesService.findOneByCode(code, req?.user?.id);
   }
 
-  @Post()
-  @UseGuards(JwtGuard)
-  async create(@Body() body: any, @Req() req: any) {
-    return this.notesService.create(body, req.user.id);
-  }
-
   @Patch(':id')
   @UseGuards(JwtGuard)
   async update(

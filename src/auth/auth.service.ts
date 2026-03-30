@@ -9,6 +9,7 @@ import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
 import { CreateAuthDto } from './dto/create-auth.dto';
 import { LoginAuthDto } from './dto/login-auth.dto';
+import * as bcrypt from 'bcryptjs';
 
 @Injectable()
 export class AuthService {
@@ -166,7 +167,9 @@ export class AuthService {
       throw new UnauthorizedException('Usuario sin contraseña local.');
     }
 
-    if (dto.password !== user.password) {
+    // Compare hashed password
+    const isPasswordValid = await bcrypt.compare(dto.password, user.password);
+    if (!isPasswordValid) {
       throw new UnauthorizedException('Credenciales incorrectas.');
     }
 

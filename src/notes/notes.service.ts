@@ -115,69 +115,51 @@ export class NotesService {
       const level = input.levelOfDetail ?? 'medio';
       const acceso = input.acceso === 'public' ? 'public' : 'private';
 
-      const response = (await this.groqService.generateNote(
+      const response = await this.groqService.generateNote(
         promptText,
         numberOfNotes,
         level,
-      )) as Record<string, unknown> & { error?: boolean; message?: string };
-
-      if (response?.error === true) {
-        throw new BadRequestException(
-          String(response.message || response['detail'] || 'Error generando notas'),
-        );
-      }
+      );
 
       const meta = (response.metadata || {}) as Record<string, unknown>;
-      const title = (meta.title as string) || 'Notas generadas';
+      const title = meta.title as string;
       const description = (meta.description as string) || '';
       const area = meta.area as string | undefined;
       const tema = meta.tema as string | undefined;
 
-      let blocks = this.normalizeAiNoteItems(response.notes);
-      if (blocks.length === 0) {
-        throw new BadRequestException(
-          'La IA no devolvió notas en el formato esperado (array "notes").',
-        );
-      }
+      const rawNotes = response.notes;
+      const normalizedNotes = this.normalizeAiNoteItems(rawNotes);
 
-      const createdNotes: Note[] = [];
-      for (const block of blocks) {
-        const note = this.noteRepo.create({
-          title,
-          description,
-          levelOfDetail: level,
-          userId,
-          code: await this.generateCode(),
-          acceso,
-          createdAt: new Date(),
-          area,
-          tema,
-        });
+      // Create the note first
+      const note = this.noteRepo.create({
+        description,
+        tema,
+        title,
+        area,
+        acceso,
+        levelOfDetail: level,
+        code: await this.generateCode(),
+        userId,
+      });
 
-        const savedNote = await this.noteRepo.save(note);
+      const savedNote = await this.noteRepo.save(note);
 
-        const noteContent = this.noteContentRepo.create({
-          tema: block.sectionTitle || tema || title,
-          content: block.markdown,
-          order: 0,
-          noteId: savedNote.id,
-          userId,
-        } as any);
-
-        await this.noteContentRepo.save(noteContent as any);
-
-        const fullNote = await this.noteRepo.findOne({
-          where: { id: savedNote.id },
-          relations: ['noteContents'],
-        });
-        if (fullNote) createdNotes.push(fullNote);
+      // Create note contents
+      if (normalizedNotes.length > 0) {
+        for (let i = 0; i < normalizedNotes.length; i++) {
+          const item = normalizedNotes[i];
+          const noteContent = this.noteContentRepo.create({
+            content: item.markdown,
+            noteId: savedNote.id,
+            userId,
+          });
+          await this.noteContentRepo.save(noteContent);
+        }
       }
 
       return {
-        success: true,
-        notes: createdNotes,
         message: 'Notas creadas correctamente',
-        data: createdNotes,
+        noteId: savedNote.id,
       };
     } catch (error) {
       if (error instanceof BadRequestException) throw error;
@@ -205,7 +187,9 @@ export class NotesService {
       relations: ['noteContents'],
       order: { createdAt: 'DESC' },
     });
-    const publicNotes = notes.filter((note) => this.isPublicAccess(note.acceso));
+    const publicNotes = notes.filter((note) =>
+      this.isPublicAccess(note.acceso),
+    );
     return this.noteRefactorArray(publicNotes, userId);
   }
 
@@ -213,7 +197,10 @@ export class NotesService {
    * Refactor de Note para frontend - solo devuelve datos necesarios para mostrar
    * Excluye: code, userId, levelOfDetail (datos sensibles/internos)
    */
-  noteRefactor(note: Note, userId?: number): {
+  noteRefactor(
+    note: Note,
+    userId?: number,
+  ): {
     id: number;
     title: string;
     description: string;
@@ -232,10 +219,11 @@ export class NotesService {
       tema: note.tema,
       acceso: note.acceso,
       createdAt: note.createdAt,
-      noteContents: note.noteContents?.map((nc) => ({
-        id: nc.id,
-        content: nc.content,
-      })) ?? [],
+      noteContents:
+        note.noteContents?.map((nc) => ({
+          id: nc.id,
+          content: nc.content,
+        })) ?? [],
       canDelete: userId ? note.userId === userId : false,
     };
   }
@@ -344,8 +332,8 @@ export class NotesService {
   }
 
   async remove(id: number, userId: number) {
-    const note = await this.findOne(id, userId);
-    if (!note) throw new NotFoundException('Note not found');
+    const note = await this.noteRepo.findOne({ where: { id, userId } });
+    if (!note) throw new NotFoundException('Note not found or not owned by user');
     await this.noteContentRepo.delete({ noteId: id } as any);
     await this.noteRepo.delete(id);
     return { message: 'Eliminado' };

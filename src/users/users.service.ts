@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
+import * as bcrypt from 'bcryptjs';
 
 @Injectable()
 export class UsersService {
@@ -39,10 +40,12 @@ export class UsersService {
 
   /** Crear un nuevo usuario con autenticación local */
   async createLocal(data: any) {
+    const hashedPassword = data.password ? await bcrypt.hash(data.password, 10) : null;
+    
     const user = this.userRepo.create({
       email: data.email,
       name: data.name ?? data.email,
-      password: data.password ?? null,
+      password: hashedPassword,
       provider: 'local',
       providerId: data.providerId ?? null,
       picture: data.picture ?? null,
