@@ -8,6 +8,25 @@ import helmet from 'helmet';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  // ============================================
+  // CONFIGURACIÓN CORS - DESARROLLO (PERMISIVO)
+  // ============================================
+  // ⚠️ SOLO PARA DESARROLLO - Permite peticiones de cualquier origen
+  // Para producción en Render, usa la configuración de abajo (comentada)
+  app.enableCors({
+    origin: true, // Permite TODOS los orígenes
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    credentials: true,
+    allowedHeaders: 'Content-Type, Authorization, X-Requested-With, x-api-key',
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
+  });
+
+  // ============================================
+  // CONFIGURACIÓN CORS - PRODUCCIÓN (RENDER)
+  // ============================================
+  // Descomentar para producción y comentar la de arriba
+  /*
   app.enableCors({
     origin: [
       'http://localhost:3000',
@@ -20,6 +39,7 @@ async function bootstrap() {
     preflightContinue: false,
     optionsSuccessStatus: 204,
   });
+  */
 
   app.useGlobalPipes(
     new ValidationPipe({
