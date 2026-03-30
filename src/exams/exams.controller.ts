@@ -45,6 +45,16 @@ export class ExamsController {
     return this.examsService.getExamByCode(code, req?.user?.id);
   }
 
+  /**
+   * Get exam for playing (klek format) - includes questions
+   * Different from :id endpoint which may return deck format
+   */
+  @Get('play/:id')
+  @UseGuards(JwtGuard)
+  getForPlay(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+    return this.examsService.getByIdForPlay(id, req.user.id);
+  }
+
   @Get('score')
   @UseGuards(JwtGuard)
   updateExamScore(@Query() query: UpdateExamDto, @Req() req: any) {

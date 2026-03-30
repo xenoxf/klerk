@@ -133,6 +133,25 @@ export class ExamsService {
     return this.examRefactor(exam, userId, true);
   }
 
+  /**
+   * Get exam for playing (klek format) - always includes questions
+   * This is different from deck format which is just metadata
+   */
+  async getByIdForPlay(id: number, userId: number) {
+    const exam = await this.examRepo.findOne({
+      where: { id },
+      relations: ['questions', 'questions.options', 'user'],
+    });
+    if (!exam) throw new NotFoundException('Exam not found');
+    
+    // Check ownership or public access
+    if (!this.isPublicAccess(exam.acceso) && exam.userId !== userId) {
+      throw new UnauthorizedException('No tienes acceso a este quiz');
+    }
+    
+    return this.examRefactor(exam, userId, true);
+  }
+
   async updateExamScore(query: UpdateExamDto, userId: number) {
     const examReferido = this.getById(query.id, userId);
     if (!examReferido) throw new NotFoundException('Exam not found');
