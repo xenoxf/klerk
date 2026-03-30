@@ -50,8 +50,8 @@ export class FlashCardsController {
   }
 
   @Get('code/:code')
-  findByCode(@Param('code') code: string) {
-    return this.flashCardsService.getCardByCode(code);
+  findByCode(@Param('code') code: string, @Req() req: any) {
+    return this.flashCardsService.getCardByCode(code, req?.user?.id);
   }
 
   @Get(':id')

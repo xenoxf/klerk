@@ -100,11 +100,13 @@ export class ExamsService {
     return code;
   }
   async getAll(userId: number) {
-    return this.examRepo.find({
+    const exams = await this.examRepo.find({
       where: { userId },
       relations: ['questions', 'questions.options'],
       order: { createdAt: 'DESC' },
     });
+    // Devuelve lista simple sin preguntas
+    return this.examRefactor(exams, userId, false);
   }
 
   async getById(id: number, userId: number) {
@@ -114,7 +116,8 @@ export class ExamsService {
     });
 
     if (!exam) throw new NotFoundException('Exam not found');
-    return exam;
+    // Devuelve con preguntas y opciones (sin isCorrect)
+    return this.examRefactor(exam, userId, true);
   }
 
   async getByIdWithAccess(id: number, userId?: number) {
@@ -126,7 +129,8 @@ export class ExamsService {
     if (!this.isPublicAccess(exam.acceso) && exam.userId !== userId) {
       throw new UnauthorizedException('No tienes acceso a este quiz');
     }
-    return exam;
+    // Devuelve con preguntas y opciones (sin isCorrect)
+    return this.examRefactor(exam, userId, true);
   }
 
   async updateExamScore(query: UpdateExamDto, userId: number) {
@@ -145,23 +149,47 @@ export class ExamsService {
   }
 
   // ==================== REFACTOR DECKS (OPTIMIZAR DATOS) ====================
-  async examRefactor(exams: Exam[] | Exam, userId?: number) {
+  
+  /**
+   * Refactor de Exam para frontend - solo datos necesarios para mostrar
+   * Excluye: code, userId, score (datos internos)
+   * Para preguntas: solo texto, sin opciones ni isCorrect
+   */
+  async examRefactor(exams: Exam[] | Exam, userId?: number, includeQuestionsAndOptions: boolean = false) {
     if (Array.isArray(exams)) {
-      return exams.map((exam) => ({
-        id: exam.id,
-        title: exam.title,
-        description: exam.description,
-        difficulty: exam.difficulty,
-        canDelete: userId ? exam.userId === userId : false,
-      }));
+      return exams.map((exam) => this._examRefactorSingle(exam, userId, includeQuestionsAndOptions));
     }
-    return {
-      id: exams.id,
-      title: exams.title,
-      difficulty: exams.difficulty,
-      description: exams.description,
-      canDelete: userId ? exams.userId === userId : false,
+    return this._examRefactorSingle(exams, userId, includeQuestionsAndOptions);
+  }
+
+  private _examRefactorSingle(exam: Exam, userId?: number, includeQuestionsAndOptions: boolean = false) {
+    const base = {
+      id: exam.id,
+      title: exam.title,
+      description: exam.description,
+      area: exam.area,
+      tema: exam.tema,
+      difficulty: exam.difficulty,
+      totalQuestions: exam.totalQuestions,
+      canDelete: userId ? exam.userId === userId : false,
     };
+
+    if (includeQuestionsAndOptions && exam.questions) {
+      return {
+        ...base,
+        questions: exam.questions.map((q) => ({
+          id: q.id,
+          question: q.question,
+          explanation: q.explanation,
+          options: q.options.map((opt) => ({
+            id: opt.id,
+            text: opt.text,
+          })),
+        })),
+      };
+    }
+
+    return base;
   }
 
   async getPublicExamsDeck(userId?: number) {
@@ -191,6 +219,7 @@ export class ExamsService {
     if (!this.isPublicAccess(exam.acceso)) {
       throw new UnauthorizedException('No tienes acceso a este quiz');
     }
-    return this.examRefactor(exam, userId);
+    // Devuelve con preguntas y opciones (sin isCorrect)
+    return this.examRefactor(exam, userId, true);
   }
 }

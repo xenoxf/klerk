@@ -93,27 +93,37 @@ export class FlashCardsService {
     return code;
   }
 
+  /**
+   * Refactor de Card para frontend - solo datos necesarios para mostrar
+   * Excluye: code, userId, acceso, createdAt (datos internos)
+   */
   klekRefactor(card: Card) {
     return {
       id: card.id,
       area: card.area,
       title: card.title,
+      description: card.description,
+      tema: card.tema,
       flashCards: card.flashcards.map((flash) => ({
+        id: flash.id,
         front: flash.front,
         back: flash.back,
-        id: flash.id,
+        hint: flash.hint,
       })),
     };
   }
 
+  /**
+   * Refactor para lista de decks - solo datos para listar
+   */
   async deckRefactor(cards: Card[] | Card, userId?: number) {
     if (Array.isArray(cards)) {
       return cards.map((card) => ({
         id: card.id,
         title: card.title,
         description: card.description,
-        code: card.code,
         area: card.area,
+        tema: card.tema,
         canDelete: userId ? card.userId === userId : false,
       }));
     }
@@ -121,8 +131,8 @@ export class FlashCardsService {
       id: cards.id,
       title: cards.title,
       description: cards.description,
-      code: cards.code,
       area: cards.area,
+      tema: cards.tema,
       canDelete: userId ? cards.userId === userId : false,
     };
   }
@@ -157,7 +167,7 @@ export class FlashCardsService {
     return { message: 'Eliminado correctamente' };
   }
 
-  async getCardByCode(code: string) {
+  async getCardByCode(code: string, userId?: number) {
     const card = await this.cardRepo.findOne({
       where: { code },
       relations: ['flashcards'],
@@ -166,21 +176,21 @@ export class FlashCardsService {
     if (!this.isPublicAccess(card.acceso)) {
       throw new UnauthorizedException('No tienes acceso a este mazo');
     }
-    return this.deckRefactor(card);
+    return this.klekRefactor(card);
   }
 
   async getCardKlekById(id: number, userId: number) {
-    const tuyo = await this.cardRepo.findOne({
+    const card = await this.cardRepo.findOne({
       where: { id },
       relations: ['flashcards'],
     });
-    if (!tuyo) throw new NotFoundException('Card not found');
-    if (!this.isPublicAccess(tuyo.acceso)) {
-      if (userId === tuyo.userId) {
-        return this.klekRefactor(tuyo);
+    if (!card) throw new NotFoundException('Card not found');
+    if (!this.isPublicAccess(card.acceso)) {
+      if (userId === card.userId) {
+        return this.klekRefactor(card);
       } else throw new UnauthorizedException('No tienes acceso a este lugar');
     } else {
-      return this.klekRefactor(tuyo);
+      return this.klekRefactor(card);
     }
   }
 
@@ -193,7 +203,7 @@ export class FlashCardsService {
     if (!this.isPublicAccess(card.acceso) && card.userId !== userId) {
       throw new UnauthorizedException('No tienes acceso a este mazo');
     }
-    return card;
+    return this.klekRefactor(card);
   }
 
   async create(

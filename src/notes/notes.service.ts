@@ -209,21 +209,42 @@ export class NotesService {
     return this.noteRefactorArray(publicNotes, userId);
   }
 
-  noteRefactor(note: Note, userId?: number): Note & { canDelete: boolean } {
+  /**
+   * Refactor de Note para frontend - solo devuelve datos necesarios para mostrar
+   * Excluye: code, userId, levelOfDetail (datos sensibles/internos)
+   */
+  noteRefactor(note: Note, userId?: number): {
+    id: number;
+    title: string;
+    description: string;
+    area?: string;
+    tema?: string;
+    acceso: string;
+    createdAt: Date;
+    noteContents: Array<{ id: number; content: string }>;
+    canDelete: boolean;
+  } {
     return {
-      ...note,
+      id: note.id,
+      title: note.title,
+      description: note.description,
+      area: note.area,
+      tema: note.tema,
+      acceso: note.acceso,
+      createdAt: note.createdAt,
+      noteContents: note.noteContents?.map((nc) => ({
+        id: nc.id,
+        content: nc.content,
+      })) ?? [],
       canDelete: userId ? note.userId === userId : false,
     };
   }
 
-  noteRefactorArray(notes: Note[], userId?: number): (Note & { canDelete: boolean })[] {
-    return notes.map((note) => ({
-      ...note,
-      canDelete: userId ? note.userId === userId : false,
-    }));
+  noteRefactorArray(notes: Note[], userId?: number) {
+    return notes.map((note) => this.noteRefactor(note, userId));
   }
 
-  async findOne(id: number, userId: number): Promise<Note & { canDelete: boolean }> {
+  async findOne(id: number, userId: number) {
     const note = await this.noteRepo.findOne({
       where: { id, userId },
       relations: ['noteContents'],
@@ -232,7 +253,7 @@ export class NotesService {
     return this.noteRefactor(note, userId);
   }
 
-  async findOneByAccess(id: number, userId?: number): Promise<Note & { canDelete: boolean }> {
+  async findOneByAccess(id: number, userId?: number) {
     const note = await this.noteRepo.findOne({
       where: { id },
       relations: ['noteContents'],
@@ -244,7 +265,7 @@ export class NotesService {
     return this.noteRefactor(note, userId);
   }
 
-  async findOneByCode(code: string, userId?: number): Promise<Note & { canDelete: boolean }> {
+  async findOneByCode(code: string, userId?: number) {
     const note = await this.noteRepo.findOne({
       where: { code },
       relations: ['noteContents'],
@@ -311,7 +332,8 @@ export class NotesService {
     },
     userId: number,
   ) {
-    const note = await this.findOne(id, userId);
+    const note = await this.noteRepo.findOne({ where: { id, userId } });
+    if (!note) throw new NotFoundException('Note not found');
     await this.noteRepo.update(id, {
       title: payload.title ?? note.title,
       description: payload.description ?? note.description,
