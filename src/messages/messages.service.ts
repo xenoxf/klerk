@@ -30,6 +30,16 @@ export class MessagesService {
     return await this.groqService.generateChatTitleFromMessage(prompt);
   }
 
+  // Create a new chat with custom title (public method for controller)
+  async createChat(userId: number, title?: string): Promise<Chat> {
+    const chat = this.chatRepo.create({ 
+      userId, 
+      title: title || 'Nuevo Chat',
+    });
+    await this.chatRepo.save(chat);
+    return chat;
+  }
+
   // ==================== PROCESS MESSAGE WITH AI ====================
 
   async sendMessageWithAIResponse(
@@ -111,15 +121,6 @@ export class MessagesService {
       createdAt: chat.createdAt,
       updatedAt: chat.updatedAt,
     }));
-  }
-
-  async createChat(userId: number, title: string) {
-    const chat = this.chatRepo.create({
-      title,
-      userId,
-      createdAt: new Date().toISOString(),
-    });
-    return this.chatRepo.save(chat);
   }
 
   // Obtener mensajes de un chat

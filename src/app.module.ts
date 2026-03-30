@@ -12,6 +12,7 @@ import { GroqModule } from './groq/groq.module';
 import { SharedModule } from './shared/shared.module';
 import { GlobalChatModule } from './global-chat/global-chat.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { User } from './users/entities/user.entity';
 import { Exam } from './exams/entities/exam.entity';
 import { ExamQuestion } from './exams/entities/examQuestion.entity';
@@ -31,6 +32,12 @@ import { GlobalChatMessage } from './global-chat/entities/global-chat-message.en
       isGlobal: true,
       envFilePath: '.env', // Especifica explícitamente el archivo .env
     }),
+
+    // Rate Limiting con Throttler (seguridad adicional)
+    ThrottlerModule.forRoot([{
+      ttl: 60000, // 1 minuto
+      limit: 10, // 10 peticiones por minuto por IP
+    }]),
 
     // Configuración de TypeORM
     TypeOrmModule.forRootAsync({

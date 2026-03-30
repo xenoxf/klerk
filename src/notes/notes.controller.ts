@@ -46,6 +46,12 @@ export class NotesController {
     return this.notesService.findPrivate(req.user.id);
   }
 
+  @Post()
+  @UseGuards(JwtGuard)
+  async create(@Body() body: any, @Req() req: any) {
+    return this.notesService.create(body, req.user.id);
+  }
+
   @Get('code/:code')
   async getByCode(@Param('code') code: string, @Req() req: any) {
     return this.notesService.findOneByCode(code, req?.user?.id);

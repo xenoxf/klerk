@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Put,
   Delete,
   Body,
   Param,
@@ -14,6 +15,7 @@ import { ExamsService } from './exams.service';
 import { JwtGuard } from '../auth/jwt/jwt.guard';
 import { GenerateExamDto } from './dto/generate-exam.dto';
 import { UpdateExamDto } from './dto/update-exam.dto';
+import { Exam } from './entities/exam.entity';
 
 // letras mas usadas
 // a & $ e & @ i & ! o & 0 u & v
@@ -55,6 +57,12 @@ export class ExamsController {
     return this.examsService.getByIdForPlay(id, req.user.id);
   }
 
+  @Get('deck')
+  @UseGuards(JwtGuard)
+  getExamsDeck(@Req() req: any) {
+    return this.examsService.getMyExamsDeck(req.user.id);
+  }
+
   @Get('score')
   @UseGuards(JwtGuard)
   updateExamScore(@Query() query: UpdateExamDto, @Req() req: any) {
@@ -78,5 +86,19 @@ export class ExamsController {
   @UseGuards(JwtGuard)
   generateFromTopic(@Body() input: GenerateExamDto, @Req() req: any) {
     return this.examsService.generateExam(input, req.user.id);
+  }
+
+  // ==================== CRUD OPERATIONS ====================
+
+  @Post()
+  @UseGuards(JwtGuard)
+  create(@Body() body: Partial<Exam>, @Req() req: any) {
+    return this.examsService.create(body, req.user.id);
+  }
+
+  @Put(':id')
+  @UseGuards(JwtGuard)
+  update(@Param('id', ParseIntPipe) id: number, @Body() body: Partial<Exam>, @Req() req: any) {
+    return this.examsService.update(id, body, req.user.id);
   }
 }

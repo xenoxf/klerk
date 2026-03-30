@@ -167,6 +167,43 @@ export class ExamsService {
     return { message: 'Exam deleted' };
   }
 
+  async create(payload: Partial<Exam>, userId: number) {
+    if (!payload?.title?.trim()) {
+      throw new BadRequestException('El título es requerido');
+    }
+
+    const exam = this.examRepo.create({
+      title: payload.title.trim(),
+      description: payload.description ?? '',
+      area: payload.area ?? '',
+      tema: payload.tema ?? '',
+      difficulty: payload.difficulty ?? 'medium',
+      totalQuestions: payload.totalQuestions ?? 0,
+      acceso: payload.acceso ?? 'private',
+      code: await this.generateCode(),
+      userId,
+    });
+
+    const savedExam = await this.examRepo.save(exam);
+    return this.getById(savedExam.id, userId);
+  }
+
+  async update(id: number, payload: Partial<Exam>, userId: number) {
+    const exam = await this.examRepo.findOne({ where: { id, userId } });
+    if (!exam) throw new NotFoundException('Exam not found or not owned by user');
+
+    await this.examRepo.update(id, {
+      title: payload.title ?? exam.title,
+      description: payload.description ?? exam.description,
+      area: payload.area ?? exam.area,
+      tema: payload.tema ?? exam.tema,
+      difficulty: payload.difficulty ?? exam.difficulty,
+      acceso: payload.acceso ?? exam.acceso,
+    });
+
+    return this.getById(id, userId);
+  }
+
   // ==================== REFACTOR DECKS (OPTIMIZAR DATOS) ====================
   
   /**
