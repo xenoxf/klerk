@@ -96,6 +96,7 @@ export class FlashCardsService {
   /**
    * Refactor de Card para frontend - solo datos necesarios para mostrar
    * Excluye: code, userId, acceso, createdAt (datos internos)
+   * NOTA: Usa 'flashcards' (minuscula) para consistencia con el frontend
    */
   klekRefactor(card: Card) {
     return {
@@ -104,7 +105,7 @@ export class FlashCardsService {
       title: card.title,
       description: card.description,
       tema: card.tema,
-      flashCards: card.flashcards.map((flash) => ({
+      flashcards: card.flashcards.map((flash) => ({
         id: flash.id,
         front: flash.front,
         back: flash.back,

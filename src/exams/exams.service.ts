@@ -180,10 +180,11 @@ export class ExamsService {
         questions: exam.questions.map((q) => ({
           id: q.id,
           question: q.question,
-          explanation: q.explanation,
+          explanation: q.explanation || '',
           options: q.options.map((opt) => ({
             id: opt.id,
             text: opt.text,
+            isCorrect: opt.isCorrect,
           })),
         })),
       };

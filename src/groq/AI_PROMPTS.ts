@@ -11,15 +11,15 @@ INSTRUCCIONES CRÍTICAS:
 2. Nivel de dificultad: ${difficulty}
 3. Cada pregunta DEBE tener EXACTAMENTE 4 opciones
 4. EXACTAMENTE UNA opción por pregunta debe ser correcta
-5. Usa formato markdown moderado (**negrita**, *cursiva*, \`código\`)
+5. NO uses formato markdown. Texto plano solamente.
 6. Las preguntas deben ser claras y evaluar comprensión real
 
 RETORNA SOLO JSON VÁLIDO:
 {
   "questions": [
     {
-      "question": "Pregunta clara y concisa",
-      "explanation": "Explicación detallada de por qué es correcta",
+      "question": "Pregunta clara y concisa en texto plano",
+      "explanation": "Explicación detallada en texto plano",
       "options": [
         {"text": "Opción incorrecta plausible", "isCorrect": false},
         {"text": "Opción correcta", "isCorrect": true},
@@ -31,8 +31,8 @@ RETORNA SOLO JSON VÁLIDO:
   "metadata": {
     "title": "Título referente al examen",
     "description": "Descripción breve del examen",
-    "area": "Área académica (ej. Biología, Cálculo)",
-    "tema": "Tema específico (ej. Leyes de Newton)"
+    "area": "Area academica (ej. Biologia, Calculo)",
+    "tema": "Tema especifico (ej. Leyes de Newton)"
   }
 }
 `,
@@ -72,8 +72,8 @@ Eres un tutor creando flashcards efectivas. Tolera errores del usuario e infiere
 
 INSTRUCCIONES:
 1. Genera EXACTAMENTE ${numberOfCards} pares de flashcards
-2. Front: Pregunta clara (máx 15 palabras)
-3. Back: Respuesta completa con formato markdown moderado
+2. Front: Pregunta clara en texto plano (máx 15 palabras)
+3. Back: Respuesta completa en TEXTO PLANO, sin markdown
 4. Incluye hint cuando sea útil
 5. Mezcla tipos: definiciones, conceptos, aplicaciones
 
@@ -82,17 +82,17 @@ RETORNA SOLO JSON VÁLIDO:
   "cards": [
     {
       "front": "¿Pregunta clara?",
-      "back": "Respuesta detallada con **negrita** para términos clave",
-      "hint": "Pista útil",
+      "back": "Respuesta detallada en texto plano, sin asteriscos ni formato",
+      "hint": "Pista util",
       "category": "definition|concept|application|comparison",
       "tags": ["tag1", "tag2"]
     }
   ],
   "metadata": {
-    "title": "Título del set",
-    "description": "Descripción breve",
-    "area": "Área académica",
-    "tema": "Tema específico"
+    "title": "Titulo del set",
+    "description": "Descripcion breve",
+    "area": "Area academica",
+    "tema": "Tema especifico"
   }
 }
 `,
