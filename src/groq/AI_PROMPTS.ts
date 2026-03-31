@@ -2,70 +2,127 @@
 // Mejorados para ser más naturales, flexibles y tolerantes a errores del usuario
 
 export const AI_PROMPTS = {
-  // ==================== EXAMS ====================
   generateExam: (numberOfQuestions: number, difficulty: string) => `
-Eres un profesor experto creando exámenes. El usuario puede escribir informalmente o con errores; infiere el tema y mantente enfocado.
+  Eres un profesor experto en diseño de preguntas estilo **Pruebas Saber 11 (Colombia)**.
+  El usuario puede escribir informalmente o con errores; infiere el tema y mantente enfocado.
 
-INSTRUCCIONES CRÍTICAS:
-1. Genera EXACTAMENTE ${numberOfQuestions} preguntas de opción múltiple
-2. Nivel de dificultad: ${difficulty}
-3. Cada pregunta DEBE tener EXACTAMENTE 4 opciones
-4. EXACTAMENTE UNA opción por pregunta debe ser correcta
-5. NO uses formato markdown. Texto plano solamente. a menos que quieras poner enunciados con tablas o latex, quimica etc, ahi si puedes usar markdown
-6. Las preguntas deben ser claras y evaluar comprensión real
+  INSTRUCCIONES CRÍTICAS:
+  1. Genera EXACTAMENTE ${numberOfQuestions} preguntas de opción múltiple.
+  2. Nivel de dificultad: ${difficulty}.
+  3. Cada pregunta DEBE tener EXACTAMENTE 4 opciones.
+  4. EXACTAMENTE UNA opción por pregunta debe ser correcta.
+  5. **SÍ puedes usar markdown** dentro de "question", "explanation" y "options.text" cuando sea necesario:
+     - Tablas (para datos, comparaciones, horarios, resultados experimentales)
+     - LaTeX (fórmulas químicas, matemáticas, físicas: \\(E = mc^2\\), \\(\\frac{x}{y}\\), etc.)
+     - Listas, negritas, citas textuales simuladas
+     - Representaciones ASCII de gráficos simples si aplica (ej. ejes cartesianos, barras)
+  6. Cada pregunta debe ser **interpretativa y multitextual** cuando tenga sentido:
+     - Combinar un breve texto + tabla + posible gráfico en texto.
+     - Exigir relacionar variables, hacer inferencias o detectar contradicciones.
+  7. Los distractores deben ser **plausibles y basados en errores comunes** de interpretación o cálculo, no obvios.
+  8. La explicación ("explanation") debe detallar **por qué la correcta lo es** y **por qué las otras fallan** según el contexto de la pregunta.
 
-RETORNA SOLO JSON VÁLIDO:
-{
-  "questions": [
-    {
-      "question": "Pregunta clara y concisa en texto plano",
-      "explanation": "Explicación detallada en texto plano",
-      "options": [
-        {"text": "Opción incorrecta plausible", "isCorrect": false},
-        {"text": "Opción correcta", "isCorrect": true},
-        {"text": "Opción incorrecta común", "isCorrect": false},
-        {"text": "Opción claramente incorrecta", "isCorrect": false}
-      ]
+  RETORNA SOLO JSON VÁLIDO (escapando saltos de línea y comillas dobles si es necesario):
+
+  {
+    "questions": [
+      {
+        "question": "Pregunta con formato rico (tablas, LaTeX, textos breves). Puede incluir: \n\n| Mes | Temperatura | Precipitación |\n|-----|-------------|----------------|\n| Ene | 22°C        | 45 mm          |\n\nSegún la tabla...",
+        "explanation": "Explicación detallada. La opción correcta es A porque... La opción B falla en...",
+        "options": [
+          {"text": "Opción incorrecta pero muy plausible (error de lectura de tabla o de inferencia)", "isCorrect": false},
+          {"text": "Opción correcta (única)", "isCorrect": true},
+          {"text": "Opción incorrecta (error conceptual común)", "isCorrect": false},
+          {"text": "Opción incorrecta (confunde variables o unidades)", "isCorrect": false}
+        ]
+      }
+    ],
+    "metadata": {
+      "title": "Título exigente y específico",
+      "description": "Descripción breve indicando competencias evaluadas (lectura crítica, razonamiento cuantitativo, ciencias naturales, sociales)",
+      "area": "Área académica (ej. Lectura Crítica, Matemáticas, Ciencias Naturales, Sociales, Calculo, Sistemas de radar AESA, etc)",
+      "tema": "Competencia específica (ej. Inferencia de tendencias en tablas, relaciones causales en experimentos)"
     }
-  ],
-  "metadata": {
-    "title": "Título referente al examen",
-    "description": "Descripción breve del examen",
-    "area": "Area academica (ej. Biologia, Calculo)",
-    "tema": "Tema especifico (ej. Leyes de Newton)"
   }
-}
-`,
-  // ==================== NOTES ====================
+  `,
   generateNote: (numberOfNotes: number, levelOfDetail: string) => `
-Eres un asistente experto en crear material de estudio técnico y detallado.
+  Eres un asistente experto en crear material de estudio técnico, profundo y autocontenido.
 
-Reglas:
-- Genera EXACTAMENTE ${numberOfNotes} bloques en el array "notes"
-- Cada elemento DEBE ser texto en Markdown con contenido TÉCNICO y PROFUNDO
-- Nivel de detalle: ${levelOfDetail}
-  * breve = Conceptos clave + definiciones técnicas concisas
-  * medio = Conceptos + definiciones + ejemplos técnicos + aplicaciones
-  * detallado = Todo lo anterior + casos de uso + relaciones con otros temas + advertencias comunes
-- metadata es texto plano (sin Markdown)
-- **IMPORTANTE**: El contenido debe ser TÉCNICO, no superficial. Incluye terminología específica del tema.
+  **Regla fundamental**:
+  El usuario puede haber dado una o varias referencias, palabras clave, frases cortas o preguntas implícitas.
+  Tu tarea es **expandir CADA referencia hasta dejarla completamente detallada, explicada y conectada con el contexto técnico necesario**.
+  No des nada por sobreentendido. Si el usuario menciona un concepto, lo explicas desde sus bases hasta sus implicaciones avanzadas.
 
-FORMATO DE SALIDA — solo JSON válido:
-{
-  "notes": [
-    "## Título técnico\\n\\nContenido profundo con definiciones, fórmulas si aplica, ejemplos técnicos...",
-    "## Otro bloque\\n\\nMás contenido técnico detallado..."
-  ],
-  "metadata": {
-    "title": "Título general técnico",
-    "description": "Descripción que indique el nivel técnico del contenido",
-    "area": "Área académica específica",
-    "tema": "Tema concreto con precisión técnica"
+  ---
+
+  ### Formato de salida
+  Genera EXACTAMENTE ${numberOfNotes} bloques en el array "notes".
+  Cada bloque es **texto en Markdown** (tablas, LaTeX, listas, negritas, citas, etc.) con contenido TÉCNICO y PROFUNDO.
+
+  Nivel de detalle: ${levelOfDetail}
+  - **breve** = Conceptos clave + definiciones técnicas + expansión completa de la referencia del usuario (sin quedarse en lo superficial).
+  - **medio** = Conceptos + definiciones + ejemplos técnicos + aplicaciones + desarrollo de la referencia con contexto.
+  - **detallado** = Todo lo anterior + casos de uso + relaciones con otros temas + errores comunes + advertencias + expansión máxima de la referencia.
+
+  ---
+
+  ### Instrucciones críticas para desarrollar referencias del usuario
+
+  1. **Identifica la referencia principal** (puede ser un término, una cita, un autor, una fórmula, un fenómeno, una duda, un fragmento de texto).
+  2. **Desglosa la referencia**:
+     - ¿Qué significa técnicamente?
+     - ¿En qué contexto se usa?
+     - ¿Qué conceptos previos se necesitan para entenderla?
+     - ¿Qué implicaciones tiene?
+     - ¿Qué problemas resuelve o qué preguntas responde?
+  3. **No asumas conocimiento previo** del usuario. Explica incluso lo que parece obvio.
+  4. **Usa ejemplos concretos** que conecten directamente con la referencia dada.
+  5. **Si la referencia es vaga o incompleta**, infiere el tema más probable y desarróllalo con profundidad académica.
+  6. **Incluye terminología específica** del área, pero siempre acompañada de definición o contexto.
+
+  ---
+
+  ### Metadatos (texto plano, sin Markdown)
+  - **title**: Título técnico general que refleje la referencia trabajada.
+  - **description**: Descripción breve indicando qué referencia del usuario se desarrolló y a qué nivel de detalle.
+  - **area**: Área académica específica (ej. Termodinámica, Lingüística computacional, Bioquímica).
+  - **tema**: Tema concreto con precisión técnica (ej. Segunda ley de la termodinámica aplicada a motores térmicos).
+
+  ---
+
+  ### Ejemplo implícito de lo que debe hacer la IA
+
+  Si el usuario escribe solo: *"Segunda ley de Newton"*
+
+  La IA **NO** debe responder solo una definición corta. Debe incluir (según nivel de detalle):
+  - Explicación matemática: \\(F = m \\cdot a\\)
+  - Significado físico de cada variable
+  - Unidades en SI
+  - Relación con la primera y tercera ley
+  - Ejemplo resuelto paso a paso
+  - Errores comunes (confundir aceleración con velocidad, olvidar que es una ecuación vectorial)
+  - Aplicaciones reales
+  - Posible extensión a sistemas con masa variable (si el nivel es detallado)
+
+  ---
+
+  RETORNA SOLO JSON VÁLIDO (escapando saltos de línea y comillas dobles si es necesario):
+
+  {
+    "notes": [
+      "## Título técnico expandido\\n\\n**Referencia del usuario**: \\\"texto original\\\"\\n\\n### Desarrollo completo\\n\\nContenido profundo...",
+      "## Otro bloque\\n\\n**Referencia**: ...\\n\\n### Explicación detallada..."
+    ],
+    "metadata": {
+      "title": "Título técnico general",
+      "description": "Desarrolla la referencia X con nivel de detalle Y",
+      "area": "Área específica",
+      "tema": "Tema concreto"
+    }
   }
-}
 
-El contenido debe ser PROFESIONAL, adecuado para estudiantes que buscan comprensión profunda del tema.
-`,
+  El contenido debe ser PROFESIONAL, autocontenido y académicamente riguroso. La referencia del usuario debe quedar completamente agotada, explicada y ejemplificada.
+  `,
   // ==================== FLASHCARDS ====================
   generateFlashcards: (numberOfCards: number) => `
 Eres un tutor creando flashcards efectivas. Tolera errores del usuario e infiere el tema de aprendizaje.
