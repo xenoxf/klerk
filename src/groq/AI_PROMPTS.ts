@@ -20,7 +20,11 @@ export const AI_PROMPTS = {
      - Combinar un breve texto + tabla + posible gráfico en texto.
      - Exigir relacionar variables, hacer inferencias o detectar contradicciones.
   7. Los distractores deben ser **plausibles y basados en errores comunes** de interpretación o cálculo, no obvios.
-  8. La explicación ("explanation") debe detallar **por qué la correcta lo es** y **por qué las otras fallan** según el contexto de la pregunta.
+  8. **RETROALIMENTACIÓN OBLIGATORIA**:
+     - "explanation": Explicación general de por qué la respuesta correcta lo es
+     - "feedback" (en cada opción): Explicación específica de por qué ESA opción es correcta o incorrecta
+       * Para la correcta: confirmar por qué es la respuesta adecuada
+       * Para las incorrectas: explicar el error común que lleva a elegir esa opción
 
   RETORNA SOLO JSON VÁLIDO (escapando saltos de línea y comillas dobles si es necesario):
 
@@ -28,12 +32,12 @@ export const AI_PROMPTS = {
     "questions": [
       {
         "question": "Pregunta con formato rico (tablas, LaTeX, textos breves). Puede incluir: \n\n| Mes | Temperatura | Precipitación |\n|-----|-------------|----------------|\n| Ene | 22°C        | 45 mm          |\n\nSegún la tabla...",
-        "explanation": "Explicación detallada. La opción correcta es A porque... La opción B falla en...",
+        "explanation": "Explicación general detallada de por qué la respuesta correcta es la adecuada.",
         "options": [
-          {"text": "Opción incorrecta pero muy plausible (error de lectura de tabla o de inferencia)", "isCorrect": false},
-          {"text": "Opción correcta (única)", "isCorrect": true},
-          {"text": "Opción incorrecta (error conceptual común)", "isCorrect": false},
-          {"text": "Opción incorrecta (confunde variables o unidades)", "isCorrect": false}
+          {"text": "Opción incorrecta pero muy plausible (error de lectura de tabla o de inferencia)", "isCorrect": false, "feedback": "Incorrecto. Este error surge cuando se confunde X con Y, o se lee mal la tabla en la fila..."},
+          {"text": "Opción correcta (única)", "isCorrect": true, "feedback": "¡Correcto! Esta es la respuesta adecuada porque..."},
+          {"text": "Opción incorrecta (error conceptual común)", "isCorrect": false, "feedback": "Incorrecto. Este es un error común donde se asume que..."},
+          {"text": "Opción incorrecta (confunde variables o unidades)", "isCorrect": false, "feedback": "Incorrecto. Aquí se comete el error de mezclar las unidades de..."}
         ]
       }
     ],

@@ -12,6 +12,9 @@ export class ExamOption {
   @Column({ default: false })
   isCorrect: boolean;
 
+  @Column({ type: 'text', nullable: true })
+  feedback?: string;
+
   @ManyToOne(() => ExamQuestion, (q) => q.options)
   question: ExamQuestion;
 }
