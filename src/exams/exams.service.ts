@@ -33,8 +33,8 @@ export class ExamsService {
         input.difficulty,
       );
 
-      const { questions } = response.questions;
-      const { title, description, tema, area } = response.metadata;
+      const { questions, metadata } = response;
+      const { title, description, tema, area } = metadata;
 
       const exam = this.examRepo.create({
         area,
