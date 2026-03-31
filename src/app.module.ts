@@ -13,17 +13,6 @@ import { SharedModule } from './shared/shared.module';
 import { GlobalChatModule } from './global-chat/global-chat.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
-import { User } from './users/entities/user.entity';
-import { Exam } from './exams/entities/exam.entity';
-import { ExamQuestion } from './exams/entities/examQuestion.entity';
-import { ExamOption } from './exams/entities/exam-option.entity';
-import { FlashCard } from './flash-cards/entities/flash-card.entity';
-import { Card } from './flash-cards/entities/card.entity';
-import { Note } from './notes/entities/note.entity';
-import { NoteContent } from './notes/entities/note-content.entity';
-import { Chat } from './messages/entities/chat.entity';
-import { Message } from './messages/entities/message.entity';
-import { GlobalChatMessage } from './global-chat/entities/global-chat-message.entity';
 
 @Module({
   imports: [
@@ -34,10 +23,12 @@ import { GlobalChatMessage } from './global-chat/entities/global-chat-message.en
     }),
 
     // Rate Limiting con Throttler (seguridad adicional)
-    ThrottlerModule.forRoot([{
-      ttl: 60000, // 1 minuto
-      limit: 10, // 10 peticiones por minuto por IP
-    }]),
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60000, // 1 minuto
+        limit: 10, // 10 peticiones por minuto por IP
+      },
+    ]),
 
     // Configuración de TypeORM
     TypeOrmModule.forRootAsync({
@@ -73,4 +64,4 @@ import { GlobalChatMessage } from './global-chat/entities/global-chat-message.en
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule { }
+export class AppModule {}

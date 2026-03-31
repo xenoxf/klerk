@@ -5,7 +5,6 @@ import { AllExceptionsFilter } from './common/filters/all-exceptions/all-excepti
 import { ValidationPipe } from '@nestjs/common';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
-import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { ExpressAdapter } from '@nestjs/platform-express';
 
 async function bootstrap() {
@@ -18,7 +17,6 @@ async function bootstrap() {
   app.enableCors({
     origin: [
       'http://localhost:3000',
-      'https://learny0s.vercel.app',
       'https://learnyos.vercel.app',
       'https://klerk.onrender.com',
     ],
@@ -41,7 +39,8 @@ async function bootstrap() {
       message: {
         statusCode: 429,
         error: 'Too Many Requests',
-        message: 'Demasiadas peticiones, por favor intenta más tarde',
+        message:
+          'Demasiadas peticiones, por favor intenta más tarde (15 minutos)',
       },
       standardHeaders: true,
       legacyHeaders: false,
@@ -60,11 +59,12 @@ async function bootstrap() {
     '/auth',
     rateLimit({
       windowMs: 15 * 60 * 1000, // 15 minutos
-      max: 10, // Máximo 10 intentos por IP cada 15 minutos
+      max: 20, // Máximo 20 intentos por IP cada 15 minutos
       message: {
         statusCode: 429,
         error: 'Too Many Requests',
-        message: 'Demasiados intentos de autenticación, por favor intenta más tarde',
+        message:
+          'Demasiados intentos de autenticación, por favor intenta más tarde (15 minutos) ',
       },
       standardHeaders: true,
       legacyHeaders: false,
@@ -83,7 +83,7 @@ async function bootstrap() {
       message: {
         statusCode: 429,
         error: 'Too Many Requests',
-        message: 'Límite de generación de exámenes alcanzado',
+        message: 'Límite de generación de exámenes alcanzado, espera una hora.',
       },
       standardHeaders: true,
       legacyHeaders: false,
@@ -98,7 +98,8 @@ async function bootstrap() {
       message: {
         statusCode: 429,
         error: 'Too Many Requests',
-        message: 'Límite de generación de flashcards alcanzado',
+        message:
+          'Límite de generación de flashcards alcanzado, espera una hora.',
       },
       standardHeaders: true,
       legacyHeaders: false,
@@ -113,7 +114,7 @@ async function bootstrap() {
       message: {
         statusCode: 429,
         error: 'Too Many Requests',
-        message: 'Límite de generación de notas alcanzado',
+        message: 'Límite de generación de notas alcanzado, espera una hora.',
       },
       standardHeaders: true,
       legacyHeaders: false,
@@ -128,11 +129,19 @@ async function bootstrap() {
       contentSecurityPolicy: {
         directives: {
           defaultSrc: ["'self'"],
-          styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+          styleSrc: [
+            "'self'",
+            "'unsafe-inline'",
+            'https://fonts.googleapis.com',
+          ],
           fontSrc: ["'self'", 'https://fonts.gstatic.com'],
           imgSrc: ["'self'", 'data:', 'https:', 'blob:'],
           scriptSrc: ["'self'"],
-          connectSrc: ["'self'", 'https://klerk.onrender.com', 'http://localhost:4000'],
+          connectSrc: [
+            "'self'",
+            'https://klerk.onrender.com',
+            'http://localhost:4000',
+          ],
           frameSrc: ["'none'"],
           objectSrc: ["'none'"],
           upgradeInsecureRequests: [],
@@ -207,7 +216,10 @@ async function bootstrap() {
           if (typeof obj[key] === 'string') {
             let sanitized = obj[key];
             // Remueve scripts
-            sanitized = sanitized.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+            sanitized = sanitized.replace(
+              /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,
+              '',
+            );
             // Remueve tags HTML
             sanitized = sanitized.replace(/<[^>]*>/g, '');
             // Remueve eventos onclick, onerror, etc.
@@ -233,22 +245,26 @@ async function bootstrap() {
   // ============================================
   app.use((req, res, next) => {
     const start = Date.now();
-    
+
     // Log de peticiones sospechosas
     res.on('finish', () => {
       const duration = Date.now() - start;
-      
+
       // Log de errores 4xx y 5xx
       if (res.statusCode >= 400) {
-        console.log(`[SECURITY] ${req.method} ${req.path} - ${res.statusCode} - ${duration}ms - IP: ${req.ip}`);
+        console.log(
+          `[SECURITY] ${req.method} ${req.path} - ${res.statusCode} - ${duration}ms - IP: ${req.ip}`,
+        );
       }
-      
+
       // Log de peticiones lentas (posible ataque)
       if (duration > 5000) {
-        console.log(`[SECURITY] Slow request: ${req.method} ${req.path} - ${duration}ms - IP: ${req.ip}`);
+        console.log(
+          `[SECURITY] Slow request: ${req.method} ${req.path} - ${duration}ms - IP: ${req.ip}`,
+        );
       }
     });
-    
+
     next();
   });
 
@@ -281,6 +297,8 @@ async function bootstrap() {
   🔑  X-API-KEY: ${process.env.API_KEY}
   ==========================================
   `);
+
+  app.useGlobalGuards(new ApiKeyGuard());
 }
 
 bootstrap();
