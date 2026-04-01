@@ -7,6 +7,8 @@ import {
   Delete,
   Patch,
   UseGuards,
+  Query,
+  ParseIntPipe,
   Req,
 } from '@nestjs/common';
 import { FlashCardsService } from './flash-cards.service';
@@ -35,6 +37,23 @@ export class FlashCardsController {
   @UseGuards(JwtGuard)
   findMyCards(@Req() req: any) {
     return this.flashCardsService.findMyCardsDeck(req.user.id);
+  }
+
+  @Get('search')
+  searchFlashCards(
+    @Query('q') query: string,
+    @Query('limit', ParseIntPipe) limit: number = 30,
+    @Query('offset', ParseIntPipe) offset: number = 0,
+    @Query('searchInCards') searchInCards: string = 'true',
+    @Req() req: any,
+  ) {
+    return this.flashCardsService.searchFlashCards(
+      query,
+      req?.user?.id,
+      limit,
+      offset,
+      searchInCards === 'true',
+    );
   }
 
   @Get()

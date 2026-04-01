@@ -25,6 +25,7 @@ export const AI_PROMPTS = {
      - "feedback" (en cada opción): Explicación específica de por qué ESA opción es correcta o incorrecta
        * Para la correcta: confirmar por qué es la respuesta adecuada
        * Para las incorrectas: explicar el error común que lleva a elegir esa opción
+  9. **POSICIÓN ALEATORIA**: La opción correcta debe aparecer en una posición ALEATORIA (1ra, 2da, 3ra o 4ta) en cada pregunta. NO siempre en la primera posición. Varía la posición para evitar patrones predecibles.
 
   RETORNA SOLO JSON VÁLIDO (escapando saltos de línea y comillas dobles si es necesario):
 

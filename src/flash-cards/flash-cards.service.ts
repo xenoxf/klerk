@@ -273,4 +273,64 @@ export class FlashCardsService {
     });
     return this.getCardById(id, userId);
   }
+
+  // ==================== INTELLIGENT SEARCH ====================
+  
+  /**
+   * Búsqueda inteligente de flashcards con soporte para:
+   * - Búsqueda por texto en título, descripción, tema y área
+   * - Búsqueda por código exacto
+   * - Búsqueda en el frente y reverso de las tarjetas
+   * - Paginación con offset y limit
+   */
+  async searchFlashCards(
+    query: string,
+    userId?: number,
+    limit: number = 30,
+    offset: number = 0,
+    searchInCards: boolean = true,
+  ) {
+    if (!query || query.trim().length === 0) {
+      const cards = await this.cardRepo.find({
+        where: { acceso: 'publico' },
+        order: { createdAt: 'DESC' },
+        take: limit,
+        skip: offset,
+      });
+      return this.deckRefactor(cards, userId);
+    }
+
+    const normalizedQuery = query.trim().toLowerCase();
+    
+    const queryBuilder = this.cardRepo
+      .createQueryBuilder('card')
+      .leftJoinAndSelect('card.flashcards', 'flashcards')
+      .where('LOWER(card.title) LIKE :query', { query: `%${normalizedQuery}%` })
+      .orWhere('LOWER(card.description) LIKE :query', { query: `%${normalizedQuery}%` })
+      .orWhere('LOWER(card.tema) LIKE :query', { query: `%${normalizedQuery}%` })
+      .orWhere('LOWER(card.area) LIKE :query', { query: `%${normalizedQuery}%` })
+      .orWhere('card.code = :exactQuery', { exactQuery: normalizedQuery.toUpperCase() });
+
+    if (searchInCards) {
+      queryBuilder.orWhere('LOWER(flashcards.front) LIKE :query', { query: `%${normalizedQuery}%` })
+        .orWhere('LOWER(flashcards.back) LIKE :query', { query: `%${normalizedQuery}%` });
+    }
+
+    if (!userId) {
+      queryBuilder.andWhere('card.acceso = :acceso', { acceso: 'publico' });
+    } else {
+      queryBuilder.andWhere('(card.acceso = :acceso OR card.userId = :userId)', {
+        acceso: 'publico',
+        userId,
+      });
+    }
+
+    queryBuilder
+      .orderBy('card.createdAt', 'DESC')
+      .take(limit)
+      .skip(offset);
+
+    const cards = await queryBuilder.getMany();
+    return this.deckRefactor(cards, userId);
+  }
 }

@@ -282,4 +282,75 @@ export class ExamsService {
     // Devuelve con preguntas y opciones (sin isCorrect)
     return this.examRefactor(exam, userId, true);
   }
+
+  // ==================== INTELLIGENT SEARCH ====================
+  
+  /**
+   * Búsqueda inteligente de exámenes con soporte para:
+   * - Búsqueda por texto en título, descripción, tema y área
+   * - Búsqueda por código exacto
+   * - Búsqueda en preguntas (opcional)
+   * - Paginación con offset y limit
+   * - Filtro por visibilidad (público/privado)
+   */
+  async searchExams(
+    query: string,
+    userId?: number,
+    limit: number = 30,
+    offset: number = 0,
+    searchInQuestions: boolean = true,
+  ) {
+    if (!query || query.trim().length === 0) {
+      // Si no hay query, devolver exámenes públicos por defecto
+      const exams = await this.examRepo.find({
+        where: { acceso: 'publico' },
+        order: { createdAt: 'DESC' },
+        take: limit,
+        skip: offset,
+      });
+      return this.examRefactor(exams, userId, false);
+    }
+
+    const normalizedQuery = query.trim().toLowerCase();
+    
+    // Construir query para búsqueda en múltiples campos
+    const queryBuilder = this.examRepo
+      .createQueryBuilder('exam')
+      .leftJoinAndSelect('exam.questions', 'questions')
+      .where('LOWER(exam.title) LIKE :query', { query: `%${normalizedQuery}%` })
+      .orWhere('LOWER(exam.description) LIKE :query', { query: `%${normalizedQuery}%` })
+      .orWhere('LOWER(exam.tema) LIKE :query', { query: `%${normalizedQuery}%` })
+      .orWhere('LOWER(exam.area) LIKE :query', { query: `%${normalizedQuery}%` })
+      .orWhere('exam.code = :exactQuery', { exactQuery: normalizedQuery.toUpperCase() });
+
+    // Búsqueda en preguntas si está habilitado
+    if (searchInQuestions) {
+      queryBuilder.orWhere('LOWER(questions.question) LIKE :query', { query: `%${normalizedQuery}%` });
+    }
+
+    // Filtrar solo públicos si no hay userId
+    if (!userId) {
+      queryBuilder.andWhere('exam.acceso = :acceso', { acceso: 'publico' });
+    } else {
+      // Si hay userId, mostrar públicos y privados del usuario
+      queryBuilder.andWhere('(exam.acceso = :acceso OR exam.userId = :userId)', {
+        acceso: 'publico',
+        userId,
+      });
+    }
+
+    queryBuilder
+      .orderBy('exam.createdAt', 'DESC')
+      .take(limit)
+      .skip(offset);
+
+    const exams = await queryBuilder.getMany();
+    
+    // Si searchInQuestions está activo, necesitamos cargar las preguntas explícitamente
+    if (searchInQuestions && exams.length > 0) {
+      return this.examRefactor(exams, userId, false);
+    }
+    
+    return this.examRefactor(exams, userId, false);
+  }
 }

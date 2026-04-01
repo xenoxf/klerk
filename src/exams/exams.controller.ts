@@ -63,6 +63,23 @@ export class ExamsController {
     return this.examsService.getMyExamsDeck(req.user.id);
   }
 
+  @Get('search')
+  searchExams(
+    @Query('q') query: string,
+    @Query('limit', ParseIntPipe) limit: number = 30,
+    @Query('offset', ParseIntPipe) offset: number = 0,
+    @Query('searchInQuestions') searchInQuestions: string = 'true',
+    @Req() req: any,
+  ) {
+    return this.examsService.searchExams(
+      query,
+      req?.user?.id,
+      limit,
+      offset,
+      searchInQuestions === 'true',
+    );
+  }
+
   @Get('score')
   @UseGuards(JwtGuard)
   updateExamScore(@Query() query: UpdateExamDto, @Req() req: any) {

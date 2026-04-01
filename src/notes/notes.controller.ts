@@ -7,7 +7,7 @@ import {
   Body,
   Param,
   UseGuards,
-  // Query,
+  Query,
   ParseIntPipe,
   Req,
 } from '@nestjs/common';
@@ -44,6 +44,23 @@ export class NotesController {
   @UseGuards(JwtGuard)
   async getPrivate(@Req() req: any) {
     return this.notesService.findPrivate(req.user.id);
+  }
+
+  @Get('search')
+  searchNotes(
+    @Query('q') query: string,
+    @Query('limit', ParseIntPipe) limit: number = 30,
+    @Query('offset', ParseIntPipe) offset: number = 0,
+    @Query('searchInContent') searchInContent: string = 'true',
+    @Req() req: any,
+  ) {
+    return this.notesService.searchNotes(
+      query,
+      req?.user?.id,
+      limit,
+      offset,
+      searchInContent === 'true',
+    );
   }
 
   @Post()
