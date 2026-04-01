@@ -126,6 +126,7 @@ export class FlashCardsService {
         area: card.area,
         tema: card.tema,
         canDelete: userId ? card.userId === userId : false,
+        totalCards: card.flashcards.length,
       }));
     }
     return {
@@ -135,6 +136,7 @@ export class FlashCardsService {
       area: cards.area,
       tema: cards.tema,
       canDelete: userId ? cards.userId === userId : false,
+      totalCards: cards.flashcards.length,
     };
   }
 
