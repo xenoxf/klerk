@@ -124,12 +124,10 @@ export class GroqService {
     }>,
   ) {
     try {
-      // Extract topics from conversation history for context
+      // Extraer temas del historial para contexto
       const previousTopics: string[] = [];
       if (conversationHistory && conversationHistory.length > 0) {
-        // Extract key topics from previous messages (simplified approach)
         conversationHistory.slice(-5).forEach((msg) => {
-          // Take first 50 chars of each prompt as a topic indicator
           const topicPreview = msg.prompt.substring(0, 50);
           if (!previousTopics.includes(topicPreview)) {
             previousTopics.push(topicPreview);
@@ -137,7 +135,6 @@ export class GroqService {
         });
       }
 
-      // Build chat context for the system prompt
       const chatContext = {
         previousTopics,
         messageCount: conversationHistory?.length || 0,
@@ -153,7 +150,6 @@ export class GroqService {
 
       // Agregar historial de conversación si existe
       if (conversationHistory && conversationHistory.length > 0) {
-        // Agregar cada par de mensaje/respuesta del historial
         conversationHistory.forEach((msg) => {
           messages.push({
             role: 'user',

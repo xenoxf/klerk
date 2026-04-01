@@ -26,22 +26,20 @@ export class GlobalChatService {
     }
   }
 
-  async findAll(limit = 50, offset = 0): Promise<GlobalChatMessage[]> {
+  async findAll(limit = 50): Promise<GlobalChatMessage[]> {
     return this.globalChatMessageRepo.find({
       relations: ['user'],
-      order: { createdAt: 'ASC' }, // Old to new
+      order: { createdAt: 'DESC' },
       take: limit,
-      skip: offset,
     });
   }
 
-  async findByUser(userId: number, limit = 50, offset = 0): Promise<GlobalChatMessage[]> {
+  async findByUser(userId: number): Promise<GlobalChatMessage[]> {
     return this.globalChatMessageRepo.find({
       where: { userId },
       relations: ['user'],
-      order: { createdAt: 'ASC' }, // Old to new
-      take: limit,
-      skip: offset,
+      order: { createdAt: 'DESC' },
+      take: 50,
     });
   }
 

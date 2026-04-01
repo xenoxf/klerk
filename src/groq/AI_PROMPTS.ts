@@ -173,7 +173,7 @@ RETORNA SOLO JSON VÁLIDO:
     });
 
     const contextInfo = chatContext?.previousTopics && chatContext.previousTopics.length > 0
-      ? `\n\n## CONTEXTO DEL CHAT ACTUAL\n- **Tema principal**: ${chatContext.title || 'Conversación educativa'}\n- **Temas tratados**: ${chatContext.previousTopics.join(', ')}\n- **Número de mensajes previos**: ${chatContext.messageCount || 0}\n- Usa este contexto para mantener coherencia y profundidad en las respuestas.`
+      ? `\n\n## CONTEXTO DEL CHAT ACTUAL\n- **Tema principal**: ${chatContext.title || 'Conversación educativa'}\n- **Temas tratados**: ${chatContext.previousTopics.join(', ')}\n- **Mensajes previos**: ${chatContext.messageCount || 0}\n- Usa este contexto para mantener coherencia.`
       : '';
 
     return `

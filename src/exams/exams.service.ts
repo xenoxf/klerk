@@ -321,7 +321,7 @@ export class ExamsService {
    * - Búsqueda por texto en título, descripción, tema y área
    * - Búsqueda por código exacto
    * - Búsqueda en preguntas (opcional)
-   * - Paginación con offset y limit (default 20 items)
+   * - Paginación con offset y limit (20 items por página)
    * - Filtro por visibilidad (público/privado)
    */
   async searchExams(
