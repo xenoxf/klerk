@@ -140,20 +140,30 @@ export class FlashCardsService {
 
   async findPublicCardsDeck(userId?: number) {
     const cards = await this.cardRepo.find({ relations: ['flashcards'] });
-    return this.deckRefactor(
-      cards.filter((card) => this.isPublicAccess(card.acceso)),
-      userId,
-    );
+    const filtered = cards.filter((card) => this.isPublicAccess(card.acceso));
+    const result = this.deckRefactor(filtered, userId);
+    // Randomize order
+    return Array.isArray(result) ? this.shuffleArray(result) : result;
   }
-
-  // |
 
   async findMyCardsDeck(userId: number) {
     const cards = await this.cardRepo.find({
       where: { userId },
       order: { createdAt: 'DESC' },
     });
-    return this.deckRefactor(cards, userId);
+    const result = this.deckRefactor(cards, userId);
+    // Randomize order
+    return Array.isArray(result) ? this.shuffleArray(result) : result;
+  }
+
+  // Helper method to shuffle array (Fisher-Yates)
+  private shuffleArray<T>(array: T[]): T[] {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
   }
 
   async returnIdByCard(id: number, userId: number) {

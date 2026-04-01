@@ -179,7 +179,9 @@ export class NotesService {
   }
 
   async findPrivate(userId: number) {
-    return this.findAll(userId);
+    const notes = await this.findAll(userId);
+    // Randomize order
+    return this.shuffleArray(notes);
   }
 
   async findPublic(userId?: number) {
@@ -190,7 +192,19 @@ export class NotesService {
     const publicNotes = notes.filter((note) =>
       this.isPublicAccess(note.acceso),
     );
-    return this.noteRefactorArray(publicNotes, userId);
+    const result = this.noteRefactorArray(publicNotes, userId);
+    // Randomize order
+    return this.shuffleArray(result);
+  }
+
+  // Helper method to shuffle array (Fisher-Yates)
+  private shuffleArray<T>(array: T[]): T[] {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
   }
 
   /**

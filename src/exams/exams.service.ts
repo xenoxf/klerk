@@ -275,10 +275,10 @@ export class ExamsService {
     const exams = await this.examRepo.find({
       order: { createdAt: 'DESC' },
     });
-    return this.examRefactor(
-      exams.filter((exam) => this.isPublicAccess(exam.acceso)),
-      userId,
-    );
+    const filtered = exams.filter((exam) => this.isPublicAccess(exam.acceso));
+    const result = this.examRefactor(filtered, userId);
+    // Randomize order
+    return Array.isArray(result) ? this.shuffleArray(result) : result;
   }
 
   async getMyExamsDeck(userId: number) {
@@ -286,7 +286,19 @@ export class ExamsService {
       where: { userId },
       order: { createdAt: 'DESC' },
     });
-    return this.examRefactor(exams, userId);
+    const result = this.examRefactor(exams, userId);
+    // Randomize order
+    return Array.isArray(result) ? this.shuffleArray(result) : result;
+  }
+
+  // Helper method to shuffle array (Fisher-Yates)
+  private shuffleArray<T>(array: T[]): T[] {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
   }
 
   async getExamByCode(code: string, userId?: number) {
