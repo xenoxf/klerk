@@ -24,10 +24,7 @@ export class GlobalChatController {
 
   @Post('message')
   @UseGuards(JwtGuard)
-  async create(
-    @Body() createDto: CreateGlobalChatMessageDto,
-    @Req() req: any,
-  ) {
+  async create(@Body() createDto: CreateGlobalChatMessageDto, @Req() req: any) {
     return this.globalChatService.create(createDto, req.user.id);
   }
 
@@ -39,10 +36,7 @@ export class GlobalChatController {
 
   @Delete('message/:id')
   @UseGuards(JwtGuard)
-  async remove(
-    @Param('id', ParseIntPipe) id: number,
-    @Req() req: any,
-  ) {
+  async remove(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
     return this.globalChatService.remove(id, req.user.id);
   }
 }

@@ -21,7 +21,7 @@ import { Validate } from 'class-validator';
 export class AuthController {
   private readonly logger = new Logger(AuthController.name);
 
-  constructor(private readonly authService: AuthService) { }
+  constructor(private readonly authService: AuthService) {}
 
   @Post('register')
   async register(@Body() createAuthDto: CreateAuthDto) {
@@ -87,7 +87,7 @@ export class AuthController {
   async googleCallbackGet(@Request() req: any, @Res() res: Response) {
     try {
       const code = req.query.code;
-      
+
       if (!code) {
         this.logger.warn('Google callback without code');
         const redirectUrl = new URL(
@@ -102,7 +102,7 @@ export class AuthController {
       // Redirigir al frontend con el token en URL
       const redirectUrl = new URL(
         process.env.FRONTEND_CALLBACK_URL ||
-        'http://localhost:3000/auth/callback',
+          'http://localhost:3000/auth/callback',
       );
       redirectUrl.searchParams.append('token', result.token);
       redirectUrl.searchParams.append('email', result.user.email);
@@ -178,4 +178,3 @@ export class AuthController {
     };
   }
 }
-

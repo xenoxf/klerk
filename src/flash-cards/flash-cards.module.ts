@@ -8,7 +8,11 @@ import { GroqModule } from '../groq/groq.module';
 import { SharedModule } from '../shared/shared.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([FlashCard, Card]), GroqModule, SharedModule],
+  imports: [
+    TypeOrmModule.forFeature([FlashCard, Card]),
+    GroqModule,
+    SharedModule,
+  ],
   controllers: [FlashCardsController],
   providers: [FlashCardsService],
   exports: [FlashCardsService],

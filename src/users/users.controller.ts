@@ -20,9 +20,9 @@ import { JwtGuard } from '../auth/jwt/jwt.guard';
 @UseGuards(JwtGuard)
 @Controller('users')
 export class UsersController {
-  constructor(private readonly usersService: UsersService) { }
+  constructor(private readonly usersService: UsersService) {}
 
-  @Put("/name")
+  @Put('/name')
   async putName(@Req() req: any, @Body() name: string) {
     return this.usersService.updateName(req.user.id, name);
   }

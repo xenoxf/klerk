@@ -40,8 +40,10 @@ export class UsersService {
 
   /** Crear un nuevo usuario con autenticación local */
   async createLocal(data: any) {
-    const hashedPassword = data.password ? await bcrypt.hash(data.password, 10) : null;
-    
+    const hashedPassword = data.password
+      ? await bcrypt.hash(data.password, 10)
+      : null;
+
     const user = this.userRepo.create({
       email: data.email,
       name: data.name ?? data.email,

@@ -163,7 +163,8 @@ export class FlashCardsService {
 
   async remove(id: number, userId: number) {
     const card = await this.cardRepo.findOne({ where: { id, userId } });
-    if (!card) throw new NotFoundException('Card not found or not owned by user');
+    if (!card)
+      throw new NotFoundException('Card not found or not owned by user');
     await this.cardRepo.delete(id);
     return { message: 'Eliminado correctamente' };
   }
@@ -275,7 +276,7 @@ export class FlashCardsService {
   }
 
   // ==================== INTELLIGENT SEARCH ====================
-  
+
   /**
    * Búsqueda inteligente de flashcards con soporte para:
    * - Búsqueda por texto en título, descripción, tema y área
@@ -301,34 +302,47 @@ export class FlashCardsService {
     }
 
     const normalizedQuery = query.trim().toLowerCase();
-    
+
     const queryBuilder = this.cardRepo
       .createQueryBuilder('card')
       .leftJoinAndSelect('card.flashcards', 'flashcards')
       .where('LOWER(card.title) LIKE :query', { query: `%${normalizedQuery}%` })
-      .orWhere('LOWER(card.description) LIKE :query', { query: `%${normalizedQuery}%` })
-      .orWhere('LOWER(card.tema) LIKE :query', { query: `%${normalizedQuery}%` })
-      .orWhere('LOWER(card.area) LIKE :query', { query: `%${normalizedQuery}%` })
-      .orWhere('card.code = :exactQuery', { exactQuery: normalizedQuery.toUpperCase() });
+      .orWhere('LOWER(card.description) LIKE :query', {
+        query: `%${normalizedQuery}%`,
+      })
+      .orWhere('LOWER(card.tema) LIKE :query', {
+        query: `%${normalizedQuery}%`,
+      })
+      .orWhere('LOWER(card.area) LIKE :query', {
+        query: `%${normalizedQuery}%`,
+      })
+      .orWhere('card.code = :exactQuery', {
+        exactQuery: normalizedQuery.toUpperCase(),
+      });
 
     if (searchInCards) {
-      queryBuilder.orWhere('LOWER(flashcards.front) LIKE :query', { query: `%${normalizedQuery}%` })
-        .orWhere('LOWER(flashcards.back) LIKE :query', { query: `%${normalizedQuery}%` });
+      queryBuilder
+        .orWhere('LOWER(flashcards.front) LIKE :query', {
+          query: `%${normalizedQuery}%`,
+        })
+        .orWhere('LOWER(flashcards.back) LIKE :query', {
+          query: `%${normalizedQuery}%`,
+        });
     }
 
     if (!userId) {
       queryBuilder.andWhere('card.acceso = :acceso', { acceso: 'publico' });
     } else {
-      queryBuilder.andWhere('(card.acceso = :acceso OR card.userId = :userId)', {
-        acceso: 'publico',
-        userId,
-      });
+      queryBuilder.andWhere(
+        '(card.acceso = :acceso OR card.userId = :userId)',
+        {
+          acceso: 'publico',
+          userId,
+        },
+      );
     }
 
-    queryBuilder
-      .orderBy('card.createdAt', 'DESC')
-      .take(limit)
-      .skip(offset);
+    queryBuilder.orderBy('card.createdAt', 'DESC').take(limit).skip(offset);
 
     const cards = await queryBuilder.getMany();
     return this.deckRefactor(cards, userId);

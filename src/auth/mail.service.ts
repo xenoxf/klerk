@@ -20,8 +20,8 @@ export class MailService {
     if (!mailUser || !mailPass) {
       console.warn(
         '⚠️  Variables MAIL_USER o MAIL_PASS no configuradas. ' +
-        'El servicio de correos no funcionará. ' +
-        'Configura estas variables en .env'
+          'El servicio de correos no funcionará. ' +
+          'Configura estas variables en .env',
       );
     }
 
@@ -39,13 +39,13 @@ export class MailService {
   async sendVerificationEmail(
     to: string,
     verificationToken: string,
-    userName: string
+    userName: string,
   ): Promise<boolean> {
     try {
       if (!process.env.MAIL_USER || !process.env.MAIL_PASS) {
         console.error('❌ Credenciales de correo no configuradas');
         throw new BadRequestException(
-          'El servicio de correos no está configurado correctamente'
+          'El servicio de correos no está configurado correctamente',
         );
       }
 
@@ -99,16 +99,14 @@ export class MailService {
 
       // Enviar correo
       const info = await this.transporter.sendMail(mailOptions);
-      
+
       console.log('✅ Correo de verificación enviado a:', to);
       console.log('📧 Message ID:', info.messageId);
-      
+
       return true;
     } catch (error) {
       console.error('❌ Error al enviar correo de verificación:', error);
-      throw new BadRequestException(
-        `Error al enviar correo: ${error.message}`
-      );
+      throw new BadRequestException(`Error al enviar correo: ${error.message}`);
     }
   }
 
@@ -120,7 +118,7 @@ export class MailService {
     } catch (error) {
       console.error('❌ Error en conexión SMTP:', error);
       throw new BadRequestException(
-        `Error en configuración SMTP: ${error.message}`
+        `Error en configuración SMTP: ${error.message}`,
       );
     }
   }

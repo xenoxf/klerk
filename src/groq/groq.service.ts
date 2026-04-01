@@ -117,25 +117,46 @@ export class GroqService {
   async generateEducationalChatResponse(
     userMessage: string,
     conversationContext?: string,
+    conversationHistory?: Array<{
+      prompt: string;
+      response: string;
+      createdAt: string;
+    }>,
   ) {
     try {
-      const userContent = conversationContext
-        ? `Contexto previo:\n${conversationContext}\n\nMensaje del usuario: ${userMessage}`
-        : userMessage;
+      // Construir mensajes de conversación para dar contexto al bot
+      const messages: any[] = [
+        {
+          role: 'system',
+          content: AI_PROMPTS.SYSTEM_PROMPT(),
+        },
+      ];
+
+      // Agregar historial de conversación si existe
+      if (conversationHistory && conversationHistory.length > 0) {
+        // Agregar cada par de mensaje/respuesta del historial
+        conversationHistory.forEach((msg) => {
+          messages.push({
+            role: 'user',
+            content: msg.prompt,
+          });
+          messages.push({
+            role: 'assistant',
+            content: msg.response,
+          });
+        });
+      }
+
+      // Agregar el mensaje actual del usuario
+      messages.push({
+        role: 'user',
+        content: userMessage,
+      });
 
       const completion = await this.groq.chat.completions.create({
         model: 'llama-3.3-70b-versatile',
-        messages: [
-          {
-            role: 'system',
-            content: AI_PROMPTS.SYSTEM_PROMPT(), // 👈 El prompt largo va aquí
-          },
-          {
-            role: 'user',
-            content: userContent, // 👈 Solo el mensaje del usuario
-          },
-        ],
-        temperature: 0.7, // Un poco más alto para respuestas naturales
+        messages,
+        temperature: 0.7,
         max_tokens: 2048,
       });
 

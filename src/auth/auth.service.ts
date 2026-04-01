@@ -195,7 +195,8 @@ export class AuthService {
         email: googleUser.email,
         name: googleUser.name,
         picture: googleUser.picture,
-        providerId: googleUser.providerId || googleUser.googleId || googleUser.sub,
+        providerId:
+          googleUser.providerId || googleUser.googleId || googleUser.sub,
         provider: 'google',
       });
     }
@@ -255,22 +256,19 @@ export class AuthService {
       }
 
       // Intercambiar código por access token
-      const tokenResponse = await fetch(
-        'https://oauth2.googleapis.com/token',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-          body: new URLSearchParams({
-            code,
-            client_id: clientId,
-            client_secret: clientSecret,
-            redirect_uri: redirectUri,
-            grant_type: 'authorization_code',
-          }).toString(),
+      const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
         },
-      );
+        body: new URLSearchParams({
+          code,
+          client_id: clientId,
+          client_secret: clientSecret,
+          redirect_uri: redirectUri,
+          grant_type: 'authorization_code',
+        }).toString(),
+      });
 
       if (!tokenResponse.ok) {
         const errBody = await tokenResponse.text().catch(() => '');
@@ -323,7 +321,9 @@ export class AuthService {
     } catch (error) {
       this.logger.error('Google auth with code error:', error);
       throw new InternalServerErrorException(
-        error instanceof Error ? error.message : 'Error al procesar Google Auth',
+        error instanceof Error
+          ? error.message
+          : 'Error al procesar Google Auth',
       );
     }
   }
@@ -377,7 +377,9 @@ export class AuthService {
     } catch (error) {
       this.logger.error('Google token verification error:', error);
       throw new Error(
-        error instanceof Error ? error.message : 'Error al verificar token de Google',
+        error instanceof Error
+          ? error.message
+          : 'Error al verificar token de Google',
       );
     }
   }

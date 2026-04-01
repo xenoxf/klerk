@@ -14,9 +14,11 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   ) {
     const jwtSecret = configService.get<string>('JWT_SECRET');
     if (!jwtSecret) {
-      throw new Error('JWT_SECRET environment variable is required and must be set to a strong secret');
+      throw new Error(
+        'JWT_SECRET environment variable is required and must be set to a strong secret',
+      );
     }
-    
+
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,

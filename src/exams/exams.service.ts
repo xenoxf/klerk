@@ -21,7 +21,7 @@ export class ExamsService {
     private questionRepo: Repository<ExamQuestion>,
     @InjectRepository(ExamOption) private optionRepo: Repository<ExamOption>,
     private readonly groqService: GroqService,
-  ) { }
+  ) {}
 
   // ==================== GENERATE EXAM FROM TOPIC ====================
 
@@ -143,12 +143,12 @@ export class ExamsService {
       relations: ['questions', 'questions.options', 'user'],
     });
     if (!exam) throw new NotFoundException('Exam not found');
-    
+
     // Check ownership or public access
     if (!this.isPublicAccess(exam.acceso) && exam.userId !== userId) {
       throw new UnauthorizedException('No tienes acceso a este quiz');
     }
-    
+
     return this.examRefactor(exam, userId, true);
   }
 
@@ -161,7 +161,8 @@ export class ExamsService {
 
   async delete(id: number, userId: number) {
     const exam = await this.examRepo.findOne({ where: { id, userId } });
-    if (!exam) throw new NotFoundException('Exam not found or not owned by user');
+    if (!exam)
+      throw new NotFoundException('Exam not found or not owned by user');
     await this.questionRepo.delete({ exam: { id } } as any);
     await this.examRepo.delete(id);
     return { message: 'Exam deleted' };
@@ -190,7 +191,8 @@ export class ExamsService {
 
   async update(id: number, payload: Partial<Exam>, userId: number) {
     const exam = await this.examRepo.findOne({ where: { id, userId } });
-    if (!exam) throw new NotFoundException('Exam not found or not owned by user');
+    if (!exam)
+      throw new NotFoundException('Exam not found or not owned by user');
 
     await this.examRepo.update(id, {
       title: payload.title ?? exam.title,
@@ -205,20 +207,30 @@ export class ExamsService {
   }
 
   // ==================== REFACTOR DECKS (OPTIMIZAR DATOS) ====================
-  
+
   /**
    * Refactor de Exam para frontend - solo datos necesarios para mostrar
    * Excluye: code, userId, score (datos internos)
    * Para preguntas: solo texto, sin opciones ni isCorrect
    */
-  async examRefactor(exams: Exam[] | Exam, userId?: number, includeQuestionsAndOptions: boolean = false) {
+  async examRefactor(
+    exams: Exam[] | Exam,
+    userId?: number,
+    includeQuestionsAndOptions: boolean = false,
+  ) {
     if (Array.isArray(exams)) {
-      return exams.map((exam) => this._examRefactorSingle(exam, userId, includeQuestionsAndOptions));
+      return exams.map((exam) =>
+        this._examRefactorSingle(exam, userId, includeQuestionsAndOptions),
+      );
     }
     return this._examRefactorSingle(exams, userId, includeQuestionsAndOptions);
   }
 
-  private _examRefactorSingle(exam: Exam, userId?: number, includeQuestionsAndOptions: boolean = false) {
+  private _examRefactorSingle(
+    exam: Exam,
+    userId?: number,
+    includeQuestionsAndOptions: boolean = false,
+  ) {
     const base = {
       id: exam.id,
       title: exam.title,
@@ -230,18 +242,25 @@ export class ExamsService {
       canDelete: userId ? exam.userId === userId : false,
     };
 
-    if (includeQuestionsAndOptions && exam.questions && exam.questions.length > 0) {
+    if (
+      includeQuestionsAndOptions &&
+      exam.questions &&
+      exam.questions.length > 0
+    ) {
       return {
         ...base,
         questions: exam.questions.map((q) => ({
           id: q.id,
           question: q.question,
           explanation: q.explanation || '',
-          options: q.options && q.options.length > 0 ? q.options.map((opt) => ({
-            id: opt.id,
-            text: opt.text,
-            isCorrect: opt.isCorrect,
-          })) : [],
+          options:
+            q.options && q.options.length > 0
+              ? q.options.map((opt) => ({
+                  id: opt.id,
+                  text: opt.text,
+                  isCorrect: opt.isCorrect,
+                }))
+              : [],
         })),
       };
     }
@@ -284,7 +303,7 @@ export class ExamsService {
   }
 
   // ==================== INTELLIGENT SEARCH ====================
-  
+
   /**
    * Búsqueda inteligente de exámenes con soporte para:
    * - Búsqueda por texto en título, descripción, tema y área
@@ -312,20 +331,30 @@ export class ExamsService {
     }
 
     const normalizedQuery = query.trim().toLowerCase();
-    
+
     // Construir query para búsqueda en múltiples campos
     const queryBuilder = this.examRepo
       .createQueryBuilder('exam')
       .leftJoinAndSelect('exam.questions', 'questions')
       .where('LOWER(exam.title) LIKE :query', { query: `%${normalizedQuery}%` })
-      .orWhere('LOWER(exam.description) LIKE :query', { query: `%${normalizedQuery}%` })
-      .orWhere('LOWER(exam.tema) LIKE :query', { query: `%${normalizedQuery}%` })
-      .orWhere('LOWER(exam.area) LIKE :query', { query: `%${normalizedQuery}%` })
-      .orWhere('exam.code = :exactQuery', { exactQuery: normalizedQuery.toUpperCase() });
+      .orWhere('LOWER(exam.description) LIKE :query', {
+        query: `%${normalizedQuery}%`,
+      })
+      .orWhere('LOWER(exam.tema) LIKE :query', {
+        query: `%${normalizedQuery}%`,
+      })
+      .orWhere('LOWER(exam.area) LIKE :query', {
+        query: `%${normalizedQuery}%`,
+      })
+      .orWhere('exam.code = :exactQuery', {
+        exactQuery: normalizedQuery.toUpperCase(),
+      });
 
     // Búsqueda en preguntas si está habilitado
     if (searchInQuestions) {
-      queryBuilder.orWhere('LOWER(questions.question) LIKE :query', { query: `%${normalizedQuery}%` });
+      queryBuilder.orWhere('LOWER(questions.question) LIKE :query', {
+        query: `%${normalizedQuery}%`,
+      });
     }
 
     // Filtrar solo públicos si no hay userId
@@ -333,24 +362,24 @@ export class ExamsService {
       queryBuilder.andWhere('exam.acceso = :acceso', { acceso: 'publico' });
     } else {
       // Si hay userId, mostrar públicos y privados del usuario
-      queryBuilder.andWhere('(exam.acceso = :acceso OR exam.userId = :userId)', {
-        acceso: 'publico',
-        userId,
-      });
+      queryBuilder.andWhere(
+        '(exam.acceso = :acceso OR exam.userId = :userId)',
+        {
+          acceso: 'publico',
+          userId,
+        },
+      );
     }
 
-    queryBuilder
-      .orderBy('exam.createdAt', 'DESC')
-      .take(limit)
-      .skip(offset);
+    queryBuilder.orderBy('exam.createdAt', 'DESC').take(limit).skip(offset);
 
     const exams = await queryBuilder.getMany();
-    
+
     // Si searchInQuestions está activo, necesitamos cargar las preguntas explícitamente
     if (searchInQuestions && exams.length > 0) {
       return this.examRefactor(exams, userId, false);
     }
-    
+
     return this.examRefactor(exams, userId, false);
   }
 }

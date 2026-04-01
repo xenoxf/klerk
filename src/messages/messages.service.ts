@@ -11,7 +11,7 @@ export class MessagesService {
     @InjectRepository(Message) private messageRepo: Repository<Message>,
     @InjectRepository(Chat) private chatRepo: Repository<Chat>,
     private readonly groqService: GroqService,
-  ) { }
+  ) {}
 
   // Obtener o crear un chat para el usuario
   private async getOrCreateChat(userId: number): Promise<Chat> {
@@ -32,8 +32,8 @@ export class MessagesService {
 
   // Create a new chat with custom title (public method for controller)
   async createChat(userId: number, title?: string): Promise<Chat> {
-    const chat = this.chatRepo.create({ 
-      userId, 
+    const chat = this.chatRepo.create({
+      userId,
       title: title || 'Nuevo Chat',
     });
     await this.chatRepo.save(chat);
@@ -67,13 +67,36 @@ export class MessagesService {
       chat = await this.createChat(userId, chatTitle);
     }
 
-    const contexto = JSON.stringify(chat.messages);
+    // Obtener historial completo del chat para contexto
+    let conversationHistory: any[] = [];
+    if (input.chatId) {
+      const chatWithMessages = await this.chatRepo.findOne({
+        where: { id: input.chatId, userId },
+        relations: ['messages'],
+        order: {
+          messages: {
+            createdAt: 'ASC',
+          },
+        },
+      });
+
+      if (chatWithMessages && chatWithMessages.messages) {
+        conversationHistory = chatWithMessages.messages.map((msg) => ({
+          prompt: msg.prompt,
+          response: msg.response,
+          createdAt: msg.createdAt,
+        }));
+      }
+    }
+
+    const contexto = JSON.stringify(conversationHistory);
 
     try {
-      // Get AI response using educational chat method
+      // Get AI response using educational chat method con contexto completo
       const response = await this.groqService.generateEducationalChatResponse(
         input.prompt,
         contexto,
+        conversationHistory,
       );
 
       if (!response) {
@@ -81,14 +104,6 @@ export class MessagesService {
       }
 
       const createdAt = new Date().toISOString();
-
-      // Extraer solo el campo response que contiene el markdown
-      /*const responseText =
-        typeof aiResponse === 'object' && aiResponse.response
-          ? aiResponse.response
-          : typeof aiResponse === 'string'
-            ? aiResponse
-            : JSON.stringify(aiResponse);*/
 
       // Save user message
       const userMessage = this.messageRepo.create({

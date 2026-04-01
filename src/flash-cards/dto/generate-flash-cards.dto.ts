@@ -30,4 +30,3 @@ export class GenerateFlashCardsDto {
   @IsEnum(Acceso, { message: 'El acceso debe ser "public" o "private"' })
   acceso: Acceso;
 }
-

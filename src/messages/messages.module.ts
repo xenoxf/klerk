@@ -8,7 +8,11 @@ import { GroqModule } from '../groq/groq.module';
 import { SharedModule } from '../shared/shared.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Chat, Message]), GroqModule, SharedModule],
+  imports: [
+    TypeOrmModule.forFeature([Chat, Message]),
+    GroqModule,
+    SharedModule,
+  ],
   controllers: [MessagesController],
   providers: [MessagesService],
   exports: [MessagesService],

@@ -333,14 +333,15 @@ export class NotesService {
 
   async remove(id: number, userId: number) {
     const note = await this.noteRepo.findOne({ where: { id, userId } });
-    if (!note) throw new NotFoundException('Note not found or not owned by user');
+    if (!note)
+      throw new NotFoundException('Note not found or not owned by user');
     await this.noteContentRepo.delete({ noteId: id } as any);
     await this.noteRepo.delete(id);
     return { message: 'Eliminado' };
   }
 
   // ==================== INTELLIGENT SEARCH ====================
-  
+
   /**
    * Búsqueda inteligente de notas con soporte para:
    * - Búsqueda por texto en título, descripción, tema y área
@@ -366,39 +367,53 @@ export class NotesService {
     }
 
     const normalizedQuery = query.trim().toLowerCase();
-    
+
     const queryBuilder = this.noteRepo
       .createQueryBuilder('note')
       .leftJoinAndSelect('note.contents', 'contents')
       .where('LOWER(note.title) LIKE :query', { query: `%${normalizedQuery}%` })
-      .orWhere('LOWER(note.description) LIKE :query', { query: `%${normalizedQuery}%` })
-      .orWhere('LOWER(note.tema) LIKE :query', { query: `%${normalizedQuery}%` })
-      .orWhere('LOWER(note.area) LIKE :query', { query: `%${normalizedQuery}%` })
-      .orWhere('note.code = :exactQuery', { exactQuery: normalizedQuery.toUpperCase() });
+      .orWhere('LOWER(note.description) LIKE :query', {
+        query: `%${normalizedQuery}%`,
+      })
+      .orWhere('LOWER(note.tema) LIKE :query', {
+        query: `%${normalizedQuery}%`,
+      })
+      .orWhere('LOWER(note.area) LIKE :query', {
+        query: `%${normalizedQuery}%`,
+      })
+      .orWhere('note.code = :exactQuery', {
+        exactQuery: normalizedQuery.toUpperCase(),
+      });
 
     if (searchInContent) {
-      queryBuilder.orWhere('LOWER(contents.content) LIKE :query', { query: `%${normalizedQuery}%` });
+      queryBuilder.orWhere('LOWER(contents.content) LIKE :query', {
+        query: `%${normalizedQuery}%`,
+      });
     }
 
     if (!userId) {
       queryBuilder.andWhere('note.acceso = :acceso', { acceso: 'publico' });
     } else {
-      queryBuilder.andWhere('(note.acceso = :acceso OR note.userId = :userId)', {
-        acceso: 'publico',
-        userId,
-      });
+      queryBuilder.andWhere(
+        '(note.acceso = :acceso OR note.userId = :userId)',
+        {
+          acceso: 'publico',
+          userId,
+        },
+      );
     }
 
-    queryBuilder
-      .orderBy('note.createdAt', 'DESC')
-      .take(limit)
-      .skip(offset);
+    queryBuilder.orderBy('note.createdAt', 'DESC').take(limit).skip(offset);
 
     const notes = await queryBuilder.getMany();
     return this.normalizeNotes(notes, userId, false);
   }
 
-  private normalizeNotes(notes: any[], userId?: number, includeContents: boolean = false) {
+  private normalizeNotes(
+    notes: any[],
+    userId?: number,
+    includeContents: boolean = false,
+  ) {
     return notes.map((note) => ({
       id: note.id,
       title: note.title,

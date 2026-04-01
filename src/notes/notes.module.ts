@@ -8,7 +8,11 @@ import { GroqModule } from '../groq/groq.module';
 import { SharedModule } from '../shared/shared.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Note, NoteContent]), GroqModule, SharedModule],
+  imports: [
+    TypeOrmModule.forFeature([Note, NoteContent]),
+    GroqModule,
+    SharedModule,
+  ],
   controllers: [NotesController],
   providers: [NotesService],
   exports: [NotesService],

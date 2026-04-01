@@ -115,7 +115,11 @@ export class ExamsController {
 
   @Put(':id')
   @UseGuards(JwtGuard)
-  update(@Param('id', ParseIntPipe) id: number, @Body() body: Partial<Exam>, @Req() req: any) {
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: Partial<Exam>,
+    @Req() req: any,
+  ) {
     return this.examsService.update(id, body, req.user.id);
   }
 }
