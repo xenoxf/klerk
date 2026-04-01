@@ -224,6 +224,7 @@ export class NotesService {
     createdAt: Date;
     noteContents: Array<{ id: number; content: string }>;
     canDelete: boolean;
+    contentsCount: number;
   } {
     return {
       id: note.id,
@@ -239,6 +240,7 @@ export class NotesService {
           content: nc.content,
         })) ?? [],
       canDelete: userId ? note.userId === userId : false,
+      contentsCount: note.noteContents.length,
     };
   }
 
