@@ -143,6 +143,11 @@ export class MessagesService {
     const chat = await this.chatRepo.findOne({
       where: { id: chatId, userId },
       relations: ['messages'],
+      order: {
+        messages: {
+          createdAt: 'ASC', // Old to new ordering
+        },
+      },
     });
 
     if (!chat) return null;

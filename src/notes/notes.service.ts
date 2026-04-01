@@ -361,12 +361,12 @@ export class NotesService {
    * - Búsqueda por texto en título, descripción, tema y área
    * - Búsqueda por código exacto
    * - Búsqueda en contenido de las notas
-   * - Paginación con offset y limit
+   * - Paginación con offset y limit (default 20 items)
    */
   async searchNotes(
     query: string,
     userId?: number,
-    limit: number = 30,
+    limit: number = 20,
     offset: number = 0,
     searchInContent: boolean = true,
   ) {

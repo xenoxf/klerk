@@ -292,12 +292,12 @@ export class FlashCardsService {
    * - Búsqueda por texto en título, descripción, tema y área
    * - Búsqueda por código exacto
    * - Búsqueda en el frente y reverso de las tarjetas
-   * - Paginación con offset y limit
+   * - Paginación con offset y limit (default 20 items)
    */
   async searchFlashCards(
     query: string,
     userId?: number,
-    limit: number = 30,
+    limit: number = 20,
     offset: number = 0,
     searchInCards: boolean = true,
   ) {

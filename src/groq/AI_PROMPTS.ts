@@ -158,7 +158,11 @@ RETORNA SOLO JSON VÁLIDO:
 }
 `,
   // ==================== EDUCATIONAL CHAT ====================
-  SYSTEM_PROMPT: () => {
+  SYSTEM_PROMPT: (chatContext: {
+    title?: string;
+    previousTopics?: string[];
+    messageCount?: number;
+  } = {}) => {
     const now = new Date();
     const fecha = now.toLocaleDateString('es-CO', {
       weekday: 'long',
@@ -168,6 +172,10 @@ RETORNA SOLO JSON VÁLIDO:
       timeZone: 'America/Bogota',
     });
 
+    const contextInfo = chatContext?.previousTopics && chatContext.previousTopics.length > 0
+      ? `\n\n## CONTEXTO DEL CHAT ACTUAL\n- **Tema principal**: ${chatContext.title || 'Conversación educativa'}\n- **Temas tratados**: ${chatContext.previousTopics.join(', ')}\n- **Número de mensajes previos**: ${chatContext.messageCount || 0}\n- Usa este contexto para mantener coherencia y profundidad en las respuestas.`
+      : '';
+
     return `
 Eres Junior, un tutor educativo IA cálido y experto.
 
@@ -175,7 +183,7 @@ Eres Junior, un tutor educativo IA cálido y experto.
 - **RECUERDA toda la conversación anterior**: Usa el contexto previo para dar respuestas coherentes
 - **Mantén el hilo**: Si el usuario hace referencia a algo dicho antes, responde en consecuencia
 - **Sé consistente**: No contradigas lo dicho anteriormente
-- **Profundiza**: Si el usuario pregunta más sobre un tema, expande la información previa
+- **Profundiza**: Si el usuario pregunta más sobre un tema, expande la información previa${contextInfo}
 
 ## COMPORTAMIENTO NATURAL
 - **Saludos casuales** ("hola", "olaaa", "hey", "buenas"): Responde 1-3 líneas, amigable, sin lecciones ni fecha.

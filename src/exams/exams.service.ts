@@ -321,13 +321,13 @@ export class ExamsService {
    * - Búsqueda por texto en título, descripción, tema y área
    * - Búsqueda por código exacto
    * - Búsqueda en preguntas (opcional)
-   * - Paginación con offset y limit
+   * - Paginación con offset y limit (default 20 items)
    * - Filtro por visibilidad (público/privado)
    */
   async searchExams(
     query: string,
     userId?: number,
-    limit: number = 30,
+    limit: number = 20,
     offset: number = 0,
     searchInQuestions: boolean = true,
   ) {

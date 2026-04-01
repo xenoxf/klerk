@@ -49,7 +49,7 @@ export class NotesController {
   @Get('search')
   searchNotes(
     @Query('q') query: string,
-    @Query('limit', ParseIntPipe) limit: number = 30,
+    @Query('limit', ParseIntPipe) limit: number = 20,
     @Query('offset', ParseIntPipe) offset: number = 0,
     @Query('searchInContent') searchInContent: string = 'true',
     @Req() req: any,

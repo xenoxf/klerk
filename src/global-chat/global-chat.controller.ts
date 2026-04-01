@@ -7,6 +7,7 @@ import {
   Param,
   UseGuards,
   Req,
+  Query,
   ParseIntPipe,
 } from '@nestjs/common';
 import { GlobalChatService } from './global-chat.service';
@@ -18,8 +19,8 @@ export class GlobalChatController {
   constructor(private readonly globalChatService: GlobalChatService) {}
 
   @Get('messages')
-  async findAll() {
-    return this.globalChatService.findAll();
+  async findAll(@Query('limit', ParseIntPipe) limit?: number, @Query('offset', ParseIntPipe) offset?: number) {
+    return this.globalChatService.findAll(limit, offset);
   }
 
   @Post('message')
@@ -30,8 +31,8 @@ export class GlobalChatController {
 
   @Get('user/messages')
   @UseGuards(JwtGuard)
-  async findByUser(@Req() req: any) {
-    return this.globalChatService.findByUser(req.user.id);
+  async findByUser(@Req() req: any, @Query('limit', ParseIntPipe) limit?: number, @Query('offset', ParseIntPipe) offset?: number) {
+    return this.globalChatService.findByUser(req.user.id, limit, offset);
   }
 
   @Delete('message/:id')

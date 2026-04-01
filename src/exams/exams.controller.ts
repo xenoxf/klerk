@@ -66,7 +66,7 @@ export class ExamsController {
   @Get('search')
   searchExams(
     @Query('q') query: string,
-    @Query('limit', ParseIntPipe) limit: number = 30,
+    @Query('limit', ParseIntPipe) limit: number = 20,
     @Query('offset', ParseIntPipe) offset: number = 0,
     @Query('searchInQuestions') searchInQuestions: string = 'true',
     @Req() req: any,

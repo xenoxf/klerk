@@ -42,7 +42,7 @@ export class FlashCardsController {
   @Get('search')
   searchFlashCards(
     @Query('q') query: string,
-    @Query('limit', ParseIntPipe) limit: number = 30,
+    @Query('limit', ParseIntPipe) limit: number = 20,
     @Query('offset', ParseIntPipe) offset: number = 0,
     @Query('searchInCards') searchInCards: string = 'true',
     @Req() req: any,
