@@ -38,13 +38,31 @@ export class GroqService {
       const raw = completion.choices[0]?.message?.content?.trim() || '';
 
       if (!raw) {
-        throw new Error('AI returned empty response');
+        throw new Error('La IA no generó contenido. Intenta con un tema más específico.');
       }
 
       const cleaned = this.cleanJsonResponse(raw);
 
       try {
-        return JSON.parse(cleaned);
+        const parsed = JSON.parse(cleaned);
+        
+        // Validar estructura básica de la respuesta
+        if (!parsed.questions || !Array.isArray(parsed.questions)) {
+          throw new Error('La IA respondió con un formato inválido. Asegúrate de que el tema sea claro.');
+        }
+        
+        if (!parsed.metadata || typeof parsed.metadata !== 'object') {
+          throw new Error('La IA no incluyó metadatos en la respuesta.');
+        }
+
+        // Validar que las preguntas tengan la estructura correcta
+        for (const q of parsed.questions) {
+          if (!q.question || !q.options || !Array.isArray(q.options)) {
+            throw new Error('Las preguntas generadas tienen formato inválido. Falta el texto o las opciones.');
+          }
+        }
+
+        return parsed;
       } catch (parseError) {
         console.error(
           'JSON parse error:',
@@ -52,17 +70,11 @@ export class GroqService {
           'Raw response:',
           raw.substring(0, 500),
         );
-        throw new Error('AI returned invalid JSON format');
+        throw new Error(`Formato JSON inválido: ${parseError.message}`);
       }
     } catch (error) {
-      console.error('Groq service error:', error);
-      return {
-        error: true,
-        message: 'Error generando examen',
-        detail: error.message,
-        questions: [],
-        metadata: null,
-      };
+      console.error('Groq exam error:', error);
+      throw error; // Relanzar el error para que el servicio de exams lo maneje
     }
   }
   async generateNote(
@@ -90,14 +102,38 @@ export class GroqService {
       });
 
       const raw = completion.choices[0]?.message?.content?.trim() || '';
+
+      if (!raw) {
+        throw new Error('La IA no generó contenido. Intenta con un tema más específico.');
+      }
+
       const cleaned = this.cleanJsonResponse(raw);
-      return JSON.parse(cleaned);
+
+      try {
+        const parsed = JSON.parse(cleaned);
+        
+        // Validar estructura básica de la respuesta
+        if (!parsed.notes || !Array.isArray(parsed.notes)) {
+          throw new Error('La IA respondió con un formato inválido. Asegúrate de que el tema sea claro.');
+        }
+        
+        if (!parsed.metadata || typeof parsed.metadata !== 'object') {
+          throw new Error('La IA no incluyó metadatos en la respuesta.');
+        }
+
+        return parsed;
+      } catch (parseError) {
+        console.error(
+          'JSON parse error:',
+          parseError,
+          'Raw response:',
+          raw.substring(0, 500),
+        );
+        throw new Error(`Formato JSON inválido: ${parseError.message}`);
+      }
     } catch (error) {
-      return {
-        error: true,
-        message: 'Error generando notas',
-        detail: error.message,
-      };
+      console.error('Groq note error:', error);
+      throw error; // Relanzar el error para que el servicio de notes lo maneje
     }
   }
   async generateFlashcards(topic: string, numberOfCards: number) {
@@ -121,14 +157,38 @@ export class GroqService {
       });
 
       const raw = completion.choices[0]?.message?.content?.trim() || '';
+
+      if (!raw) {
+        throw new Error('La IA no generó contenido. Intenta con un tema más específico.');
+      }
+
       const cleaned = this.cleanJsonResponse(raw);
-      return JSON.parse(cleaned);
+
+      try {
+        const parsed = JSON.parse(cleaned);
+        
+        // Validar estructura básica de la respuesta
+        if (!parsed.cards || !Array.isArray(parsed.cards)) {
+          throw new Error('La IA respondió con un formato inválido. Asegúrate de que el tema sea claro.');
+        }
+        
+        if (!parsed.metadata || typeof parsed.metadata !== 'object') {
+          throw new Error('La IA no incluyó metadatos en la respuesta.');
+        }
+
+        return parsed;
+      } catch (parseError) {
+        console.error(
+          'JSON parse error:',
+          parseError,
+          'Raw response:',
+          raw.substring(0, 500),
+        );
+        throw new Error(`Formato JSON inválido: ${parseError.message}`);
+      }
     } catch (error) {
-      return {
-        error: true,
-        message: 'Error generando flashcards',
-        detail: error.message,
-      };
+      console.error('Groq flashcards error:', error);
+      throw error; // Relanzar el error para que el servicio de flashcards lo maneje
     }
   }
   // ==================== EDUCATIONAL CHAT METHODS - OPTIMIZADO ====================

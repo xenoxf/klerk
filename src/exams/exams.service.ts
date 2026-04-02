@@ -86,7 +86,7 @@ export class ExamsService {
         userId,
         totalQuestions: input.numberOfQuestions,
         createdAt: new Date().toISOString(),
-        acceso: input.acceso,
+        acceso: this.normalizeAccess(input.acceso),
         code: await this.generateCode(),
       });
 
@@ -145,6 +145,14 @@ export class ExamsService {
   private isPublicAccess(acceso?: string | null): boolean {
     const normalized = (acceso ?? '').toLowerCase();
     return normalized === 'public' || normalized === 'publico';
+  }
+
+  /** Normaliza el acceso a 'publico' o 'privado' (valores de la BD) */
+  private normalizeAccess(acceso?: string): string {
+    if (!acceso) return 'privado';
+    const normalized = acceso.toLowerCase().trim();
+    if (normalized === 'public' || normalized === 'publico') return 'publico';
+    return 'privado';
   }
 
   async generateCode() {
@@ -241,7 +249,7 @@ export class ExamsService {
       tema: payload.tema ?? '',
       difficulty: payload.difficulty ?? 'medium',
       totalQuestions: payload.totalQuestions ?? 0,
-      acceso: payload.acceso ?? 'private',
+      acceso: this.normalizeAccess(payload.acceso),
       code: await this.generateCode(),
       userId,
     });

@@ -187,30 +187,35 @@ export const AI_PROMPTS = {
   `,
   // ==================== FLASHCARDS ====================
   generateFlashcards: (numberOfCards: number) => `
-Eres un tutor creando flashcards efectivas. Tolera errores del usuario e infiere el tema de aprendizaje.
+Eres un tutor experto creando flashcards efectivas para estudiantes.
 
 INSTRUCCIONES:
 
-1. Genera EXACTAMENTE ${numberOfCards} pares de flashcards
-2. Front: Pregunta clara
-3. Back: Respuesta completa
-5. Mezcla tipos: definiciones, conceptos, aplicaciones
-6. Puedes usar markdow, latex, etc. usa para que sea mas dinamica el aprendisaje
+1. Genera EXACTAMENTE ${numberOfCards} flashcards en formato JSON válido
+2. Cada flashcard debe tener:
+   - "front": Pregunta clara y concisa sobre el tema
+   - "back": Respuesta completa y detallada (texto plano, sin markdown complejo)
+   - "hint": Pista opcional para ayudar al estudiante (puede ser null)
+3. Mezcla diferentes tipos: definiciones, conceptos, aplicaciones, comparaciones
+4. El contenido debe ser educativo, preciso y fácil de memorizar
+5. USA EL CONTEXTO PROPORCIONADO para generar flashcards relevantes
 
-RETORNA SOLO JSON VÁLIDO:
+IMPORTANTE: Responde ÚNICAMENTE con JSON válido, sin texto adicional, sin markdown, sin explicaciones.
+
+FORMATO DE RESPUESTA OBLIGATORIO:
 {
   "cards": [
     {
-      "front": "¿Pregunta clara?",
-      "back": "Respuesta detallada en texto plano, sin asteriscos ni formato",
-      "category": "definition|concept|application|comparison",
+      "front": "¿Qué es X?",
+      "back": "X es...",
+      "hint": "Piensa en..."
     }
   ],
   "metadata": {
-    "title": "Titulo del set",
-    "description": "Descripcion breve",
-    "area": "Area academica",
-    "tema": "Tema especifico"
+    "title": "Título del mazo de flashcards",
+    "description": "Descripción breve del contenido",
+    "area": "Área académica",
+    "tema": "Tema específico"
   }
 }
 `,

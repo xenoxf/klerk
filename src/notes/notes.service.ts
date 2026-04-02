@@ -39,6 +39,14 @@ export class NotesService {
     return normalized === 'public' || normalized === 'publico';
   }
 
+  /** Normaliza el acceso a 'publico' o 'privado' (valores de la BD) */
+  private normalizeAccess(acceso?: string): string {
+    if (!acceso) return 'privado';
+    const normalized = acceso.toLowerCase().trim();
+    if (normalized === 'public' || normalized === 'publico') return 'publico';
+    return 'privado';
+  }
+
   private async generateCode(): Promise<string> {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     let code = '';
@@ -113,7 +121,7 @@ export class NotesService {
       const promptText = this.resolveNotePrompt(input);
       const numberOfNotes = input.numberOfNotes ?? 3;
       const level = input.levelOfDetail ?? 'medio';
-      const acceso = input.acceso === 'public' ? 'public' : 'private';
+      const acceso = this.normalizeAccess(input.acceso);
 
       const response = await this.groqService.generateNote(
         promptText,
@@ -333,7 +341,7 @@ export class NotesService {
       title: payload.title.trim(),
       description: payload.description ?? '',
       levelOfDetail: payload.levelOfDetail ?? 'medio',
-      acceso: payload.acceso ?? 'private',
+      acceso: this.normalizeAccess(payload.acceso),
       code: await this.generateCode(),
       userId,
     });

@@ -68,7 +68,7 @@ export class FlashCardsService {
         tema,
         userId,
         code: await this.generateCode(),
-        acceso: input.acceso,
+        acceso: this.normalizeAccess(input.acceso),
       });
       const savedCard = await this.cardRepo.save(card);
 
@@ -114,6 +114,14 @@ export class FlashCardsService {
   private isPublicAccess(acceso?: string | null): boolean {
     const normalized = (acceso ?? '').toLowerCase();
     return normalized === 'public' || normalized === 'publico';
+  }
+
+  /** Normaliza el acceso a 'publico' o 'privado' (valores de la BD) */
+  private normalizeAccess(acceso?: string): string {
+    if (!acceso) return 'privado';
+    const normalized = acceso.toLowerCase().trim();
+    if (normalized === 'public' || normalized === 'publico') return 'publico';
+    return 'privado';
   }
 
   async findCardById(id: number, userId: number) {
@@ -285,7 +293,7 @@ export class FlashCardsService {
         description: payload.description ?? '',
         tema: payload.tema ?? '',
         area: payload.area ?? '',
-        acceso: payload.acceso ?? 'private',
+        acceso: this.normalizeAccess(payload.acceso),
         code: await this.generateCode(),
         userId,
       }),
