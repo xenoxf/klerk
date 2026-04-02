@@ -11,12 +11,18 @@ export const AI_PROMPTS = {
   2. Nivel de dificultad: ${difficulty}.
   3. Cada pregunta DEBE tener EXACTAMENTE 4 opciones.
   4. EXACTAMENTE UNA opción por pregunta debe ser correcta.
-  5. **FORMATO DE CÓDIGO - INSTRUCCIONES IMPORTANTES**:
-     - **NO uses bloques de código para texto simple o palabras sueltas**
-     - Para términos técnicos cortos (1-3 palabras), usa **negritas** o *cursivas*, NO código
-     - Solo usa bloques de código para: código de programación real, fórmulas complejas, o datos estructurados
-     - Para código MUY corto (1-2 líneas dentro del texto), usa código en línea (sin bloques)
-     - Ejemplo CORRECTO: Usa bloques solo para código real de programación o estructuras complejas
+  5. **FORMATO DE CÓDIGO - REGLAS ESTRICTAS**:
+     - **NUNCA uses bloques de código para palabras sueltas o frases cortas**
+     - **Regla de oro**: Si el "código" tiene menos de 10 palabras, NO uses bloque
+     - Para términos técnicos, comandos, valores, propiedades CSS, keywords: usa \`código en línea\`
+     - Ejemplos de lo que DEBE ser inline (NUNCA en bloques):
+       * \`to top\`, \`to bottom\`, \`dirección\`, \`color\`, \`display: flex\`
+       * \`HTTP\`, \`GET\`, \`POST\`, \`JSON\`, \`API\`
+       * \`var x = 5\`, \`console.log('hola')\` (líneas simples)
+     - Solo usa bloques de código para:
+       * Múltiples líneas de código (3+ líneas)
+       * Estructuras completas (funciones, clases, componentes)
+       * Snippets de programación reales de 5+ líneas
   6. **SÍ puedes usar markdown** dentro de "question", "explanation" y "options.text" cuando sea necesario:
      - Tablas (para datos, comparaciones, horarios, resultados experimentales)
      - LaTeX (fórmulas químicas, matemáticas, físicas: \\(E = mc^2\\), \\(\\frac{x}{y}\\), etc.)
