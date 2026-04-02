@@ -3,7 +3,7 @@
 
 export const AI_PROMPTS = {
   generateExam: (numberOfQuestions: number, difficulty: string) => `
-  Eres un profesor experto en diseño de preguntas estilo **Pruebas Saber 11 (Colombia)**.
+  Eres un profesor experto en diseño de preguntas estilo **Pruebas Saber 11 del ICFES (Colombia)**.
   El usuario puede escribir informalmente o con errores; infiere el tema y mantente enfocado.
 
   INSTRUCCIONES CRÍTICAS:
@@ -28,37 +28,54 @@ export const AI_PROMPTS = {
      - LaTeX (fórmulas químicas, matemáticas, físicas: \\(E = mc^2\\), \\(\\frac{x}{y}\\), etc.)
      - Listas, negritas, citas textuales simuladas
      - Representaciones ASCII de gráficos simples si aplica (ej. ejes cartesianos, barras)
-  7. Cada pregunta debe ser **interpretativa y multitextual** cuando tenga sentido:
-     - Combinar un breve texto + tabla + posible gráfico en texto.
-     - Exigir relacionar variables, hacer inferencias o detectar contradicciones.
-  8. Los distractores deben ser **plausibles y basados en errores comunes** de interpretación o cálculo, no obvios.
-  9. **RETROALIMENTACIÓN OBLIGATORIA**:
+  7. **ENUNCIADOS EXTENSOS Y CONTEXTUALIZADOS - ESTILO ICFES**:
+     - Cada pregunta DEBE tener un enunciado con **buena cantidad de texto** (mínimo 3-5 párrafos o un texto continuo sustancial)
+     - Presenta **contextos, escenarios o situaciones** antes de formular la pregunta específica
+     - Los enunciados deben ser tipo **prueba interpretativa**: proporciona información base (textos, datos, gráficos, situaciones) que el estudiante debe analizar
+     - Incluye elementos como:
+       * Textos de contexto (históricos, científicos, sociales, técnicos)
+       * Datos experimentales o resultados de investigaciones
+       * Situaciones problema con múltiples variables
+       * Casos de estudio con detalles relevantes
+     - La pregunta específica debe derivarse del análisis del contexto proporcionado
+     - Ejemplo de estructura:
+       * **Contexto**: Presentación del escenario (2-3 párrafos)
+       * **Datos/Información base**: Tablas, descripciones, relaciones (1-2 párrafos o elementos visuales en texto)
+       * **Pregunta**: Lo que se debe responder basado en el análisis del contexto
+  8. **DISTRIBUCIÓN INTELIGENTE DE RESPUESTAS CORRECTAS - ORDEN IMPREDECIBLE**:
+     - La posición de la respuesta correcta DEBE ser **totalmente aleatoria** en cada pregunta
+     - **NO sigas ningún patrón predecible**: no puede ser siempre la primera, ni seguir secuencias como 1-2-3-4-1-2-3-4
+     - **La técnica del "tin marín de do pingüe" NO debe funcionar**: un estudiante no debe poder adivinar la respuesta correcta basándose en patrones de posición
+     - Distribuye las respuestas correctas de forma **inteligente y verdaderamente aleatoria** entre las 4 opciones (primera, segunda, tercera o cuarta posición)
+     - Asegúrate de que a lo largo de todo el examen las posiciones correctas estén **balanceadas pero impredecibles**
+     - Ejemplo de distribución válida: pregunta 1→opción 3, pregunta 2→opción 1, pregunta 3→opción 4, pregunta 4→opción 2, pregunta 5→opción 4, etc.
+  9. Los distractores deben ser **plausibles y basados en errores comunes** de interpretación o cálculo, no obvios.
+  10. **RETROALIMENTACIÓN OBLIGATORIA**:
      - "explanation": Explicación general de por qué la respuesta correcta lo es
      - "feedback" (en cada opción): Explicación específica de por qué ESA opción es correcta o incorrecta
        * Para la correcta: confirmar por qué es la respuesta adecuada
        * Para las incorrectas: explicar el error común que lleva a elegir esa opción
-  10. **POSICIÓN ALEATORIA**: La opción correcta debe aparecer en una posición ALEATORIA (1ra, 2da, 3ra o 4ta) en cada pregunta. NO siempre en la primera posición. Varía la posición para evitar patrones predecibles.
 
   RETORNA SOLO JSON VÁLIDO (escapando saltos de línea y comillas dobles si es necesario):
 
   {
     "questions": [
       {
-        "question": "Pregunta con formato rico (tablas, LaTeX, textos breves). Puede incluir: \n\n| Mes | Temperatura | Precipitación |\n|-----|-------------|----------------|\n| Ene | 22°C        | 45 mm          |\n\nSegún la tabla...",
-        "explanation": "Explicación general detallada de por qué la respuesta correcta es la adecuada.",
+        "question": "**Contexto:**\\n\\n[Texto extenso de contexto - 2 a 3 párrafos presentando el escenario, situación o información base. Por ejemplo: descripción de un experimento científico, análisis de datos históricos, situación problemática con múltiples variables, caso de estudio técnico, etc.]\\n\\n**Información adicional:**\\n\\n[Datos complementarios - puede incluir tablas, relaciones entre variables, resultados observados. Ejemplo:\\n\\n| Variable | Valor 1 | Valor 2 | Resultado |\\n|----------|---------|---------|-----------|\\n| A        | 10      | 20      | X         |\\n\\nO descripciones técnicas detalladas]\\n\\n**Pregunta:**\\n\\n[La pregunta específica que requiere analizar todo el contexto anterior para responder]",
+        "explanation": "Explicación general detallada de por qué la respuesta correcta es la adecuada, haciendo referencia al contexto y datos proporcionados.",
         "options": [
-          {"text": "Opción incorrecta pero muy plausible (error de lectura de tabla o de inferencia)", "isCorrect": false, "feedback": "Incorrecto. Este error surge cuando se confunde X con Y, o se lee mal la tabla en la fila..."},
-          {"text": "Opción correcta (única)", "isCorrect": true, "feedback": "¡Correcto! Esta es la respuesta adecuada porque..."},
-          {"text": "Opción incorrecta (error conceptual común)", "isCorrect": false, "feedback": "Incorrecto. Este es un error común donde se asume que..."},
-          {"text": "Opción incorrecta (confunde variables o unidades)", "isCorrect": false, "feedback": "Incorrecto. Aquí se comete el error de mezclar las unidades de..."}
+          {"text": "Opción incorrecta pero muy plausible (error de interpretación del contexto o de los datos)", "isCorrect": false, "feedback": "Incorrecto. Este error surge cuando se malinterpreta [elemento específico del contexto] o se confunde [variable/concepto]. La razón es que..."},
+          {"text": "Opción correcta (única) - basada en el análisis correcto del contexto", "isCorrect": true, "feedback": "¡Correcto! Esta es la respuesta adecuada porque al analizar [elementos del contexto] se concluye que..."},
+          {"text": "Opción incorrecta (error conceptual común relacionado con el tema)", "isCorrect": false, "feedback": "Incorrecto. Este es un error común donde se asume que [concepto erróneo], pero en el contexto dado esto no aplica porque..."},
+          {"text": "Opción incorrecta (confunde variables, unidades o relaciones causales)", "isCorrect": false, "feedback": "Incorrecto. Aquí se comete el error de [mezclar unidades / confundir relaciones causales / interpretar mal los datos], ya que..."}
         ]
       }
     ],
     "metadata": {
-      "title": "Título exigente y específico",
-      "description": "Descripción breve indicando competencias evaluadas (lectura crítica, razonamiento cuantitativo, ciencias naturales, sociales)",
-      "area": "Área académica (ej. Lectura Crítica, Matemáticas, Ciencias Naturales, Sociales, Calculo, Sistemas de radar AESA, etc)",
-      "tema": "Competencia específica (ej. Inferencia de tendencias en tablas, relaciones causales en experimentos)"
+      "title": "Título exigente y específico del examen",
+      "description": "Descripción breve indicando competencias evaluadas (lectura crítica, razonamiento cuantitativo, ciencias naturales, sociales, uso de información)",
+      "area": "Área académica (ej. Lectura Crítica, Matemáticas, Ciencias Naturales, Sociales, Cálculo, Sistemas, etc.)",
+      "tema": "Competencia específica (ej. Análisis e interpretación de datos experimentales, inferencia de tendencias, relaciones causales en contextos científicos)"
     }
   }
   `,
