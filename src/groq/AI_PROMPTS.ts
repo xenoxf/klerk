@@ -189,35 +189,60 @@ export const AI_PROMPTS = {
   generateFlashcards: (numberOfCards: number) => `
 Eres un tutor experto creando flashcards efectivas para estudiantes.
 
-INSTRUCCIONES:
+TU TAREA:
+Analiza el tema que el usuario te dará y genera EXACTAMENTE ${numberOfCards} flashcards de estudio.
 
-1. Genera EXACTAMENTE ${numberOfCards} flashcards en formato JSON válido
-2. Cada flashcard debe tener:
-   - "front": Pregunta clara y concisa sobre el tema
-   - "back": Respuesta completa y detallada (texto plano, sin markdown complejo)
-   - "hint": Pista opcional para ayudar al estudiante (puede ser null)
-3. Mezcla diferentes tipos: definiciones, conceptos, aplicaciones, comparaciones
-4. El contenido debe ser educativo, preciso y fácil de memorizar
-5. USA EL CONTEXTO PROPORCIONADO para generar flashcards relevantes
+REGLAS CRÍTICAS:
+1. Responde ÚNICAMENTE con JSON válido - sin texto antes, sin texto después, sin explicaciones
+2. El JSON DEBE tener esta estructura exacta:
+   {
+     "cards": [ ...array de flashcards... ],
+     "metadata": { "title": "...", "description": "...", "area": "...", "tema": "..." }
+   }
+3. Si el usuario escribe un tema vago o con errores, INFIERE el tema correcto y genera las flashcards
+4. Cada flashcard debe tener: front (pregunta), back (respuesta), hint (pista opcional o null)
 
-IMPORTANTE: Responde ÚNICAMENTE con JSON válido, sin texto adicional, sin markdown, sin explicaciones.
+FORMATO DEL CONTENIDO:
+- Puedes usar **markdown** dentro de "front", "back" y "hint":
+  * **negritas** para conceptos clave
+  * *cursivas* para énfasis
+  * \`código en línea\` para términos técnicos
+  * Listas con - o *
+  * LaTeX para fórmulas: $fórmula$ o $$fórmula$$
+- NO uses bloques de código triples en el contenido
+- NO uses saltos de línea dentro de "front" o "back" (usa \\n si es necesario)
 
-FORMATO DE RESPUESTA OBLIGATORIO:
+FORMATO EXACTO QUE DEBES DEVOLVER:
 {
   "cards": [
     {
-      "front": "¿Qué es X?",
-      "back": "X es...",
-      "hint": "Piensa en..."
+      "front": "¿Qué es **Machine Learning**?",
+      "back": "**Machine Learning** es una rama de la *inteligencia artificial* que permite a las computadoras aprender patrones a partir de datos.\\n\\nFórmula clave: $y = mx + b$",
+      "hint": "Piensa en *aprendizaje automático* basado en datos"
+    },
+    {
+      "front": "¿Cuál es la diferencia entre aprendizaje \`supervisado\` y \`no supervisado\`?",
+      "back": "- **Supervisado**: Usa datos etiquetados\\n- **No supervisado**: Encuentra patrones en datos sin etiquetar",
+      "hint": "La clave está en las *etiquetas*"
     }
   ],
   "metadata": {
-    "title": "Título del mazo de flashcards",
-    "description": "Descripción breve del contenido",
-    "area": "Área académica",
-    "tema": "Tema específico"
+    "title": "Fundamentos de Machine Learning",
+    "description": "Flashcards sobre conceptos básicos de aprendizaje automático e inteligencia artificial",
+    "area": "Ciencias de la Computación",
+    "tema": "Machine Learning - Conceptos Fundamentales"
   }
 }
+
+IMPORTANTE:
+- Las ${numberOfCards} flashcards deben ser variadas: definiciones, conceptos, aplicaciones, comparaciones
+- El frente debe ser una pregunta clara y específica
+- El reverso debe ser una respuesta completa pero concisa
+- Usa lenguaje educativo apropiado para estudiantes
+- USA markdown estratégicamente para mejorar la legibilidad
+- NO incluyas texto fuera del JSON
+
+¡DEVUELVE SOLO EL JSON!
 `,
   // ==================== EDUCATIONAL CHAT ====================
   SYSTEM_PROMPT: (

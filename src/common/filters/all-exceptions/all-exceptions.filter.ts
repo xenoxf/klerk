@@ -1,4 +1,13 @@
-import { ExceptionFilter, Catch, ArgumentsHost, Logger } from '@nestjs/common';
+import {
+  ExceptionFilter,
+  Catch,
+  ArgumentsHost,
+  Logger,
+  BadRequestException,
+  NotFoundException,
+  UnauthorizedException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { Request, Response } from 'express';
 
 @Catch()
@@ -10,17 +19,64 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const res = ctx.getResponse<Response>();
     const req = ctx.getRequest<Request>();
 
-    const status = exception['status'] || 500;
-    const message = exception['message'] || 'Error interno';
+    let status = 500;
+    let message = 'Error interno del servidor';
+    let error = 'Internal Server Error';
+    let details = null;
+    let errorCode = 'INTERNAL_ERROR';
 
-    const error = {
+    // Manejar excepciones HTTP de NestJS
+    if (exception instanceof BadRequestException) {
+      status = 400;
+      error = 'Bad Request';
+      const response = exception.getResponse() as any;
+      
+      if (typeof response === 'object' && response.message) {
+        message = response.message;
+        details = response.details || null;
+        errorCode = response.errorCode || 'BAD_REQUEST';
+      } else if (typeof response === 'string') {
+        message = response;
+      } else if (Array.isArray(response?.message)) {
+        message = response.message[0];
+      }
+    } else if (exception instanceof NotFoundException) {
+      status = 404;
+      error = 'Not Found';
+      const response = exception.getResponse() as any;
+      message = typeof response === 'object' ? response.message : response;
+    } else if (exception instanceof UnauthorizedException) {
+      status = 401;
+      error = 'Unauthorized';
+      const response = exception.getResponse() as any;
+      message = typeof response === 'object' ? response.message : response;
+    } else if (exception instanceof ForbiddenException) {
+      status = 403;
+      error = 'Forbidden';
+      const response = exception.getResponse() as any;
+      message = typeof response === 'object' ? response.message : response;
+    } else if (exception instanceof Error) {
+      message = exception.message;
+      error = exception.name;
+    }
+
+    const errorResponse: any = {
       status,
       path: req.path,
       timestamp: new Date().toISOString(),
       message,
+      error,
     };
 
-    this.logger.error(JSON.stringify(error));
-    res.status(status).json(error);
+    if (details) {
+      errorResponse.details = details;
+    }
+
+    if (errorCode) {
+      errorResponse.errorCode = errorCode;
+    }
+
+    this.logger.error(`${status} - ${req.method} ${req.path} - ${message}`);
+    res.status(status).json(errorResponse);
   }
 }
