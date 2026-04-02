@@ -43,7 +43,8 @@ export class ExamsService {
       // Validate questions array
       if (!questions || !Array.isArray(questions) || questions.length === 0) {
         throw new BadRequestException(
-          'AI did not generate any questions. Please try again with a different topic.',
+          'AI did not generate any questions. Please try again with a different topic. RESPONSE: ' +
+            response,
         );
       }
 
