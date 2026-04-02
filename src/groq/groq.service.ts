@@ -36,13 +36,32 @@ export class GroqService {
       });
 
       const raw = completion.choices[0]?.message?.content?.trim() || '';
+
+      if (!raw) {
+        throw new Error('AI returned empty response');
+      }
+
       const cleaned = this.cleanJsonResponse(raw);
-      return JSON.parse(cleaned);
+
+      try {
+        return JSON.parse(cleaned);
+      } catch (parseError) {
+        console.error(
+          'JSON parse error:',
+          parseError,
+          'Raw response:',
+          raw.substring(0, 500),
+        );
+        throw new Error('AI returned invalid JSON format');
+      }
     } catch (error) {
+      console.error('Groq service error:', error);
       return {
         error: true,
         message: 'Error generando examen',
         detail: error.message,
+        questions: [],
+        metadata: null,
       };
     }
   }
@@ -112,7 +131,7 @@ export class GroqService {
       };
     }
   }
-  // ==================== EDUCATIONAL CHAT METHODS ====================
+  // ==================== EDUCATIONAL CHAT METHODS - OPTIMIZADO ====================
 
   async generateEducationalChatResponse(
     userMessage: string,
@@ -124,33 +143,21 @@ export class GroqService {
     }>,
   ) {
     try {
-      // Extraer temas del historial para contexto
-      const previousTopics: string[] = [];
-      if (conversationHistory && conversationHistory.length > 0) {
-        conversationHistory.slice(-5).forEach((msg) => {
-          const topicPreview = msg.prompt.substring(0, 50);
-          if (!previousTopics.includes(topicPreview)) {
-            previousTopics.push(topicPreview);
-          }
-        });
-      }
-
-      const chatContext = {
-        previousTopics,
-        messageCount: conversationHistory?.length || 0,
-      };
-
-      // Construir mensajes de conversación para dar contexto al bot
+      // Construir mensajes optimizados - solo últimos 3 mensajes para velocidad
       const messages: any[] = [
         {
           role: 'system',
-          content: AI_PROMPTS.SYSTEM_PROMPT(chatContext),
+          content: AI_PROMPTS.SYSTEM_PROMPT({
+            previousTopics: [],
+            messageCount: conversationHistory?.length || 0,
+          }),
         },
       ];
 
-      // Agregar historial de conversación si existe
+      // Agregar solo últimos 3 mensajes de historial (optimización de velocidad)
       if (conversationHistory && conversationHistory.length > 0) {
-        conversationHistory.forEach((msg) => {
+        const recentHistory = conversationHistory.slice(-3);
+        recentHistory.forEach((msg) => {
           messages.push({
             role: 'user',
             content: msg.prompt,
@@ -172,12 +179,14 @@ export class GroqService {
         model: 'llama-3.3-70b-versatile',
         messages,
         temperature: 0.7,
-        max_tokens: 2048,
+        max_tokens: 1024, // Reducido para respuestas más rápidas
+        stream: false,
       });
 
       const raw = completion.choices[0]?.message?.content?.trim() || '';
       return { response: raw };
     } catch (error) {
+      console.error('Chat response error:', error);
       return { response: `Error al generar respuesta: ${error.message}` };
     }
   }

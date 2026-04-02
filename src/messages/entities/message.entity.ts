@@ -3,8 +3,8 @@ import {
   PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
-  ManyToMany,
   ManyToOne,
+  Index,
 } from 'typeorm';
 import { Chat } from './chat.entity';
 
@@ -20,12 +20,15 @@ export class Message {
   prompt: string;
 
   @CreateDateColumn()
+  @Index()
   createdAt: Date;
 
   @Column({ nullable: true })
+  @Index()
   userId?: number;
 
   @Column({ nullable: true })
+  @Index()
   chatId?: number;
 
   @ManyToOne(() => Chat, (chat) => chat.messages)

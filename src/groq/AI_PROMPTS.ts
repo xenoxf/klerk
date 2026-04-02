@@ -11,21 +11,27 @@ export const AI_PROMPTS = {
   2. Nivel de dificultad: ${difficulty}.
   3. Cada pregunta DEBE tener EXACTAMENTE 4 opciones.
   4. EXACTAMENTE UNA opción por pregunta debe ser correcta.
-  5. **SÍ puedes usar markdown** dentro de "question", "explanation" y "options.text" cuando sea necesario:
+  5. **FORMATO DE CÓDIGO - INSTRUCCIONES IMPORTANTES**:
+     - **NO uses bloques de código para texto simple o palabras sueltas**
+     - Para términos técnicos cortos (1-3 palabras), usa **negritas** o *cursivas*, NO código
+     - Solo usa bloques de código para: código de programación real, fórmulas complejas, o datos estructurados
+     - Para código MUY corto (1-2 líneas dentro del texto), usa código en línea (sin bloques)
+     - Ejemplo CORRECTO: Usa bloques solo para código real de programación o estructuras complejas
+  6. **SÍ puedes usar markdown** dentro de "question", "explanation" y "options.text" cuando sea necesario:
      - Tablas (para datos, comparaciones, horarios, resultados experimentales)
      - LaTeX (fórmulas químicas, matemáticas, físicas: \\(E = mc^2\\), \\(\\frac{x}{y}\\), etc.)
      - Listas, negritas, citas textuales simuladas
      - Representaciones ASCII de gráficos simples si aplica (ej. ejes cartesianos, barras)
-  6. Cada pregunta debe ser **interpretativa y multitextual** cuando tenga sentido:
+  7. Cada pregunta debe ser **interpretativa y multitextual** cuando tenga sentido:
      - Combinar un breve texto + tabla + posible gráfico en texto.
      - Exigir relacionar variables, hacer inferencias o detectar contradicciones.
-  7. Los distractores deben ser **plausibles y basados en errores comunes** de interpretación o cálculo, no obvios.
-  8. **RETROALIMENTACIÓN OBLIGATORIA**:
+  8. Los distractores deben ser **plausibles y basados en errores comunes** de interpretación o cálculo, no obvios.
+  9. **RETROALIMENTACIÓN OBLIGATORIA**:
      - "explanation": Explicación general de por qué la respuesta correcta lo es
      - "feedback" (en cada opción): Explicación específica de por qué ESA opción es correcta o incorrecta
        * Para la correcta: confirmar por qué es la respuesta adecuada
        * Para las incorrectas: explicar el error común que lleva a elegir esa opción
-  9. **POSICIÓN ALEATORIA**: La opción correcta debe aparecer en una posición ALEATORIA (1ra, 2da, 3ra o 4ta) en cada pregunta. NO siempre en la primera posición. Varía la posición para evitar patrones predecibles.
+  10. **POSICIÓN ALEATORIA**: La opción correcta debe aparecer en una posición ALEATORIA (1ra, 2da, 3ra o 4ta) en cada pregunta. NO siempre en la primera posición. Varía la posición para evitar patrones predecibles.
 
   RETORNA SOLO JSON VÁLIDO (escapando saltos de línea y comillas dobles si es necesario):
 
@@ -158,11 +164,13 @@ RETORNA SOLO JSON VÁLIDO:
 }
 `,
   // ==================== EDUCATIONAL CHAT ====================
-  SYSTEM_PROMPT: (chatContext: {
-    title?: string;
-    previousTopics?: string[];
-    messageCount?: number;
-  } = {}) => {
+  SYSTEM_PROMPT: (
+    chatContext: {
+      title?: string;
+      previousTopics?: string[];
+      messageCount?: number;
+    } = {},
+  ) => {
     const now = new Date();
     const fecha = now.toLocaleDateString('es-CO', {
       weekday: 'long',
@@ -172,9 +180,10 @@ RETORNA SOLO JSON VÁLIDO:
       timeZone: 'America/Bogota',
     });
 
-    const contextInfo = chatContext?.previousTopics && chatContext.previousTopics.length > 0
-      ? `\n\n## CONTEXTO DEL CHAT ACTUAL\n- **Tema principal**: ${chatContext.title || 'Conversación educativa'}\n- **Temas tratados**: ${chatContext.previousTopics.join(', ')}\n- **Mensajes previos**: ${chatContext.messageCount || 0}\n- Usa este contexto para mantener coherencia.`
-      : '';
+    const contextInfo =
+      chatContext?.previousTopics && chatContext.previousTopics.length > 0
+        ? `\n\n## CONTEXTO DEL CHAT ACTUAL\n- **Tema principal**: ${chatContext.title || 'Conversación educativa'}\n- **Temas tratados**: ${chatContext.previousTopics.join(', ')}\n- **Mensajes previos**: ${chatContext.messageCount || 0}\n- Usa este contexto para mantener coherencia.`
+        : '';
 
     return `
 Eres Junior, un tutor educativo IA cálido y experto.

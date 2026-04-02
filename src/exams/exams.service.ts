@@ -33,8 +33,35 @@ export class ExamsService {
         input.difficulty,
       );
 
+      // Validate response structure
+      if (!response || typeof response !== 'object') {
+        throw new BadRequestException('Invalid response from AI service');
+      }
+
       const { questions, metadata } = response;
+
+      // Validate questions array
+      if (!questions || !Array.isArray(questions) || questions.length === 0) {
+        throw new BadRequestException(
+          'AI did not generate any questions. Please try again with a different topic.',
+        );
+      }
+
+      // Validate metadata exists
+      if (!metadata || typeof metadata !== 'object') {
+        throw new BadRequestException(
+          'AI generated questions but missing metadata. Please try again.',
+        );
+      }
+
       const { title, description, tema, area } = metadata;
+
+      // Validate required metadata fields
+      if (!title || !description || !tema || !area) {
+        throw new BadRequestException(
+          'AI generated incomplete data. Missing required fields. Please try again.',
+        );
+      }
 
       const exam = this.examRepo.create({
         area,
