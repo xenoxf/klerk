@@ -94,9 +94,40 @@ export const AI_PROMPTS = {
   Cada bloque es **texto en Markdown** (tablas, LaTeX, listas, negritas, citas, etc.) con contenido TÉCNICO y PROFUNDO.
 
   Nivel de detalle: ${levelOfDetail}
-  - **breve** = Conceptos clave + definiciones técnicas + expansión completa de la referencia del usuario (sin quedarse en lo superficial).
-  - **medio** = Conceptos + definiciones + ejemplos técnicos + aplicaciones + desarrollo de la referencia con contexto.
-  - **detallado** = Todo lo anterior + casos de uso + relaciones con otros temas + errores comunes + advertencias + expansión máxima de la referencia.
+  
+  **IMPORTANTE - NIVELES DE DETALLE ESTRATÉGICOS**:
+  
+  - **breve** = Conceptos fundamentales + definiciones técnicas precisas + expansión completa pero concisa de la referencia del usuario.
+    * Incluye: definición clara, fórmula principal si aplica, 1-2 ejemplos cortos, unidades básicas
+    * Estructura mínima: título, definición, ejemplo clave
+    * Markdown básico: negritas para conceptos, \`código\` para términos técnicos
+  
+  - **medio** = Conceptos + definiciones + ejemplos técnicos + aplicaciones + desarrollo completo de la referencia con contexto.
+    * Incluye: todo lo de "breve" + contexto histórico/científico, 2-3 ejemplos desarrollados, relaciones con otros conceptos, tabla comparativa si aplica
+    * Estructura: título, introducción, desarrollo por secciones, ejemplos, tabla resumen
+    * Markdown: secciones (##, ###), negritas, cursivas, listas, tablas simples, LaTeX inline
+  
+  - **detallado** = TODO lo anterior + casos de uso exhaustivos + relaciones transversales con otros temas + errores comunes + advertencias + expansión MÁXIMA de la referencia.
+    * **NO DEBES DEJAR NADA SUELTO**: cada punto debe quedar completamente agotado
+    * Incluye: todo lo de "medio" + demostraciones/pruebas, múltiples ejemplos paso a paso, casos extremos, aplicaciones avanzadas, conexiones interdisciplinarias
+    * **Markdown avanzado OBLIGATORIO**:
+      * Tablas complejas (comparativas, datos, resultados)
+      * LaTeX para fórmulas (inline $...$ y bloque $$...$$)
+      * Listas anidadas y multinivel
+      * Bloques de cita (> ) para definiciones clave y teoremas
+      * Negritas y cursivas estratégicas para jerarquía visual
+      * Código en bloques (solo si es código real de 3+ líneas)
+    * **Estructura estratégica OBLIGATORIA**:
+      * ## Título principal
+      * ### Introducción contextual (¿por qué es importante este tema?)
+      * ### Fundamentos teóricos (bases conceptuales)
+      * ### Desarrollo técnico (núcleo del contenido)
+      * ### Ejemplos aplicados (mínimo 2-3 ejemplos completos paso a paso)
+      * ### Tablas resumen/comparativas (datos clave, comparaciones, clasificaciones)
+      * ### Errores comunes y advertencias (qué evitar, malentendidos frecuentes)
+      * ### Relaciones con otros temas (conexiones interdisciplinarias)
+      * ### Puntos clave para recordar (resumen ejecutivo en lista)
+      * ### Preguntas de autoevaluación (2-3 preguntas con respuesta)
 
   ---
 
@@ -113,6 +144,8 @@ export const AI_PROMPTS = {
   4. **Usa ejemplos concretos** que conecten directamente con la referencia dada.
   5. **Si la referencia es vaga o incompleta**, infiere el tema más probable y desarróllalo con profundidad académica.
   6. **Incluye terminología específica** del área, pero siempre acompañada de definición o contexto.
+  7. **CADA SECCIÓN DEBE SER ESTRATÉGICA**: no rellenes por rellenar, cada párrafo debe aportar valor educativo claro.
+  8. **El markdown debe servir al aprendizaje**: usa tablas para comparar, listas para enumerar, citas para destacar, negritas para jerarquizar.
 
   ---
 
@@ -129,14 +162,9 @@ export const AI_PROMPTS = {
   Si el usuario escribe solo: *"Segunda ley de Newton"*
 
   La IA **NO** debe responder solo una definición corta. Debe incluir (según nivel de detalle):
-  - Explicación matemática: \\(F = m \\cdot a\\)
-  - Significado físico de cada variable
-  - Unidades en SI
-  - Relación con la primera y tercera ley
-  - Ejemplo resuelto paso a paso
-  - Errores comunes (confundir aceleración con velocidad, olvidar que es una ecuación vectorial)
-  - Aplicaciones reales
-  - Posible extensión a sistemas con masa variable (si el nivel es detallado)
+  - **breve**: Explicación matemática: \\(F = m \\cdot a\\), significado de cada variable, unidades SI, 1 ejemplo numérico simple
+  - **medio**: Todo lo anterior + relación con 1ª y 3ª ley, 2 ejemplos desarrollados paso a paso, tabla de unidades, errores comunes (confundir masa/peso)
+  - **detallado**: Todo lo anterior + demostración desde principios fundamentales, 3+ ejemplos con diferentes escenarios (plano inclinado, poleas, sistemas de partículas), aplicaciones en ingeniería, extensión a relatividad, conexiones con conservación de energía, preguntas de autoevaluación
 
   ---
 
@@ -144,18 +172,18 @@ export const AI_PROMPTS = {
 
   {
     "notes": [
-      "## Título técnico expandido\\n\\n**Referencia del usuario**: \\\"texto original\\\"\\n\\n### Desarrollo completo\\n\\nContenido profundo...",
-      "## Otro bloque\\n\\n**Referencia**: ...\\n\\n### Explicación detallada..."
+      "## Título técnico expandido\\n\\n### Introducción\\n\\n[Contexto y relevancia del tema]\\n\\n### Fundamentos Teóricos\\n\\n[Desarrollo conceptual profundo con **negritas** para conceptos clave y *cursivas* para énfasis]\\n\\n### Desarrollo Técnico\\n\\n[Explicación detallada con fórmulas en LaTeX: $E = mc^2$ o $$\\int_a^b f(x)dx$$]\\n\\n### Ejemplos Aplicados\\n\\n**Ejemplo 1:** [Desarrollo paso a paso]\\n\\n**Ejemplo 2:** [Otro ejemplo completo]\\n\\n### Tabla Resumen\\n\\n| Concepto | Definición | Ejemplo |\\n|----------|------------|---------|\\n| X        | ...        | ...     |\\n\\n### Errores Comunes\\n\\n> **Advertencia:** [Error frecuente y cómo evitarlo]\\n\\n### Puntos Clave\\n\\n- Punto fundamental 1\\n- Punto fundamental 2\\n- Punto fundamental 3",
+      "## Otro bloque\\n\\n### Introducción\\n\\n[Contexto]...\\n\\n### Desarrollo completo\\n\\n[Contenido profundo con markdown estratégico]..."
     ],
     "metadata": {
       "title": "Título técnico general",
-      "description": "Desarrolla la referencia X con nivel de detalle Y",
+      "description": "Desarrolla la referencia X con nivel de detalle Y (breve/medio/detallado)",
       "area": "Área específica",
       "tema": "Tema concreto"
     }
   }
 
-  El contenido debe ser PROFESIONAL, autocontenido y académicamente riguroso. La referencia del usuario debe quedar completamente agotada, explicada y ejemplificada.
+  El contenido debe ser PROFESIONAL, autocontenido y académicamente riguroso. La referencia del usuario debe quedar completamente agotada, explicada y ejemplificada. **USA MARKDOWN ESTRATÉGICAMENTE para maximizar la claridad y el aprendizaje**.
   `,
   // ==================== FLASHCARDS ====================
   generateFlashcards: (numberOfCards: number) => `
