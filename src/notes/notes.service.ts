@@ -121,14 +121,44 @@ export class NotesService {
         level,
       );
 
+      // Validate response structure
+      if (!response || typeof response !== 'object') {
+        throw new BadRequestException({
+          message: 'Error al generar notas',
+          details: 'La IA respondió con un formato inválido. Por favor, intenta de nuevo con un tema más específico.',
+          errorCode: 'INVALID_AI_RESPONSE',
+          rawResponse: response,
+        });
+      }
+
       const meta = (response.metadata || {}) as Record<string, unknown>;
       const title = meta.title as string;
       const description = (meta.description as string) || '';
       const area = meta.area as string | undefined;
       const tema = meta.tema as string | undefined;
 
+      // Validate metadata
+      if (!title) {
+        throw new BadRequestException({
+          message: 'Datos incompletos de la IA',
+          details: 'La IA generó las notas pero no incluyó un título. Por favor, intenta de nuevo.',
+          errorCode: 'MISSING_METADATA',
+          rawResponse: response,
+        });
+      }
+
       const rawNotes = response.notes;
       const normalizedNotes = this.normalizeAiNoteItems(rawNotes);
+
+      // Validate notes array
+      if (!normalizedNotes || normalizedNotes.length === 0) {
+        throw new BadRequestException({
+          message: 'No se generaron notas',
+          details: 'La IA no pudo generar contenido para las notas. Intenta con otro tema o una referencia más detallada.',
+          errorCode: 'NO_CONTENT_GENERATED',
+          rawResponse: response,
+        });
+      }
 
       // Create the note first
       const note = this.noteRepo.create({
@@ -160,12 +190,16 @@ export class NotesService {
       return {
         message: 'Notas creadas correctamente',
         noteId: savedNote.id,
+        totalSections: normalizedNotes.length,
       };
     } catch (error) {
       if (error instanceof BadRequestException) throw error;
-      throw new BadRequestException(
-        error instanceof Error ? error.message : 'Error al generar notas',
-      );
+      throw new BadRequestException({
+        message: 'Error al generar notas',
+        details: error instanceof Error ? error.message : 'Ocurrió un error inesperado. Por favor, intenta de nuevo.',
+        errorCode: 'NOTE_GENERATION_ERROR',
+        rawResponse: null,
+      });
     }
   }
   // ==================== BASIC CRUD ====================

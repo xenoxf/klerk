@@ -21,7 +21,7 @@ export class ExamsService {
     private questionRepo: Repository<ExamQuestion>,
     @InjectRepository(ExamOption) private optionRepo: Repository<ExamOption>,
     private readonly groqService: GroqService,
-  ) {}
+  ) { }
 
   // ==================== GENERATE EXAM FROM TOPIC ====================
 
@@ -35,33 +35,46 @@ export class ExamsService {
 
       // Validate response structure
       if (!response || typeof response !== 'object') {
-        throw new BadRequestException('Invalid response from AI service');
+        throw new BadRequestException({
+          message: 'Error al generar el examen',
+          details: 'La IA respondió con un formato inválido. Por favor, intenta de nuevo con un tema más específico.',
+          errorCode: 'INVALID_AI_RESPONSE',
+          rawResponse: response,
+        });
       }
 
       const { questions, metadata } = response;
 
       // Validate questions array
       if (!questions || !Array.isArray(questions) || questions.length === 0) {
-        throw new BadRequestException(
-          'AI did not generate any questions. Please try again with a different topic. RESPONSE: ' +
-            response,
-        );
+        throw new BadRequestException({
+          message: 'No se generaron preguntas',
+          details: 'La IA no pudo generar preguntas para este tema. Intenta con otro tema o verifica que el tema sea claro.',
+          errorCode: 'NO_QUESTIONS_GENERATED',
+          rawResponse: response,
+        });
       }
 
       // Validate metadata exists
       if (!metadata || typeof metadata !== 'object') {
-        throw new BadRequestException(
-          'AI generated questions but missing metadata. Please try again.',
-        );
+        throw new BadRequestException({
+          message: 'Error en los datos del examen',
+          details: 'La IA generó preguntas pero faltan los metadatos del examen (título, descripción, etc.). Por favor, intenta de nuevo.',
+          errorCode: 'MISSING_METADATA',
+          rawResponse: response,
+        });
       }
 
       const { title, description, tema, area } = metadata;
 
       // Validate required metadata fields
       if (!title || !description || !tema || !area) {
-        throw new BadRequestException(
-          'AI generated incomplete data. Missing required fields. Please try again.',
-        );
+        throw new BadRequestException({
+          message: 'Datos del examen incompletos',
+          details: `Faltan campos requeridos: ${!title ? 'título, ' : ''}${!description ? 'descripción, ' : ''}${!tema ? 'tema, ' : ''}${!area ? 'área' : ''}. Por favor, intenta de nuevo.`,
+          errorCode: 'INCOMPLETE_METADATA',
+          rawResponse: response,
+        });
       }
 
       const exam = this.examRepo.create({
@@ -81,7 +94,12 @@ export class ExamsService {
 
       for (const q of questions) {
         if (!q.question || !Array.isArray(q.options)) {
-          throw new BadRequestException('Invalid question format from AI');
+          throw new BadRequestException({
+            message: 'Formato de pregunta inválido',
+            details: 'La IA generó una pregunta con formato incorrecto. Falta el texto de la pregunta o las opciones.',
+            errorCode: 'INVALID_QUESTION_FORMAT',
+            rawResponse: response,
+          });
         }
 
         const question = this.questionRepo.create({
@@ -102,9 +120,24 @@ export class ExamsService {
         }
       }
 
-      return { message: 'Examen generado, respondelo ya¡¡¡' };
+      return { 
+        message: 'Examen generado exitosamente',
+        examId: savedExam.id,
+        totalQuestions: savedExam.totalQuestions,
+      };
     } catch (error) {
-      throw new BadRequestException(`Error generating exam: ${error.message}`);
+      // Si ya es una BadRequestException, la relanzamos
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      
+      // Error genérico con más detalles
+      throw new BadRequestException({
+        message: 'Error al generar el examen',
+        details: error.message || 'Ocurrió un error inesperado. Por favor, intenta de nuevo.',
+        errorCode: 'EXAM_GENERATION_ERROR',
+        rawResponse: null,
+      });
     }
   }
   // ==================== BASIC CRUD ====================
@@ -284,10 +317,10 @@ export class ExamsService {
           options:
             q.options && q.options.length > 0
               ? q.options.map((opt) => ({
-                  id: opt.id,
-                  text: opt.text,
-                  isCorrect: opt.isCorrect,
-                }))
+                id: opt.id,
+                text: opt.text,
+                isCorrect: opt.isCorrect,
+              }))
               : [],
         })),
       };
