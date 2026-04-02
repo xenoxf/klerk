@@ -59,7 +59,7 @@ async function bootstrap() {
     '/auth',
     rateLimit({
       windowMs: 15 * 60 * 1000, // 15 minutos
-      max: 20, // Máximo 20 intentos por IP cada 15 minutos
+      max: 50, // Máximo 20 intentos por IP cada 15 minutos
       message: {
         statusCode: 429,
         error: 'Too Many Requests',
@@ -79,7 +79,7 @@ async function bootstrap() {
     '/exams/generate',
     rateLimit({
       windowMs: 60 * 60 * 1000, // 1 hora
-      max: 20, // Máximo 20 generaciones por hora
+      max: 50, // Máximo 20 generaciones por hora
       message: {
         statusCode: 429,
         error: 'Too Many Requests',
@@ -94,7 +94,7 @@ async function bootstrap() {
     '/flash-cards/generate',
     rateLimit({
       windowMs: 60 * 60 * 1000, // 1 hora
-      max: 20, // Máximo 20 generaciones por hora
+      max: 50, // Máximo 20 generaciones por hora
       message: {
         statusCode: 429,
         error: 'Too Many Requests',
@@ -110,7 +110,7 @@ async function bootstrap() {
     '/notes/generate',
     rateLimit({
       windowMs: 60 * 60 * 1000, // 1 hora
-      max: 20, // Máximo 20 generaciones por hora
+      max: 50, // Máximo 20 generaciones por hora
       message: {
         statusCode: 429,
         error: 'Too Many Requests',

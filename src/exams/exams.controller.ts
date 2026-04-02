@@ -16,6 +16,7 @@ import { JwtGuard } from '../auth/jwt/jwt.guard';
 import { GenerateExamDto } from './dto/generate-exam.dto';
 import { UpdateExamDto } from './dto/update-exam.dto';
 import { Exam } from './entities/exam.entity';
+import { RequireAuthGuard } from '../common/guards/require-auth/require-auth.guard';
 
 // letras mas usadas
 // a & $ e & @ i & ! o & 0 u & v
@@ -92,7 +93,7 @@ export class ExamsController {
   }
 
   @Delete(':id')
-  @UseGuards(JwtGuard)
+  @UseGuards(JwtGuard, RequireAuthGuard)
   delete(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
     return this.examsService.delete(id, req.user.id);
   }
@@ -100,7 +101,7 @@ export class ExamsController {
   // ==================== AI GENERATION ====================
 
   @Post('generate/topic_or_reference')
-  @UseGuards(JwtGuard)
+  @UseGuards(JwtGuard, RequireAuthGuard)
   generateFromTopic(@Body() input: GenerateExamDto, @Req() req: any) {
     return this.examsService.generateExam(input, req.user.id);
   }
@@ -108,13 +109,13 @@ export class ExamsController {
   // ==================== CRUD OPERATIONS ====================
 
   @Post()
-  @UseGuards(JwtGuard)
+  @UseGuards(JwtGuard, RequireAuthGuard)
   create(@Body() body: Partial<Exam>, @Req() req: any) {
     return this.examsService.create(body, req.user.id);
   }
 
   @Put(':id')
-  @UseGuards(JwtGuard)
+  @UseGuards(JwtGuard, RequireAuthGuard)
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() body: Partial<Exam>,

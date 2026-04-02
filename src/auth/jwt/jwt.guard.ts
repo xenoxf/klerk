@@ -28,6 +28,7 @@ export class JwtGuard implements CanActivate {
       request.user = {
         id: payload.sub,
         email: payload.email,
+        isGuest: payload.isGuest ?? false,
         ...payload, // por si metes más datos
       };
 

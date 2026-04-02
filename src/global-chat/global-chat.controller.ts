@@ -12,6 +12,7 @@ import {
 import { GlobalChatService } from './global-chat.service';
 import { CreateGlobalChatMessageDto } from './dto/create-global-chat-message.dto';
 import { JwtGuard } from '../auth/jwt/jwt.guard';
+import { RequireAuthGuard } from '../common/guards/require-auth/require-auth.guard';
 
 @Controller('global-chat')
 export class GlobalChatController {
@@ -23,7 +24,7 @@ export class GlobalChatController {
   }
 
   @Post('message')
-  @UseGuards(JwtGuard)
+  @UseGuards(JwtGuard, RequireAuthGuard)
   async create(@Body() createDto: CreateGlobalChatMessageDto, @Req() req: any) {
     return this.globalChatService.create(createDto, req.user.id);
   }
@@ -35,7 +36,7 @@ export class GlobalChatController {
   }
 
   @Delete('message/:id')
-  @UseGuards(JwtGuard)
+  @UseGuards(JwtGuard, RequireAuthGuard)
   async remove(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
     return this.globalChatService.remove(id, req.user.id);
   }

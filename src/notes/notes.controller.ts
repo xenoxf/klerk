@@ -16,15 +16,16 @@ import { NotesService } from './notes.service';
 //import { UpdateNoteDto } from './dto/update-note.dto';
 import { JwtGuard } from '../auth/jwt/jwt.guard';
 import { GenerateNoteDto } from './dto/create-note.dto';
+import { RequireAuthGuard } from '../common/guards/require-auth/require-auth.guard';
 //import { ApiKeyGuard } from '../common/guards/api-key/api-key.guard';
 
 @Controller('notes')
 export class NotesController {
   constructor(private notesService: NotesService) {}
 
-  // ==================== AI GENERATION a @====================
+  // ==================== AI GENERATION ====================
   @Post('generate/topic_or_reference')
-  @UseGuards(JwtGuard)
+  @UseGuards(JwtGuard, RequireAuthGuard)
   generate(@Body() input: GenerateNoteDto, @Req() req: any) {
     return this.notesService.generateNote(input, req.user.id);
   }
@@ -64,7 +65,7 @@ export class NotesController {
   }
 
   @Post()
-  @UseGuards(JwtGuard)
+  @UseGuards(JwtGuard, RequireAuthGuard)
   async create(@Body() body: any, @Req() req: any) {
     return this.notesService.create(body, req.user.id);
   }
@@ -75,7 +76,7 @@ export class NotesController {
   }
 
   @Patch(':id')
-  @UseGuards(JwtGuard)
+  @UseGuards(JwtGuard, RequireAuthGuard)
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() body: any,
@@ -90,7 +91,7 @@ export class NotesController {
   }
 
   @Delete(':id')
-  @UseGuards(JwtGuard)
+  @UseGuards(JwtGuard, RequireAuthGuard)
   async delete(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
     return this.notesService.remove(id, req.user.id);
   }

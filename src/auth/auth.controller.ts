@@ -177,4 +177,16 @@ export class AuthController {
       message: 'Token is valid',
     };
   }
+
+  @Post('guest')
+  async guestLogin() {
+    try {
+      return await this.authService.loginAsGuest();
+    } catch (error) {
+      this.logger.error('Guest login error:', error);
+      throw new BadRequestException(
+        error instanceof Error ? error.message : 'Error al iniciar como invitado',
+      );
+    }
+  }
 }

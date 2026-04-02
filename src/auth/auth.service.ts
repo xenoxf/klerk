@@ -394,6 +394,36 @@ export class AuthService {
       return { valid: false, error: error.message };
     }
   }
+
+  /** 1️⃣2️⃣ Guest login - token temporal sin guardar en DB */
+  async loginAsGuest() {
+    // Generar usuario guest temporal (no se guarda en DB)
+    const guestUser = {
+      id: `guest_${Date.now()}`,
+      email: null,
+      name: 'Invitado',
+      provider: 'guest',
+      isGuest: true,
+    };
+
+    // Token con expiración de 24 horas y flag isGuest
+    const token = this.jwtService.sign({
+      sub: guestUser.id,
+      email: guestUser.email,
+      provider: guestUser.provider,
+      isGuest: true,
+    }, { expiresIn: '24h' });
+
+    return {
+      token,
+      user: {
+        id: guestUser.id,
+        name: guestUser.name,
+        email: guestUser.email,
+        isGuest: true,
+      },
+    };
+  }
 }
 
 // Nota: El campo 'provider' ha sido reemplazado por 'providerId'

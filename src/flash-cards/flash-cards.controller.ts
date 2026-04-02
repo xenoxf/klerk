@@ -14,6 +14,7 @@ import {
 import { FlashCardsService } from './flash-cards.service';
 import { JwtGuard } from '../auth/jwt/jwt.guard';
 import { GenerateFlashCardsDto } from './dto/generate-flash-cards.dto';
+import { RequireAuthGuard } from '../common/guards/require-auth/require-auth.guard';
 
 //@UseGuards(ApiKeyGuard)
 @Controller('flash-cards')
@@ -22,7 +23,7 @@ export class FlashCardsController {
 
   // ==================== AI GENERATION ====================
   @Post('generate/topic_or_reference')
-  @UseGuards(JwtGuard)
+  @UseGuards(JwtGuard, RequireAuthGuard)
   generate(@Body() input: GenerateFlashCardsDto, @Req() req: any) {
     return this.flashCardsService.generateFrom(input, req.user.id);
   }
@@ -79,19 +80,19 @@ export class FlashCardsController {
   }
 
   @Post()
-  @UseGuards(JwtGuard)
+  @UseGuards(JwtGuard, RequireAuthGuard)
   create(@Body() body: any, @Req() req: any) {
     return this.flashCardsService.create(body, req.user.id);
   }
 
   @Patch(':id')
-  @UseGuards(JwtGuard)
+  @UseGuards(JwtGuard, RequireAuthGuard)
   update(@Param('id') id: string, @Body() body: any, @Req() req: any) {
     return this.flashCardsService.update(+id, body, req.user.id);
   }
 
   @Delete(':id')
-  @UseGuards(JwtGuard)
+  @UseGuards(JwtGuard, RequireAuthGuard)
   remove(@Param('id') id: string, @Req() req: any) {
     return this.flashCardsService.remove(+id, req.user.id);
   }
