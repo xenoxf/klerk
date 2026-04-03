@@ -11,6 +11,8 @@ import { MessagesModule } from './messages/messages.module';
 import { GroqModule } from './groq/groq.module';
 import { SharedModule } from './shared/shared.module';
 import { GlobalChatModule } from './global-chat/global-chat.module';
+import { TokenUsageModule } from './token-usage/token-usage.module';
+import { CreditsModule } from './credits/credits.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
 
@@ -60,6 +62,8 @@ import { ThrottlerModule } from '@nestjs/throttler';
     MessagesModule,
     GroqModule,
     GlobalChatModule,
+    TokenUsageModule,
+    CreditsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

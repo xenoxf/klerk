@@ -6,12 +6,14 @@ import { Chat } from './entities/chat.entity';
 import { Message } from './entities/message.entity';
 import { GroqModule } from '../groq/groq.module';
 import { SharedModule } from '../shared/shared.module';
+import { CreditsModule } from '../credits/credits.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Chat, Message]),
     GroqModule,
     SharedModule,
+    CreditsModule,
   ],
   controllers: [MessagesController],
   providers: [MessagesService],

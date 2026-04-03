@@ -10,7 +10,8 @@ import { Exam } from './entities/exam.entity';
 import { ExamQuestion } from './entities/examQuestion.entity';
 import { ExamOption } from './entities/exam-option.entity';
 import { GenerateExamDto } from './dto/generate-exam.dto';
-import { GroqService } from '../groq/groq.service';
+import { GroqService, GroqApiError } from '../groq/groq.service';
+import { CreditsService } from '../credits/credits.service';
 import { UpdateExamDto } from './dto/update-exam.dto';
 
 @Injectable()
@@ -21,11 +22,18 @@ export class ExamsService {
     private questionRepo: Repository<ExamQuestion>,
     @InjectRepository(ExamOption) private optionRepo: Repository<ExamOption>,
     private readonly groqService: GroqService,
+    private readonly creditsService: CreditsService,
   ) { }
 
   // ==================== GENERATE EXAM FROM TOPIC ====================
 
   async generateExam(input: GenerateExamDto, userId: number) {
+    // Verificar y consumir créditos (se hace ANTES de llamar a la IA)
+    const creditStatus = await this.creditsService.consumeCredits(
+      userId,
+      'EXAM_GENERATION',
+    );
+
     try {
       const response = await this.groqService.generateExam(
         input.reference,
@@ -39,7 +47,6 @@ export class ExamsService {
           message: 'Error al generar el examen',
           details: 'La IA respondió con un formato inválido. Por favor, intenta de nuevo con un tema más específico.',
           errorCode: 'INVALID_AI_RESPONSE',
-          rawResponse: response,
         });
       }
 
@@ -51,7 +58,6 @@ export class ExamsService {
           message: 'No se generaron preguntas',
           details: 'La IA no pudo generar preguntas para este tema. Intenta con otro tema o verifica que el tema sea claro.',
           errorCode: 'NO_QUESTIONS_GENERATED',
-          rawResponse: response,
         });
       }
 
@@ -61,7 +67,6 @@ export class ExamsService {
           message: 'Error en los datos del examen',
           details: 'La IA generó preguntas pero faltan los metadatos del examen (título, descripción, etc.). Por favor, intenta de nuevo.',
           errorCode: 'MISSING_METADATA',
-          rawResponse: response,
         });
       }
 
@@ -73,7 +78,6 @@ export class ExamsService {
           message: 'Datos del examen incompletos',
           details: `Faltan campos requeridos: ${!title ? 'título, ' : ''}${!description ? 'descripción, ' : ''}${!tema ? 'tema, ' : ''}${!area ? 'área' : ''}. Por favor, intenta de nuevo.`,
           errorCode: 'INCOMPLETE_METADATA',
-          rawResponse: response,
         });
       }
 
@@ -98,7 +102,6 @@ export class ExamsService {
             message: 'Formato de pregunta inválido',
             details: 'La IA generó una pregunta con formato incorrecto. Falta el texto de la pregunta o las opciones.',
             errorCode: 'INVALID_QUESTION_FORMAT',
-            rawResponse: response,
           });
         }
 
@@ -120,23 +123,33 @@ export class ExamsService {
         }
       }
 
-      return { 
+      return {
         message: 'Examen generado exitosamente',
         examId: savedExam.id,
         totalQuestions: savedExam.totalQuestions,
+        creditsRemaining: creditStatus.remaining,
+        creditsTotal: creditStatus.total,
       };
     } catch (error) {
       // Si ya es una BadRequestException, la relanzamos
       if (error instanceof BadRequestException) {
         throw error;
       }
-      
+
+      // Si es un GroqApiError, incluimos la respuesta completa de la IA
+      if (error instanceof GroqApiError) {
+        throw new BadRequestException({
+          message: error.message,
+          details: error.rawResponse || error.message,
+          errorCode: error.code,
+        });
+      }
+
       // Error genérico con más detalles
       throw new BadRequestException({
         message: 'Error al generar el examen',
         details: error.message || 'Ocurrió un error inesperado. Por favor, intenta de nuevo.',
         errorCode: 'EXAM_GENERATION_ERROR',
-        rawResponse: null,
       });
     }
   }

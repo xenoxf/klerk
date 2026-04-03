@@ -6,7 +6,8 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { GroqService } from '../groq/groq.service';
+import { GroqService, GroqApiError } from '../groq/groq.service';
+import { CreditsService } from '../credits/credits.service';
 import { FlashCard } from './entities/flash-card.entity';
 import { Card } from './entities/card.entity';
 import { GenerateFlashCardsDto } from './dto/generate-flash-cards.dto';
@@ -16,6 +17,7 @@ import { CardResponse } from './types';
 export class FlashCardsService {
   constructor(
     private readonly groqService: GroqService,
+    private readonly creditsService: CreditsService,
     @InjectRepository(FlashCard)
     private readonly flashCardRepo: Repository<FlashCard>,
     @InjectRepository(Card)
@@ -23,6 +25,12 @@ export class FlashCardsService {
   ) {}
 
   async generateFrom(input: GenerateFlashCardsDto, userId: number) {
+    // Verificar y consumir créditos
+    const creditStatus = await this.creditsService.consumeCredits(
+      userId,
+      'FLASHCARD_GENERATION',
+    );
+
     try {
       const response: CardResponse = await this.groqService.generateFlashcards(
         input.reference,
@@ -35,7 +43,6 @@ export class FlashCardsService {
           message: 'Error al generar flashcards',
           details: 'La IA respondió con un formato inválido. Por favor, intenta de nuevo con un tema más específico.',
           errorCode: 'INVALID_AI_RESPONSE',
-          rawResponse: response,
         });
       }
 
@@ -45,19 +52,17 @@ export class FlashCardsService {
           message: 'No se generaron flashcards',
           details: 'La IA no pudo generar tarjetas de estudio. Intenta con otro tema o una referencia más detallada.',
           errorCode: 'NO_CARDS_GENERATED',
-          rawResponse: response,
         });
       }
 
       // Validate metadata
       const { title, description, area, tema } = response.metadata;
-      
+
       if (!title) {
         throw new BadRequestException({
           message: 'Datos incompletos de la IA',
           details: 'La IA generó flashcards pero no incluyó un título para el mazo. Por favor, intenta de nuevo.',
           errorCode: 'MISSING_METADATA',
-          rawResponse: response,
         });
       }
 
@@ -81,7 +86,6 @@ export class FlashCardsService {
             message: 'Formato de flashcard inválido',
             details: 'La IA generó una tarjeta sin frente o reverso. Por favor, intenta de nuevo.',
             errorCode: 'INVALID_CARD_FORMAT',
-            rawResponse: response,
           });
         }
 
@@ -95,18 +99,29 @@ export class FlashCardsService {
         await this.flashCardRepo.save(fc);
         createdFlashCards.push(fc);
       }
-      return { 
+      return {
         message: 'Flashcards creadas exitosamente',
         cardId: savedCard.id,
         totalCards: createdFlashCards.length,
+        creditsRemaining: creditStatus.remaining,
+        creditsTotal: creditStatus.total,
       };
     } catch (error) {
       if (error instanceof BadRequestException) throw error;
+      
+      // Si es un GroqApiError, incluimos la respuesta completa de la IA
+      if (error instanceof GroqApiError) {
+        throw new BadRequestException({
+          message: error.message,
+          details: error.rawResponse || error.message,
+          errorCode: error.code,
+        });
+      }
+      
       throw new BadRequestException({
         message: 'Error al generar flashcards',
         details: error instanceof Error ? error.message : 'Ocurrió un error inesperado. Por favor, intenta de nuevo.',
         errorCode: 'FLASHCARDS_GENERATION_ERROR',
-        rawResponse: null,
       });
     }
   }

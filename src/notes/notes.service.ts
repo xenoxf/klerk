@@ -6,7 +6,8 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { GroqService } from '../groq/groq.service';
+import { GroqService, GroqApiError } from '../groq/groq.service';
+import { CreditsService } from '../credits/credits.service';
 //import { AI_PROMPTS } from '../groq/AI_PROMPTS';
 import { Note } from './entities/note.entity';
 import { NoteContent } from './entities/note-content.entity';
@@ -16,6 +17,7 @@ import { GenerateNoteDto } from './dto/create-note.dto';
 export class NotesService {
   constructor(
     private readonly groqService: GroqService,
+    private readonly creditsService: CreditsService,
     @InjectRepository(Note) private readonly noteRepo: Repository<Note>,
     @InjectRepository(NoteContent)
     private readonly noteContentRepo: Repository<NoteContent>,
@@ -117,6 +119,12 @@ export class NotesService {
 
   // ==================== GENERATE NOTE FROM TOPIC / REFERENCE ====================
   async generateNote(input: GenerateNoteDto, userId: number) {
+    // Verificar y consumir créditos
+    const creditStatus = await this.creditsService.consumeCredits(
+      userId,
+      'NOTE_GENERATION',
+    );
+
     try {
       const promptText = this.resolveNotePrompt(input);
       const numberOfNotes = input.numberOfNotes ?? 3;
@@ -135,7 +143,6 @@ export class NotesService {
           message: 'Error al generar notas',
           details: 'La IA respondió con un formato inválido. Por favor, intenta de nuevo con un tema más específico.',
           errorCode: 'INVALID_AI_RESPONSE',
-          rawResponse: response,
         });
       }
 
@@ -151,7 +158,6 @@ export class NotesService {
           message: 'Datos incompletos de la IA',
           details: 'La IA generó las notas pero no incluyó un título. Por favor, intenta de nuevo.',
           errorCode: 'MISSING_METADATA',
-          rawResponse: response,
         });
       }
 
@@ -164,7 +170,6 @@ export class NotesService {
           message: 'No se generaron notas',
           details: 'La IA no pudo generar contenido para las notas. Intenta con otro tema o una referencia más detallada.',
           errorCode: 'NO_CONTENT_GENERATED',
-          rawResponse: response,
         });
       }
 
@@ -199,14 +204,25 @@ export class NotesService {
         message: 'Notas creadas correctamente',
         noteId: savedNote.id,
         totalSections: normalizedNotes.length,
+        creditsRemaining: creditStatus.remaining,
+        creditsTotal: creditStatus.total,
       };
     } catch (error) {
       if (error instanceof BadRequestException) throw error;
+      
+      // Si es un GroqApiError, incluimos la respuesta completa de la IA
+      if (error instanceof GroqApiError) {
+        throw new BadRequestException({
+          message: error.message,
+          details: error.rawResponse || error.message,
+          errorCode: error.code,
+        });
+      }
+      
       throw new BadRequestException({
         message: 'Error al generar notas',
         details: error instanceof Error ? error.message : 'Ocurrió un error inesperado. Por favor, intenta de nuevo.',
         errorCode: 'NOTE_GENERATION_ERROR',
-        rawResponse: null,
       });
     }
   }

@@ -1,7 +1,19 @@
 // groq.service.ts
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import Groq from 'groq-sdk';
 import { AI_PROMPTS } from './AI_PROMPTS';
+
+// Custom error class for Groq API errors
+export class GroqApiError extends Error {
+  constructor(
+    public readonly code: string,
+    message: string,
+    public readonly rawResponse?: string,
+  ) {
+    super(message);
+    this.name = 'GroqApiError';
+  }
+}
 
 @Injectable()
 export class GroqService {
@@ -19,27 +31,34 @@ export class GroqService {
     try {
       const prompt = AI_PROMPTS.generateExam(numberOfQuestions, difficulty);
 
-      const completion = await this.groq.chat.completions.create({
-        model: 'llama-3.3-70b-versatile',
-        messages: [
-          {
-            role: 'system',
-            content: prompt,
-          },
-          {
-            role: 'user',
-            content: topic,
-          },
-        ],
-        temperature: 0.2,
-        max_tokens: 400,
-      });
+      let completion;
+      try {
+        completion = await this.groq.chat.completions.create({
+          model: 'llama-3.3-70b-versatile',
+          messages: [
+            {
+              role: 'system',
+              content: prompt,
+            },
+            {
+              role: 'user',
+              content: topic,
+            },
+          ],
+          temperature: 0.2,
+          max_tokens: 300, // Optimizado: de 400 a 300 (suficiente para exámenes JSON)
+        });
+      } catch (groqError) {
+        this.handleGroqError(groqError, 'generateExam');
+      }
 
       const raw = completion.choices[0]?.message?.content?.trim() || '';
 
       if (!raw) {
-        throw new Error(
+        throw new GroqApiError(
+          'EMPTY_AI_RESPONSE',
           'La IA no generó contenido. Intenta con un tema más específico.',
+          raw,
         );
       }
 
@@ -50,20 +69,28 @@ export class GroqService {
 
         // Validar estructura básica de la respuesta
         if (!parsed.questions || !Array.isArray(parsed.questions)) {
-          throw new Error(
+          throw new GroqApiError(
+            'INVALID_RESPONSE_FORMAT',
             'La IA respondió con un formato inválido. Asegúrate de que el tema sea claro.',
+            raw,
           );
         }
 
         if (!parsed.metadata || typeof parsed.metadata !== 'object') {
-          throw new Error('La IA no incluyó metadatos en la respuesta.');
+          throw new GroqApiError(
+            'MISSING_METADATA',
+            'La IA no incluyó metadatos en la respuesta.',
+            raw,
+          );
         }
 
         // Validar que las preguntas tengan la estructura correcta
         for (const q of parsed.questions) {
           if (!q.question || !q.options || !Array.isArray(q.options)) {
-            throw new Error(
+            throw new GroqApiError(
+              'INVALID_QUESTION_FORMAT',
               'Las preguntas generadas tienen formato inválido. Falta el texto o las opciones.',
+              raw,
             );
           }
         }
@@ -76,11 +103,23 @@ export class GroqService {
           'Raw response:',
           raw.substring(0, 500),
         );
-        throw new Error(`Formato JSON inválido: ${parseError.message}`);
+        throw new GroqApiError(
+          'INVALID_JSON',
+          `Formato JSON inválido: ${parseError.message}`,
+          raw,
+        );
       }
     } catch (error) {
       console.error('Groq exam error:', error);
-      throw error; // Relanzar el error para que el servicio de exams lo maneje
+      // Si ya es un GroqApiError, relanzarlo
+      if (error instanceof GroqApiError) {
+        throw error;
+      }
+      // Error inesperado
+      throw new GroqApiError(
+        'UNEXPECTED_ERROR',
+        'Ocurrió un error inesperado al generar el examen.',
+      );
     }
   }
   async generateNote(
@@ -91,27 +130,34 @@ export class GroqService {
     try {
       const prompt = AI_PROMPTS.generateNote(numberOfNotes, levelOfDetail);
 
-      const completion = await this.groq.chat.completions.create({
-        model: 'llama-3.3-70b-versatile',
-        messages: [
-          {
-            role: 'system',
-            content: prompt,
-          },
-          {
-            role: 'user',
-            content: topic,
-          },
-        ],
-        temperature: 0.2,
-        max_tokens: 650,
-      });
+      let completion;
+      try {
+        completion = await this.groq.chat.completions.create({
+          model: 'llama-3.3-70b-versatile',
+          messages: [
+            {
+              role: 'system',
+              content: prompt,
+            },
+            {
+              role: 'user',
+              content: topic,
+            },
+          ],
+          temperature: 0.2,
+          max_tokens: 500, // Optimizado: de 650 a 500 (suficiente para notas)
+        });
+      } catch (groqError) {
+        this.handleGroqError(groqError, 'generateNote');
+      }
 
       const raw = completion.choices[0]?.message?.content?.trim() || '';
 
       if (!raw) {
-        throw new Error(
+        throw new GroqApiError(
+          'EMPTY_AI_RESPONSE',
           'La IA no generó contenido. Intenta con un tema más específico.',
+          raw,
         );
       }
 
@@ -122,13 +168,19 @@ export class GroqService {
 
         // Validar estructura básica de la respuesta
         if (!parsed.notes || !Array.isArray(parsed.notes)) {
-          throw new Error(
+          throw new GroqApiError(
+            'INVALID_RESPONSE_FORMAT',
             'La IA respondió con un formato inválido. Asegúrate de que el tema sea claro.',
+            raw,
           );
         }
 
         if (!parsed.metadata || typeof parsed.metadata !== 'object') {
-          throw new Error('La IA no incluyó metadatos en la respuesta.');
+          throw new GroqApiError(
+            'MISSING_METADATA',
+            'La IA no incluyó metadatos en la respuesta.',
+            raw,
+          );
         }
 
         return parsed;
@@ -139,38 +191,55 @@ export class GroqService {
           'Raw response:',
           raw.substring(0, 500),
         );
-        throw new Error(`Formato JSON inválido: ${parseError.message}`);
+        throw new GroqApiError(
+          'INVALID_JSON',
+          `Formato JSON inválido: ${parseError.message}`,
+          raw,
+        );
       }
     } catch (error) {
       console.error('Groq note error:', error);
-      throw error; // Relanzar el error para que el servicio de notes lo maneje
+      if (error instanceof GroqApiError) {
+        throw error;
+      }
+      throw new GroqApiError(
+        'UNEXPECTED_ERROR',
+        'Ocurrió un error inesperado al generar las notas.',
+      );
     }
   }
   async generateFlashcards(topic: string, numberOfCards: number) {
     try {
       const prompt = AI_PROMPTS.generateFlashcards(numberOfCards);
 
-      const completion = await this.groq.chat.completions.create({
-        model: 'llama-3.3-70b-versatile',
-        messages: [
-          {
-            role: 'system',
-            content: prompt,
-          },
-          {
-            role: 'user',
-            content: topic,
-          },
-        ],
-        temperature: 0.2,
-        max_tokens: 300,
-      });
+      let completion;
+      try {
+        completion = await this.groq.chat.completions.create({
+          model: 'llama-3.3-70b-versatile',
+          messages: [
+            {
+              role: 'system',
+              content: prompt,
+            },
+            {
+              role: 'user',
+              content: topic,
+            },
+          ],
+          temperature: 0.2,
+          max_tokens: 250, // Optimizado: de 300 a 250 (suficiente para flashcards)
+        });
+      } catch (groqError) {
+        this.handleGroqError(groqError, 'generateFlashcards');
+      }
 
       const raw = completion.choices[0]?.message?.content?.trim() || '';
 
       if (!raw) {
-        throw new Error(
+        throw new GroqApiError(
+          'EMPTY_AI_RESPONSE',
           'La IA no generó contenido. Intenta con un tema más específico.',
+          raw,
         );
       }
 
@@ -181,13 +250,19 @@ export class GroqService {
 
         // Validar estructura básica de la respuesta
         if (!parsed.cards || !Array.isArray(parsed.cards)) {
-          throw new Error(
+          throw new GroqApiError(
+            'INVALID_RESPONSE_FORMAT',
             'La IA respondió con un formato inválido. Asegúrate de que el tema sea claro.',
+            raw,
           );
         }
 
         if (!parsed.metadata || typeof parsed.metadata !== 'object') {
-          throw new Error('La IA no incluyó metadatos en la respuesta.');
+          throw new GroqApiError(
+            'MISSING_METADATA',
+            'La IA no incluyó metadatos en la respuesta.',
+            raw,
+          );
         }
 
         return parsed;
@@ -198,11 +273,21 @@ export class GroqService {
           'Raw response:',
           raw.substring(0, 500),
         );
-        throw new Error(`Formato JSON inválido: ${parseError.message}`);
+        throw new GroqApiError(
+          'INVALID_JSON',
+          `Formato JSON inválido: ${parseError.message}`,
+          raw,
+        );
       }
     } catch (error) {
       console.error('Groq flashcards error:', error);
-      throw error; // Relanzar el error para que el servicio de flashcards lo maneje
+      if (error instanceof GroqApiError) {
+        throw error;
+      }
+      throw new GroqApiError(
+        'UNEXPECTED_ERROR',
+        'Ocurrió un error inesperado al generar las flashcards.',
+      );
     }
   }
   // ==================== EDUCATIONAL CHAT METHODS - OPTIMIZADO ====================
@@ -217,7 +302,7 @@ export class GroqService {
     }>,
   ) {
     try {
-      // Construir mensajes optimizados - solo últimos 3 mensajes para velocidad
+      // Construir mensajes optimizados - solo últimos 2 mensajes para ahorrar tokens
       const messages: any[] = [
         {
           role: 'system',
@@ -228,32 +313,33 @@ export class GroqService {
         },
       ];
 
-      // Agregar solo últimos 3 mensajes de historial (optimización de velocidad)
+      // Agregar solo últimos 2 mensajes de historial (optimización de tokens)
       if (conversationHistory && conversationHistory.length > 0) {
-        const recentHistory = conversationHistory.slice(-3);
+        const recentHistory = conversationHistory.slice(-2);
         recentHistory.forEach((msg) => {
           messages.push({
             role: 'user',
-            content: msg.prompt,
+            content: msg.prompt.substring(0, 500), // Limitar input a 500 chars
           });
           messages.push({
             role: 'assistant',
-            content: msg.response,
+            content: msg.response.substring(0, 500), // Limitar contexto a 500 chars
           });
         });
       }
 
-      // Agregar el mensaje actual del usuario
+      // Agregar el mensaje actual del usuario (limitado)
+      const truncatedMessage = userMessage.substring(0, 500);
       messages.push({
         role: 'user',
-        content: userMessage,
+        content: truncatedMessage,
       });
 
       const completion = await this.groq.chat.completions.create({
         model: 'llama-3.3-70b-versatile',
         messages,
         temperature: 0.7,
-        max_tokens: 300, // Reducido para respuestas más rápidas
+        max_tokens: 200, // Reducido: de 300 a 200 (respuestas más cortas y económicas)
         stream: false,
       });
 
@@ -275,18 +361,18 @@ export class GroqService {
           },
           {
             role: 'user',
-            content: `"${firstMessage}"`, // 👈 Solo el mensaje, sin instrucciones mezcladas
+            content: firstMessage.substring(0, 100).trim(), // Limitado a 100 chars
           },
         ],
         temperature: 0.3,
-        max_tokens: 50, // 👈 Títulos cortos, no necesita más
+        max_tokens: 30, // Optimizado: de 50 a 30
       });
 
       const title =
         completion.choices[0]?.message?.content
           ?.trim()
-          ?.replace(/^["']|["']$/g, '') // Elimina comillas si el modelo las añade
-          ?.replace(/\.$/g, '') || 'Nuevo Chat'; // Elimina punto final si lo añade
+          ?.replace(/^["']|["']$/g, '')
+          ?.replace(/\.$/g, '') || 'Nuevo Chat';
 
       return title;
     } catch {
@@ -299,7 +385,7 @@ export class GroqService {
   private async generateShortText(
     prompt: string,
     fallback: string,
-    maxTokens = 50,
+    maxTokens = 40, // Optimizado: de 50 a 40
   ): Promise<string> {
     try {
       const completion = await this.groq.chat.completions.create({
@@ -310,7 +396,7 @@ export class GroqService {
             content:
               'Responde SOLO con el texto solicitado. Sin comillas, sin puntos al final, sin explicaciones.',
           },
-          { role: 'user', content: prompt },
+          { role: 'user', content: prompt.substring(0, 200) }, // Limitado a 200 chars
         ],
         temperature: 0.2,
         max_tokens: maxTokens,
@@ -345,7 +431,7 @@ export class GroqService {
     return this.generateShortText(
       AI_PROMPTS.generateFlashcardDescription(topic, numberOfCards),
       `${numberOfCards} flashcards sobre ${topic.substring(0, 20)}`,
-      80,
+      50, // Optimizado: de 80 a 50
     );
   }
 
@@ -363,11 +449,43 @@ export class GroqService {
     return this.generateShortText(
       AI_PROMPTS.generateNoteDescription(topic, levelOfDetail),
       `Notas (${levelOfDetail}) sobre ${topic.substring(0, 18)}`,
-      80,
+      50, // Optimizado: de 80 a 50
     );
   }
 
   // ==================== HELPER METHODS ====================
+
+  /**
+   * Detecta errores de la API de Groq y los convierte en errores personalizados
+   */
+  private handleGroqError(error: any, operation: string, rawResponse?: string): never {
+    // Detectar error de límite de tokens/créditos
+    if (error.status === 429 || error.code === 'rate_limit_exceeded') {
+      throw new GroqApiError(
+        'GROQ_RATE_LIMIT',
+        'Se ha alcanzado el límite de uso de la IA. Por favor, intenta de nuevo en unos minutos.',
+        rawResponse,
+      );
+    }
+
+    // Detectar error de tokens agotados
+    if (error.message?.includes('insufficient_quota') || 
+        error.message?.includes('rate limit') ||
+        error.message?.includes('quota exceeded')) {
+      throw new GroqApiError(
+        'GROQ_TOKEN_LIMIT',
+        'Se han agotado los tokens de la IA. Por favor, espera unos minutos antes de intentar de nuevo.',
+        rawResponse,
+      );
+    }
+
+    // Error genérico de la API
+    throw new GroqApiError(
+      'GROQ_API_ERROR',
+      `Error en el servicio de IA: ${error.message || 'Error desconocido'}`,
+      rawResponse,
+    );
+  }
 
   private cleanJsonResponse(response: string): string {
     // Eliminar markdown code blocks
