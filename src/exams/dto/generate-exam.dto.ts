@@ -20,7 +20,7 @@ export class GenerateExamDto {
   reference: string;
 
   @Min(1, { message: 'La cantidad debe ser al menos 1' })
-  @Max(50, { message: 'La cantidad no puede exceder 50' })
+  @Max(10, { message: 'La cantidad no puede exceder 50' })
   numberOfQuestions: number;
 
   @MinLength(2, { message: 'La dificultad debe tener al manos 2 letras' })

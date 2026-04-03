@@ -23,7 +23,7 @@ export class GenerateFlashCardsDto {
 
   @IsNotEmpty({ message: 'La cantidad es obligatoria' })
   @Min(1, { message: 'La cantidad debe ser al menos 1' })
-  @Max(50, { message: 'La cantidad no puede exceder 50' })
+  @Max(10, { message: 'La cantidad no puede exceder 50' })
   quantity: number;
 
   @IsOptional()

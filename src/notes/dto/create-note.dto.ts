@@ -33,7 +33,7 @@ export class GenerateNoteDto {
   @ValidateIf((o) => o.numberOfNotes != null)
   @IsInt()
   @Min(1)
-  @Max(20)
+  @Max(10)
   numberOfNotes?: number;
 
   @IsOptional()

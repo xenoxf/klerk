@@ -32,25 +32,29 @@ export class GroqService {
           },
         ],
         temperature: 0.2,
-        max_tokens: 8192,
+        max_tokens: 400,
       });
 
       const raw = completion.choices[0]?.message?.content?.trim() || '';
 
       if (!raw) {
-        throw new Error('La IA no generó contenido. Intenta con un tema más específico.');
+        throw new Error(
+          'La IA no generó contenido. Intenta con un tema más específico.',
+        );
       }
 
       const cleaned = this.cleanJsonResponse(raw);
 
       try {
         const parsed = JSON.parse(cleaned);
-        
+
         // Validar estructura básica de la respuesta
         if (!parsed.questions || !Array.isArray(parsed.questions)) {
-          throw new Error('La IA respondió con un formato inválido. Asegúrate de que el tema sea claro.');
+          throw new Error(
+            'La IA respondió con un formato inválido. Asegúrate de que el tema sea claro.',
+          );
         }
-        
+
         if (!parsed.metadata || typeof parsed.metadata !== 'object') {
           throw new Error('La IA no incluyó metadatos en la respuesta.');
         }
@@ -58,7 +62,9 @@ export class GroqService {
         // Validar que las preguntas tengan la estructura correcta
         for (const q of parsed.questions) {
           if (!q.question || !q.options || !Array.isArray(q.options)) {
-            throw new Error('Las preguntas generadas tienen formato inválido. Falta el texto o las opciones.');
+            throw new Error(
+              'Las preguntas generadas tienen formato inválido. Falta el texto o las opciones.',
+            );
           }
         }
 
@@ -98,25 +104,29 @@ export class GroqService {
           },
         ],
         temperature: 0.2,
-        max_tokens: 8192,
+        max_tokens: 650,
       });
 
       const raw = completion.choices[0]?.message?.content?.trim() || '';
 
       if (!raw) {
-        throw new Error('La IA no generó contenido. Intenta con un tema más específico.');
+        throw new Error(
+          'La IA no generó contenido. Intenta con un tema más específico.',
+        );
       }
 
       const cleaned = this.cleanJsonResponse(raw);
 
       try {
         const parsed = JSON.parse(cleaned);
-        
+
         // Validar estructura básica de la respuesta
         if (!parsed.notes || !Array.isArray(parsed.notes)) {
-          throw new Error('La IA respondió con un formato inválido. Asegúrate de que el tema sea claro.');
+          throw new Error(
+            'La IA respondió con un formato inválido. Asegúrate de que el tema sea claro.',
+          );
         }
-        
+
         if (!parsed.metadata || typeof parsed.metadata !== 'object') {
           throw new Error('La IA no incluyó metadatos en la respuesta.');
         }
@@ -153,25 +163,29 @@ export class GroqService {
           },
         ],
         temperature: 0.2,
-        max_tokens: 8192,
+        max_tokens: 300,
       });
 
       const raw = completion.choices[0]?.message?.content?.trim() || '';
 
       if (!raw) {
-        throw new Error('La IA no generó contenido. Intenta con un tema más específico.');
+        throw new Error(
+          'La IA no generó contenido. Intenta con un tema más específico.',
+        );
       }
 
       const cleaned = this.cleanJsonResponse(raw);
 
       try {
         const parsed = JSON.parse(cleaned);
-        
+
         // Validar estructura básica de la respuesta
         if (!parsed.cards || !Array.isArray(parsed.cards)) {
-          throw new Error('La IA respondió con un formato inválido. Asegúrate de que el tema sea claro.');
+          throw new Error(
+            'La IA respondió con un formato inválido. Asegúrate de que el tema sea claro.',
+          );
         }
-        
+
         if (!parsed.metadata || typeof parsed.metadata !== 'object') {
           throw new Error('La IA no incluyó metadatos en la respuesta.');
         }
@@ -239,7 +253,7 @@ export class GroqService {
         model: 'llama-3.3-70b-versatile',
         messages,
         temperature: 0.7,
-        max_tokens: 1024, // Reducido para respuestas más rápidas
+        max_tokens: 300, // Reducido para respuestas más rápidas
         stream: false,
       });
 
