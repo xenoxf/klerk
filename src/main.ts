@@ -19,6 +19,7 @@ async function bootstrap() {
       'http://localhost:3000',
       'https://learnyos.vercel.app',
       'https://klerk.onrender.com',
+      'https://learnyos-love.vercel.app'
     ],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
