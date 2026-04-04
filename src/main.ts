@@ -19,7 +19,7 @@ async function bootstrap() {
       'http://localhost:3000',
       'https://learnyos.vercel.app',
       'https://klerk.onrender.com',
-      'https://learnyos-love.vercel.app'
+      'https://learnyos-love.vercel.app',
     ],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
@@ -272,7 +272,7 @@ async function bootstrap() {
   // ============================================
   // INICIALIZACIÓN DEL SERVIDOR
   // ============================================
-  const port = process.env.PORT || 3500;
+  const port = process.env.PORT ?? 3500;
 
   await app.listen(port, '0.0.0.0');
   console.log(`
