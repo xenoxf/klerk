@@ -3,9 +3,10 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { DailyCredits } from './entities/daily-credits.entity';
 import { CreditsService } from './credits.service';
 import { CreditsController } from './credits.controller';
+import { JwtModule } from '@nestjs/jwt';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([DailyCredits])],
+  imports: [TypeOrmModule.forFeature([DailyCredits]), JwtModule],
   providers: [CreditsService],
   controllers: [CreditsController],
   exports: [CreditsService],
