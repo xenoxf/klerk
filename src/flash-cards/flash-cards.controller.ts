@@ -32,7 +32,7 @@ export class FlashCardsController {
 
   // ==================== AI GENERATION ====================
   @Post('generate/topic_or_reference')
-  @UseGuards(RequireAuthGuard)
+  @UseGuards(JwtGuard, RequireAuthGuard)
   generate(@Body() input: GenerateFlashCardsDto, @Req() req: any) {
     return this.flashCardsService.generateFrom(input, getNumericUserId(req));
   }
@@ -44,7 +44,7 @@ export class FlashCardsController {
   }
 
   @Get('private')
-  @UseGuards(RequireAuthGuard)
+  @UseGuards(JwtGuard, RequireAuthGuard)
   findMyCards(@Req() req: any) {
     return this.flashCardsService.findMyCardsDeck(getNumericUserId(req));
   }
@@ -67,7 +67,7 @@ export class FlashCardsController {
   }
 
   @Get()
-  @UseGuards(RequireAuthGuard)
+  @UseGuards(JwtGuard, RequireAuthGuard)
   findAllMine(@Req() req: any) {
     return this.flashCardsService.findMyCardsDeck(getNumericUserId(req));
   }
@@ -89,25 +89,25 @@ export class FlashCardsController {
   }
 
   @Post()
-  @UseGuards(RequireAuthGuard)
+  @UseGuards(JwtGuard, RequireAuthGuard)
   create(@Body() body: any, @Req() req: any) {
     return this.flashCardsService.create(body, getNumericUserId(req));
   }
 
   @Patch(':id')
-  @UseGuards(RequireAuthGuard)
+  @UseGuards(JwtGuard, RequireAuthGuard)
   update(@Param('id') id: string, @Body() body: any, @Req() req: any) {
     return this.flashCardsService.update(+id, body, getNumericUserId(req));
   }
 
   @Delete(':id')
-  @UseGuards(RequireAuthGuard)
+  @UseGuards(JwtGuard, RequireAuthGuard)
   remove(@Param('id') id: string, @Req() req: any) {
     return this.flashCardsService.remove(+id, getNumericUserId(req));
   }
 
   @Delete('all')
-  @UseGuards(RequireAuthGuard)
+  @UseGuards(JwtGuard, RequireAuthGuard)
   async deleteAll(@Req() req: any) {
     return this.flashCardsService.deleteAll(getNumericUserId(req));
   }

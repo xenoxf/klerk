@@ -35,7 +35,7 @@ export class NotesController {
 
   // ==================== AI GENERATION ====================
   @Post('generate/topic_or_reference')
-  @UseGuards(RequireAuthGuard)
+  @UseGuards(JwtGuard, RequireAuthGuard)
   generate(@Body() input: GenerateNoteDto, @Req() req: any) {
     return this.notesService.generateNote(input, getNumericUserId(req));
   }
@@ -51,7 +51,7 @@ export class NotesController {
   }
 
   @Get('private')
-  @UseGuards(RequireAuthGuard)
+  @UseGuards(JwtGuard, RequireAuthGuard)
   async getPrivate(@Req() req: any) {
     return this.notesService.findPrivate(getNumericUserId(req));
   }
@@ -74,7 +74,7 @@ export class NotesController {
   }
 
   @Post()
-  @UseGuards(RequireAuthGuard)
+  @UseGuards(JwtGuard, RequireAuthGuard)
   async create(@Body() body: any, @Req() req: any) {
     return this.notesService.create(body, getNumericUserId(req));
   }
@@ -85,7 +85,7 @@ export class NotesController {
   }
 
   @Patch(':id')
-  @UseGuards(RequireAuthGuard)
+  @UseGuards(JwtGuard, RequireAuthGuard)
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() body: any,
@@ -100,13 +100,13 @@ export class NotesController {
   }
 
   @Delete(':id')
-  @UseGuards(RequireAuthGuard)
+  @UseGuards(JwtGuard, RequireAuthGuard)
   async delete(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
     return this.notesService.remove(id, getNumericUserId(req));
   }
 
   @Delete('all')
-  @UseGuards(RequireAuthGuard)
+  @UseGuards(JwtGuard, RequireAuthGuard)
   async deleteAll(@Req() req: any) {
     return this.notesService.deleteAll(getNumericUserId(req));
   }

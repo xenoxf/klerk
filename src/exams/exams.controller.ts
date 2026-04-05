@@ -42,7 +42,7 @@ export class ExamsController {
     return this.examsService.getPublicExamsDeck(req?.user?.id);
   }
 
-  @UseGuards(RequireAuthGuard)
+  @UseGuards(JwtGuard, RequireAuthGuard)
   @Get('private')
   getMyExamsDeck(@Req() req: any) {
     return this.examsService.getMyExamsDeck(getNumericUserId(req));
@@ -101,7 +101,7 @@ export class ExamsController {
   }
 
   @Delete(':id')
-  @UseGuards(RequireAuthGuard)
+  @UseGuards(JwtGuard, RequireAuthGuard)
   delete(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
     return this.examsService.delete(id, getNumericUserId(req));
   }
@@ -109,7 +109,7 @@ export class ExamsController {
   // ==================== AI GENERATION ====================
 
   @Post('generate/topic_or_reference')
-  @UseGuards(RequireAuthGuard)
+  @UseGuards(JwtGuard, RequireAuthGuard)
   generateFromTopic(@Body() input: GenerateExamDto, @Req() req: any) {
     return this.examsService.generateExam(input, getNumericUserId(req));
   }
@@ -117,13 +117,13 @@ export class ExamsController {
   // ==================== CRUD OPERATIONS ====================
 
   @Post()
-  @UseGuards(RequireAuthGuard)
+  @UseGuards(JwtGuard, RequireAuthGuard)
   create(@Body() body: Partial<Exam>, @Req() req: any) {
     return this.examsService.create(body, getNumericUserId(req));
   }
 
   @Put(':id')
-  @UseGuards(RequireAuthGuard)
+  @UseGuards(JwtGuard, RequireAuthGuard)
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() body: Partial<Exam>,
@@ -132,7 +132,7 @@ export class ExamsController {
     return this.examsService.update(id, body, getNumericUserId(req));
   }
 
-  @UseGuards(RequireAuthGuard)
+  @UseGuards(JwtGuard, RequireAuthGuard)
   @Delete('all')
   deleteAll(@Req() req: any) {
     return this.examsService.deleteAll(getNumericUserId(req));

@@ -17,7 +17,6 @@ function getNumericUserId(req: any): number {
   return userId;
 }
 
-@UseGuards(JwtGuard, RequireAuthGuard)
 @Controller('credits')
 export class CreditsController {
   constructor(private readonly creditsService: CreditsService) {}
@@ -26,12 +25,13 @@ export class CreditsController {
    * Obtiene el estado actual de créditos del usuario autenticado
    */
   @Get('/status')
+  @UseGuards(JwtGuard, RequireAuthGuard)
   async getCreditsStatus(@Req() req: any) {
     return this.creditsService.getCreditsStatus(getNumericUserId(req));
   }
 
   /**
-   * Obtiene los costos de cada acción (para que el frontend las muestre)
+   * Obtiene los costos de cada acción (endpoint público)
    */
   @Get('/costs')
   getCreditCosts() {
