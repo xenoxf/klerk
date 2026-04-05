@@ -11,7 +11,7 @@ import { DailyCredits } from './entities/daily-credits.entity';
 // Configuración de créditos
 export const CREDIT_CONFIG = {
   // Créditos diarios por usuario
-  DAILY_CREDITS: 100,
+  DAILY_CREDITS: 30,
 
   // Costo en créditos por acción
   COSTS: {
@@ -161,6 +161,9 @@ export class CreditsService {
     costs: typeof CREDIT_CONFIG.COSTS;
   }> {
     const dailyCredits = await this.getOrCreateDailyCredits(userId);
+    if(!dailyCredits) {
+      
+    }
 
     return {
       remaining: dailyCredits.remainingCredits,

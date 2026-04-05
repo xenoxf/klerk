@@ -13,7 +13,7 @@ import { User } from '../../users/entities/user.entity';
 @Entity()
 @Index(['userId', 'date'], { unique: true }) // Único por usuario por día
 export class DailyCredits {
-  @PrimaryGeneratedColumn()
+  @PrimaryGeneratedColumn('uuid')
   id: number;
 
   @Column({ type: 'int' })
@@ -28,7 +28,7 @@ export class DailyCredits {
   date: string;
 
   // Créditos totales asignados para este día
-  @Column({ type: 'int', default: 100 })
+  @Column({ type: 'int', default: 30 })
   totalCredits: number;
 
   // Créditos consumidos
@@ -36,7 +36,7 @@ export class DailyCredits {
   usedCredits: number;
 
   // Créditos restantes
-  @Column({ type: 'int', default: 100 })
+  @Column({ type: 'int', default: 30 })
   remainingCredits: number;
 
   // Desglose de uso

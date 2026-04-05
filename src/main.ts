@@ -36,7 +36,7 @@ async function bootstrap() {
   app.use(
     rateLimit({
       windowMs: 15 * 60 * 1000, // 15 minutos
-      max: 100, // Máximo 100 peticiones por IP cada 15 minutos
+      max: 35, // Máximo 35 peticiones por IP cada 15 minutos
       message: {
         statusCode: 429,
         error: 'Too Many Requests',
@@ -60,7 +60,7 @@ async function bootstrap() {
     '/auth',
     rateLimit({
       windowMs: 15 * 60 * 1000, // 15 minutos
-      max: 50, // Máximo 20 intentos por IP cada 15 minutos
+      max: 20, // Máximo 20 intentos por IP cada 15 minutos
       message: {
         statusCode: 429,
         error: 'Too Many Requests',
@@ -80,7 +80,7 @@ async function bootstrap() {
     '/exams/generate',
     rateLimit({
       windowMs: 60 * 60 * 1000, // 1 hora
-      max: 50, // Máximo 20 generaciones por hora
+      max: 20, // Máximo 20 generaciones por hora
       message: {
         statusCode: 429,
         error: 'Too Many Requests',
@@ -95,7 +95,7 @@ async function bootstrap() {
     '/flash-cards/generate',
     rateLimit({
       windowMs: 60 * 60 * 1000, // 1 hora
-      max: 50, // Máximo 20 generaciones por hora
+      max: 20, // Máximo 20 generaciones por hora
       message: {
         statusCode: 429,
         error: 'Too Many Requests',
@@ -111,7 +111,7 @@ async function bootstrap() {
     '/notes/generate',
     rateLimit({
       windowMs: 60 * 60 * 1000, // 1 hora
-      max: 50, // Máximo 20 generaciones por hora
+      max: 20, // Máximo 20 generaciones por hora
       message: {
         statusCode: 429,
         error: 'Too Many Requests',
@@ -269,6 +269,8 @@ async function bootstrap() {
     next();
   });
 
+  app.useGlobalGuards(new ApiKeyGuard());
+
   // ============================================
   // INICIALIZACIÓN DEL SERVIDOR
   // ============================================
@@ -281,9 +283,11 @@ async function bootstrap() {
   🔒  MODO SEGURO ACTIVADO
   📌  Puerto: ${port}
   🌐  URL: http://localhost:${port}
-  
+  🌐  🚀: https://klerk.onrender.com
+  🌐  💙: https://klerk-love.onrender.com
+
   🛡️  SECURITY FEATURES:
-     • Rate Limiting: 100 req/15min global
+     • Rate Limiting: 35 req/15min global
      • Auth Rate Limit: 10 req/15min
      • AI Gen Rate Limit: 20 req/hour
      • Max Payload: 1MB
@@ -292,14 +296,11 @@ async function bootstrap() {
      • SQL Injection Protection: ENABLED
      • Suspicious Activity Logging: ENABLED
   
-  📚  Swagger: http://localhost:${port}/api
   🔐  Health Check: http://localhost:${port}/health
-  🏓  Ping: http://localhost:${port}/ping
   🔑  X-API-KEY: ${process.env.API_KEY}
   ==========================================
   `);
 
-  app.useGlobalGuards(new ApiKeyGuard());
 }
 
 bootstrap();

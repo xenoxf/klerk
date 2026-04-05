@@ -2,7 +2,6 @@ import { Controller, Get, UseGuards } from '@nestjs/common';
 import { AppService } from './app.service';
 import { ApiKeyGuard } from './common/guards/api-key/api-key.guard';
 
-@UseGuards(ApiKeyGuard)
 @Controller()
 export class AppController {
   constructor(private readonly appService: AppService) {}
@@ -10,5 +9,10 @@ export class AppController {
   @Get()
   getHello(): string {
     return this.appService.getHello();
+  }
+
+  @Get()
+  encender(): boolean {
+    return true;
   }
 }
