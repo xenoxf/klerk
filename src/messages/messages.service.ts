@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Message } from './entities/message.entity';
 import { Chat } from './entities/chat.entity';
-import { GroqService } from '../groq/groq.service';
+import { GroqService, GroqApiError } from '../groq/groq.service';
 import { CreditsService } from '../credits/credits.service';
 
 @Injectable()
@@ -59,7 +59,9 @@ export class MessagesService {
     );
 
     // Generar título en paralelo (no bloquear)
-    const chatTitlePromise = this.generateChatTitle(input.prompt);
+    const chatTitlePromise = this.generateChatTitle(input.prompt).catch(
+      () => 'Nuevo Chat',
+    );
 
     let chat: Chat;
 
@@ -131,9 +133,22 @@ export class MessagesService {
         creditsTotal: creditStatus.total,
       };
     } catch (error) {
-      throw new BadRequestException(
-        `Failed to process message: ${error.message}`,
-      );
+      if (error instanceof BadRequestException) throw error;
+
+      if (error instanceof GroqApiError) {
+        throw new BadRequestException({
+          message: error.message,
+          details: error.rawResponse || error.message,
+          errorCode: error.code,
+          aiResponse: error.rawResponse,
+        });
+      }
+
+      throw new BadRequestException({
+        message: 'Error al procesar el mensaje',
+        details: error.message,
+        errorCode: 'MESSAGE_PROCESSING_ERROR',
+      });
     }
   }
   // Obtener todos los chats del usuario - OPTIMIZADO SIN RELACIONES

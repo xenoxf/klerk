@@ -47,7 +47,7 @@ export class GroqService {
             },
           ],
           temperature: 0.2,
-          max_tokens: 300, // Optimizado: de 400 a 300 (suficiente para exámenes JSON)
+          max_tokens: 800, // Optimizado: de 400 a 300 (suficiente para exámenes JSON)
         });
       } catch (groqError) {
         this.handleGroqError(groqError, 'generateExam');
@@ -146,7 +146,7 @@ export class GroqService {
             },
           ],
           temperature: 0.2,
-          max_tokens: 500, // Optimizado: de 650 a 500 (suficiente para notas)
+          max_tokens: 700, // Optimizado: de 650 a 500 (suficiente para notas)
         });
       } catch (groqError) {
         this.handleGroqError(groqError, 'generateNote');
@@ -228,7 +228,7 @@ export class GroqService {
             },
           ],
           temperature: 0.2,
-          max_tokens: 250, // Optimizado: de 300 a 250 (suficiente para flashcards)
+          max_tokens: 350, // Optimizado: de 300 a 250 (suficiente para flashcards)
         });
       } catch (groqError) {
         this.handleGroqError(groqError, 'generateFlashcards');
@@ -302,83 +302,68 @@ export class GroqService {
       createdAt: string;
     }>,
   ) {
-    try {
-      // Construir mensajes optimizados - solo últimos 2 mensajes para ahorrar tokens
-      const messages: any[] = [
-        {
-          role: 'system',
-          content: AI_PROMPTS.SYSTEM_PROMPT({
-            previousTopics: [],
-            messageCount: conversationHistory?.length || 0,
-          }),
-        },
-      ];
+    const messages: any[] = [
+      {
+        role: 'system',
+        content: AI_PROMPTS.SYSTEM_PROMPT({
+          previousTopics: [],
+          messageCount: conversationHistory?.length || 0,
+        }),
+      },
+    ];
 
-      // Agregar solo últimos 2 mensajes de historial (optimización de tokens)
-      if (conversationHistory && conversationHistory.length > 0) {
-        const recentHistory = conversationHistory.slice(-2);
-        recentHistory.forEach((msg) => {
-          messages.push({
-            role: 'user',
-            content: msg.prompt.substring(0, 500), // Limitar input a 500 chars
-          });
-          messages.push({
-            role: 'assistant',
-            content: msg.response.substring(0, 500), // Limitar contexto a 500 chars
-          });
+    if (conversationHistory && conversationHistory.length > 0) {
+      const recentHistory = conversationHistory.slice(-2);
+      recentHistory.forEach((msg) => {
+        messages.push({
+          role: 'user',
+          content: msg.prompt.substring(0, 500),
         });
-      }
-
-      // Agregar el mensaje actual del usuario (limitado)
-      const truncatedMessage = userMessage.substring(0, 500);
-      messages.push({
-        role: 'user',
-        content: truncatedMessage,
+        messages.push({
+          role: 'assistant',
+          content: msg.response.substring(0, 500),
+        });
       });
-
-      const completion = await this.groq.chat.completions.create({
-        model: 'llama-3.3-70b-versatile',
-        messages,
-        temperature: 0.7,
-        max_tokens: 200, // Reducido: de 300 a 200 (respuestas más cortas y económicas)
-        stream: false,
-      });
-
-      const raw = completion.choices[0]?.message?.content?.trim() || '';
-      return { response: raw };
-    } catch (error) {
-      console.error('Chat response error:', error);
-      return { response: `Error al generar respuesta: ${error.message}` };
     }
+
+    messages.push({
+      role: 'user',
+      content: userMessage.substring(0, 500),
+    });
+
+    const completion = await this.groq.chat.completions.create({
+      model: 'llama-3.3-70b-versatile',
+      messages,
+      temperature: 0.7,
+      max_tokens: 300,
+      stream: false,
+    });
+
+    const raw = completion.choices[0].message.content.trim();
+
+    return { response: raw };
   }
   async generateChatTitleFromMessage(firstMessage: string): Promise<string> {
-    try {
-      const completion = await this.groq.chat.completions.create({
-        model: 'llama-3.3-70b-versatile',
-        messages: [
-          {
-            role: 'system',
-            content: AI_PROMPTS.CHAT_TITLE_SYSTEM_PROMPT,
-          },
-          {
-            role: 'user',
-            content: firstMessage.substring(0, 100).trim(), // Limitado a 100 chars
-          },
-        ],
-        temperature: 0.3,
-        max_tokens: 30, // Optimizado: de 50 a 30
-      });
+    const completion = await this.groq.chat.completions.create({
+      model: 'llama-3.3-70b-versatile',
+      messages: [
+        {
+          role: 'system',
+          content: AI_PROMPTS.CHAT_TITLE_SYSTEM_PROMPT,
+        },
+        {
+          role: 'user',
+          content: firstMessage.substring(0, 100).trim(),
+        },
+      ],
+      temperature: 0.3,
+      max_tokens: 30,
+    });
 
-      const title =
-        completion.choices[0]?.message?.content
-          ?.trim()
-          ?.replace(/^["']|["']$/g, '')
-          ?.replace(/\.$/g, '') || 'Nuevo Chat';
-
-      return title;
-    } catch {
-      return 'Nuevo Chat';
-    }
+    return completion.choices[0].message.content
+      .trim()
+      .replace(/^["']|["']$/g, '')
+      .replace(/\.$/g, '');
   }
 
   // ==================== MÉTODOS ====================

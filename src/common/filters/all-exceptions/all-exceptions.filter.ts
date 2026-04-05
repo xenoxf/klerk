@@ -24,17 +24,19 @@ export class AllExceptionsFilter implements ExceptionFilter {
     let error = 'Internal Server Error';
     let details = null;
     let errorCode = 'INTERNAL_ERROR';
+    let aiResponse = null;
 
     // Manejar excepciones HTTP de NestJS
     if (exception instanceof BadRequestException) {
       status = 400;
       error = 'Bad Request';
       const response = exception.getResponse() as any;
-      
+
       if (typeof response === 'object' && response.message) {
         message = response.message;
         details = response.details || null;
         errorCode = response.errorCode || 'BAD_REQUEST';
+        aiResponse = response.aiResponse || null;
       } else if (typeof response === 'string') {
         message = response;
       } else if (Array.isArray(response?.message)) {
@@ -74,6 +76,10 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
     if (errorCode) {
       errorResponse.errorCode = errorCode;
+    }
+
+    if (aiResponse) {
+      errorResponse.aiResponse = aiResponse;
     }
 
     this.logger.error(`${status} - ${req.method} ${req.path} - ${message}`);
