@@ -7,10 +7,19 @@ import {
   Param,
   UseGuards,
   Req,
+  ForbiddenException,
 } from '@nestjs/common';
 import { MessagesService } from './messages.service';
 import { JwtGuard } from '../auth/jwt/jwt.guard';
 import { RequireAuthGuard } from '../common/guards/require-auth/require-auth.guard';
+
+function getNumericUserId(req: any): number {
+  const userId = Number(req.user?.id);
+  if (isNaN(userId)) {
+    throw new ForbiddenException('Acceso no permitido');
+  }
+  return userId;
+}
 
 @UseGuards(JwtGuard, RequireAuthGuard)
 @Controller('messages')
@@ -22,29 +31,26 @@ export class MessagesController {
     @Body() input: { prompt: string; chatId?: number },
     @Req() req,
   ) {
-    return this.messagesService.sendMessageWithAIResponse(input, req.user.id);
+    return this.messagesService.sendMessageWithAIResponse(input, getNumericUserId(req));
   }
 
   @Post('chats')
   createChat(@Body() input: { title?: string }, @Req() req: any) {
-    return this.messagesService.createChat(req.user.id, input.title);
+    return this.messagesService.createChat(getNumericUserId(req), input.title);
   }
 
   @Get('chats')
   getUserChats(@Req() req: any) {
-    const userId = req.user?.id || req.user?.userId || req.user;
-    return this.messagesService.getUserChats(userId);
+    return this.messagesService.getUserChats(getNumericUserId(req));
   }
 
   @Get('chat/:chatId')
   getChatMessages(@Param('chatId') chatId: string, @Req() req: any) {
-    const userId = req.user?.id || req.user?.userId || req.user;
-    return this.messagesService.getChatMessages(+chatId, userId);
+    return this.messagesService.getChatMessages(+chatId, getNumericUserId(req));
   }
 
   @Delete('chat/:chatId')
   deleteChat(@Param('chatId') chatId: string, @Req() req: any) {
-    const userId = req.user?.id || req.user?.userId || req.user;
-    return this.messagesService.deleteChat(+chatId, userId);
+    return this.messagesService.deleteChat(+chatId, getNumericUserId(req));
   }
 }

@@ -15,18 +15,6 @@ export class MessagesService {
     private readonly creditsService: CreditsService,
   ) {}
 
-  // Obtener o crear un chat para el usuario
-  private async getOrCreateChat(userId: number): Promise<Chat> {
-    let chat = await this.chatRepo.findOne({ where: { userId } });
-
-    if (!chat) {
-      chat = this.chatRepo.create({ userId, title: 'Nuevo Chat' });
-      await this.chatRepo.save(chat);
-    }
-
-    return chat;
-  }
-
   // Generar título del chat basado en el primer mensaje
   private async generateChatTitle(prompt: string): Promise<string> {
     return await this.groqService.generateChatTitleFromMessage(prompt);

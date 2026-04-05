@@ -10,6 +10,7 @@ import {
   Query,
   ParseIntPipe,
   Req,
+  ForbiddenException,
 } from '@nestjs/common';
 import { ExamsService } from './exams.service';
 import { JwtGuard } from '../auth/jwt/jwt.guard';
@@ -20,6 +21,15 @@ import { RequireAuthGuard } from '../common/guards/require-auth/require-auth.gua
 
 // letras mas usadas
 // a & $ e & @ i & ! o & 0 u & v
+
+function getNumericUserId(req: any): number {
+  const userId = Number(req.user?.id);
+  if (isNaN(userId)) {
+    throw new ForbiddenException('Acceso no permitido');
+  }
+  return userId;
+}
+
 @UseGuards(JwtGuard)
 @Controller('exams')
 export class ExamsController {
@@ -35,7 +45,7 @@ export class ExamsController {
   @UseGuards(RequireAuthGuard)
   @Get('private')
   getMyExamsDeck(@Req() req: any) {
-    return this.examsService.getMyExamsDeck(req.user.id);
+    return this.examsService.getMyExamsDeck(getNumericUserId(req));
   }
 
   @Get('public')
@@ -56,11 +66,11 @@ export class ExamsController {
     @Param('id', ParseIntPipe) id: number,
     @Req() req: any,
   ) {
-    return this.examsService.getByIdForPlay(id, req.user.id);
+    return this.examsService.getByIdForPlay(id, getNumericUserId(req));
   }
 
   @Get('deck') getExamsDeck(@Req() req: any) {
-    return this.examsService.getMyExamsDeck(req.user.id);
+    return this.examsService.getMyExamsDeck(getNumericUserId(req));
   }
 
   @Get('search')
@@ -82,7 +92,7 @@ export class ExamsController {
 
   @Get('score')
   updateExamScore(@Query() query: UpdateExamDto, @Req() req: any) {
-    return this.examsService.updateExamScore(query, req.user.id);
+    return this.examsService.updateExamScore(query, getNumericUserId(req));
   }
 
   @Get(':id')
@@ -93,7 +103,7 @@ export class ExamsController {
   @Delete(':id')
   @UseGuards(RequireAuthGuard)
   delete(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
-    return this.examsService.delete(id, req.user.id);
+    return this.examsService.delete(id, getNumericUserId(req));
   }
 
   // ==================== AI GENERATION ====================
@@ -101,7 +111,7 @@ export class ExamsController {
   @Post('generate/topic_or_reference')
   @UseGuards(RequireAuthGuard)
   generateFromTopic(@Body() input: GenerateExamDto, @Req() req: any) {
-    return this.examsService.generateExam(input, req.user.id);
+    return this.examsService.generateExam(input, getNumericUserId(req));
   }
 
   // ==================== CRUD OPERATIONS ====================
@@ -109,7 +119,7 @@ export class ExamsController {
   @Post()
   @UseGuards(RequireAuthGuard)
   create(@Body() body: Partial<Exam>, @Req() req: any) {
-    return this.examsService.create(body, req.user.id);
+    return this.examsService.create(body, getNumericUserId(req));
   }
 
   @Put(':id')
@@ -119,12 +129,12 @@ export class ExamsController {
     @Body() body: Partial<Exam>,
     @Req() req: any,
   ) {
-    return this.examsService.update(id, body, req.user.id);
+    return this.examsService.update(id, body, getNumericUserId(req));
   }
 
   @UseGuards(RequireAuthGuard)
   @Delete('all')
   deleteAll(@Req() req: any) {
-    return this.examsService.deleteAll(req.user.id);
+    return this.examsService.deleteAll(getNumericUserId(req));
   }
 }

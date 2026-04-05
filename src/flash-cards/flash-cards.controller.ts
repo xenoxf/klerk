@@ -10,11 +10,20 @@ import {
   Query,
   ParseIntPipe,
   Req,
+  ForbiddenException,
 } from '@nestjs/common';
 import { FlashCardsService } from './flash-cards.service';
 import { JwtGuard } from '../auth/jwt/jwt.guard';
 import { GenerateFlashCardsDto } from './dto/generate-flash-cards.dto';
 import { RequireAuthGuard } from '../common/guards/require-auth/require-auth.guard';
+
+function getNumericUserId(req: any): number {
+  const userId = Number(req.user?.id);
+  if (isNaN(userId)) {
+    throw new ForbiddenException('Acceso no permitido');
+  }
+  return userId;
+}
 
 @UseGuards(JwtGuard)
 @Controller('flash-cards')
@@ -25,7 +34,7 @@ export class FlashCardsController {
   @Post('generate/topic_or_reference')
   @UseGuards(RequireAuthGuard)
   generate(@Body() input: GenerateFlashCardsDto, @Req() req: any) {
-    return this.flashCardsService.generateFrom(input, req.user.id);
+    return this.flashCardsService.generateFrom(input, getNumericUserId(req));
   }
 
   // ==================== BASIC CRUD ====================
@@ -37,7 +46,7 @@ export class FlashCardsController {
   @Get('private')
   @UseGuards(RequireAuthGuard)
   findMyCards(@Req() req: any) {
-    return this.flashCardsService.findMyCardsDeck(req.user.id);
+    return this.flashCardsService.findMyCardsDeck(getNumericUserId(req));
   }
 
   @Get('search')
@@ -58,8 +67,9 @@ export class FlashCardsController {
   }
 
   @Get()
+  @UseGuards(RequireAuthGuard)
   findAllMine(@Req() req: any) {
-    return this.flashCardsService.findMyCardsDeck(req.user.id);
+    return this.flashCardsService.findMyCardsDeck(getNumericUserId(req));
   }
 
   @Get('klek/:id')
@@ -81,24 +91,24 @@ export class FlashCardsController {
   @Post()
   @UseGuards(RequireAuthGuard)
   create(@Body() body: any, @Req() req: any) {
-    return this.flashCardsService.create(body, req.user.id);
+    return this.flashCardsService.create(body, getNumericUserId(req));
   }
 
   @Patch(':id')
   @UseGuards(RequireAuthGuard)
   update(@Param('id') id: string, @Body() body: any, @Req() req: any) {
-    return this.flashCardsService.update(+id, body, req.user.id);
+    return this.flashCardsService.update(+id, body, getNumericUserId(req));
   }
 
   @Delete(':id')
   @UseGuards(RequireAuthGuard)
   remove(@Param('id') id: string, @Req() req: any) {
-    return this.flashCardsService.remove(+id, req.user.id);
+    return this.flashCardsService.remove(+id, getNumericUserId(req));
   }
 
   @Delete('all')
   @UseGuards(RequireAuthGuard)
   async deleteAll(@Req() req: any) {
-    return this.flashCardsService.deleteAll(req.user.id);
+    return this.flashCardsService.deleteAll(getNumericUserId(req));
   }
 }

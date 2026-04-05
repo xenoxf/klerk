@@ -5,9 +5,9 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { GroqService, GroqApiError } from '../groq/groq.service';
-import { CreditsService } from '../credits/credits.service';
+import { CreditsService, calculateNoteCost } from '../credits/credits.service';
 //import { AI_PROMPTS } from '../groq/AI_PROMPTS';
 import { Note } from './entities/note.entity';
 import { NoteContent } from './entities/note-content.entity';
@@ -22,19 +22,6 @@ export class NotesService {
     @InjectRepository(NoteContent)
     private readonly noteContentRepo: Repository<NoteContent>,
   ) { }
-
-  private parseJSON(raw: string): any {
-    try {
-      return JSON.parse(raw);
-    } catch {
-      try {
-        const match = raw.match(/\{[\s\S]*\}/);
-        return match ? JSON.parse(match[0]) : null;
-      } catch {
-        return null;
-      }
-    }
-  }
 
   private isPublicAccess(acceso?: string | null): boolean {
     const normalized = (acceso ?? '').toLowerCase();
@@ -119,14 +106,19 @@ export class NotesService {
 
   // ==================== GENERATE NOTE FROM TOPIC / REFERENCE ====================
   async generateNote(input: GenerateNoteDto, userId: number) {
-    // Verificar y consumir créditos
+    const promptText = this.resolveNotePrompt(input);
+    const dynamicCost = calculateNoteCost(
+      input.levelOfDetail ?? 'medio',
+      promptText,
+    );
+
     const creditStatus = await this.creditsService.consumeCredits(
       userId,
       'NOTE_GENERATION',
+      dynamicCost,
     );
 
     try {
-      const promptText = this.resolveNotePrompt(input);
       const numberOfNotes = input.numberOfNotes ?? 3;
       const level = input.levelOfDetail ?? 'medio';
       const acceso = this.normalizeAccess(input.acceso);
@@ -450,7 +442,7 @@ export class NotesService {
 
     const queryBuilder = this.noteRepo
       .createQueryBuilder('note')
-      .leftJoinAndSelect('note.contents', 'contents')
+      .leftJoinAndSelect('note.noteContents', 'noteContents')
       .where('LOWER(note.title) LIKE :query', { query: `%${normalizedQuery}%` })
       .orWhere('LOWER(note.description) LIKE :query', {
         query: `%${normalizedQuery}%`,
@@ -466,7 +458,7 @@ export class NotesService {
       });
 
     if (searchInContent) {
-      queryBuilder.orWhere('LOWER(contents.content) LIKE :query', {
+      queryBuilder.orWhere('LOWER(noteContents.content) LIKE :query', {
         query: `%${normalizedQuery}%`,
       });
     }
@@ -511,7 +503,13 @@ export class NotesService {
     }));
   }
 
-  deleteAll(userId: number) {
-    this.noteRepo.delete({ userId });
+  async deleteAll(userId: number): Promise<{ deleted: boolean; message: string }> {
+    const notes = await this.noteRepo.find({ where: { userId }, select: ['id'] });
+    const noteIds = notes.map(n => n.id);
+    if (noteIds.length > 0) {
+      await this.noteContentRepo.delete({ noteId: In(noteIds) } as any);
+      await this.noteRepo.delete({ userId });
+    }
+    return { deleted: true, message: 'All notes deleted' };
   }
 }

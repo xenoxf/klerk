@@ -7,7 +7,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { GroqService, GroqApiError } from '../groq/groq.service';
-import { CreditsService } from '../credits/credits.service';
+import { CreditsService, calculateFlashcardCost } from '../credits/credits.service';
 import { FlashCard } from './entities/flash-card.entity';
 import { Card } from './entities/card.entity';
 import { GenerateFlashCardsDto } from './dto/generate-flash-cards.dto';
@@ -25,10 +25,15 @@ export class FlashCardsService {
   ) { }
 
   async generateFrom(input: GenerateFlashCardsDto, userId: number) {
-    // Verificar y consumir créditos
+    const dynamicCost = calculateFlashcardCost(
+      input.quantity,
+      input.reference,
+    );
+
     const creditStatus = await this.creditsService.consumeCredits(
       userId,
       'FLASHCARD_GENERATION',
+      dynamicCost,
     );
 
     try {
@@ -158,16 +163,13 @@ export class FlashCardsService {
   }
 
   async generateCode() {
-    // debe tener 5 caracteres de letras mayúsculas y números
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     let code = '';
     for (let i = 0; i < 5; i++) {
       code += chars.charAt(Math.floor(Math.random() * chars.length));
     }
     const existing = await this.cardRepo.findOne({ where: { code } });
-    if (existing) {
-      return this.generateCode(); // Regenerar si ya existe
-    }
+    if (existing) return this.generateCode();
     return code;
   }
 
@@ -438,7 +440,8 @@ export class FlashCardsService {
     return this.deckRefactor(cards, userId);
   }
 
-  deleteAll(userId: number) {
-    this.cardRepo.delete({ userId });
+  async deleteAll(userId: number): Promise<{ deleted: boolean; message: string }> {
+    await this.cardRepo.delete({ userId });
+    return { deleted: true, message: 'All flashcards deleted' };
   }
 }

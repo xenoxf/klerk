@@ -5,22 +5,60 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, MoreThanOrEqual } from 'typeorm';
+import { Repository, MoreThanOrEqual, LessThan } from 'typeorm';
 import { DailyCredits } from './entities/daily-credits.entity';
 
 // Configuración de créditos
 export const CREDIT_CONFIG = {
-  // Créditos diarios por usuario
   DAILY_CREDITS: 30,
 
-  // Costo en créditos por acción
-  COSTS: {
-    EXAM_GENERATION: 5, // Generar un examen cuesta 5 créditos
-    NOTE_GENERATION: 4, // Generar notas cuesta 4 créditos
-    FLASHCARD_GENERATION: 3, // Generar flashcards cuesta 3 créditos
-    CHAT_MESSAGE: 1, // Cada mensaje de chat cuesta 1 crédito
+  // Costos base por acción
+  BASE_COSTS: {
+    EXAM_GENERATION: 3,
+    NOTE_GENERATION: 2,
+    FLASHCARD_GENERATION: 2,
+    CHAT_MESSAGE: 1,
+  },
+
+  // Multiplicadores para cálculo dinámico
+  MULTIPLIERS: {
+    EXAM_PER_QUESTION: 0.5, // +0.5 créditos por pregunta
+    EXAM_DIFFICULTY: {
+      easy: 1.0,
+      medium: 1.3,
+      hard: 1.7,
+    },
+    NOTE_DETAIL: {
+      breve: 1.0,
+      medio: 1.4,
+      detallado: 1.9,
+    },
+    FLASHCARD_PER_CARD: 0.4, // +0.4 créditos por tarjeta
+    TOPIC_LENGTH_THRESHOLD: 100, // Si el topic supera esto, +1 crédito extra
   },
 };
+
+export function calculateExamCost(numberOfQuestions: number, difficulty: string, topic: string): number {
+  const base = CREDIT_CONFIG.BASE_COSTS.EXAM_GENERATION;
+  const questionCost = numberOfQuestions * CREDIT_CONFIG.MULTIPLIERS.EXAM_PER_QUESTION;
+  const difficultyMult = CREDIT_CONFIG.MULTIPLIERS.EXAM_DIFFICULTY[difficulty] || 1.3;
+  const topicExtra = topic.length > CREDIT_CONFIG.MULTIPLIERS.TOPIC_LENGTH_THRESHOLD ? 1 : 0;
+  return Math.ceil((base + questionCost) * difficultyMult + topicExtra);
+}
+
+export function calculateNoteCost(levelOfDetail: string, topic: string): number {
+  const base = CREDIT_CONFIG.BASE_COSTS.NOTE_GENERATION;
+  const detailMult = CREDIT_CONFIG.MULTIPLIERS.NOTE_DETAIL[levelOfDetail] || 1.4;
+  const topicExtra = topic.length > CREDIT_CONFIG.MULTIPLIERS.TOPIC_LENGTH_THRESHOLD ? 1 : 0;
+  return Math.ceil(base * detailMult + topicExtra);
+}
+
+export function calculateFlashcardCost(numberOfCards: number, topic: string): number {
+  const base = CREDIT_CONFIG.BASE_COSTS.FLASHCARD_GENERATION;
+  const cardCost = numberOfCards * CREDIT_CONFIG.MULTIPLIERS.FLASHCARD_PER_CARD;
+  const topicExtra = topic.length > CREDIT_CONFIG.MULTIPLIERS.TOPIC_LENGTH_THRESHOLD ? 1 : 0;
+  return Math.ceil(base + cardCost + topicExtra);
+}
 
 @Injectable()
 export class CreditsService {
@@ -64,7 +102,8 @@ export class CreditsService {
    */
   async checkCredits(
     userId: number,
-    action: keyof typeof CREDIT_CONFIG.COSTS,
+    action: keyof typeof CREDIT_CONFIG.BASE_COSTS,
+    dynamicCost?: number,
   ): Promise<{
     hasCredits: boolean;
     remaining: number;
@@ -72,7 +111,7 @@ export class CreditsService {
     dailyCredits: DailyCredits;
   }> {
     const dailyCredits = await this.getOrCreateDailyCredits(userId);
-    const cost = CREDIT_CONFIG.COSTS[action];
+    const cost = dynamicCost || CREDIT_CONFIG.BASE_COSTS[action];
 
     return {
       hasCredits: dailyCredits.remainingCredits >= cost,
@@ -88,14 +127,15 @@ export class CreditsService {
    */
   async consumeCredits(
     userId: number,
-    action: keyof typeof CREDIT_CONFIG.COSTS,
+    action: keyof typeof CREDIT_CONFIG.BASE_COSTS,
+    dynamicCost?: number,
   ): Promise<{
     remaining: number;
     total: number;
     used: number;
   }> {
     const dailyCredits = await this.getOrCreateDailyCredits(userId);
-    const cost = CREDIT_CONFIG.COSTS[action];
+    const cost = dynamicCost || CREDIT_CONFIG.BASE_COSTS[action];
 
     // Verificar si hay créditos suficientes
     if (dailyCredits.remainingCredits < cost) {
@@ -158,12 +198,10 @@ export class CreditsService {
       flashcardGenerations: number;
       chatMessages: number;
     };
-    costs: typeof CREDIT_CONFIG.COSTS;
+    costs: typeof CREDIT_CONFIG.BASE_COSTS;
+    multipliers: typeof CREDIT_CONFIG.MULTIPLIERS;
   }> {
     const dailyCredits = await this.getOrCreateDailyCredits(userId);
-    if(!dailyCredits) {
-      
-    }
 
     return {
       remaining: dailyCredits.remainingCredits,
@@ -178,7 +216,8 @@ export class CreditsService {
         flashcardGenerations: dailyCredits.flashcardGenerations,
         chatMessages: dailyCredits.chatMessages,
       },
-      costs: CREDIT_CONFIG.COSTS,
+      costs: CREDIT_CONFIG.BASE_COSTS,
+      multipliers: CREDIT_CONFIG.MULTIPLIERS,
     };
   }
 
@@ -190,7 +229,7 @@ export class CreditsService {
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
     await this.dailyCreditsRepo.delete({
-      createdAt: MoreThanOrEqual(sevenDaysAgo),
+      date: LessThan(sevenDaysAgo.toISOString().split('T')[0]),
     });
 
     this.logger.log('Cleaned up old credit records');

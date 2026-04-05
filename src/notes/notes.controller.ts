@@ -10,6 +10,7 @@ import {
   Query,
   ParseIntPipe,
   Req,
+  ForbiddenException,
 } from '@nestjs/common';
 //import { Request } from 'express';
 import { NotesService } from './notes.service';
@@ -18,6 +19,14 @@ import { JwtGuard } from '../auth/jwt/jwt.guard';
 import { GenerateNoteDto } from './dto/create-note.dto';
 import { RequireAuthGuard } from '../common/guards/require-auth/require-auth.guard';
 //import { ApiKeyGuard } from '../common/guards/api-key/api-key.guard';
+
+function getNumericUserId(req: any): number {
+  const userId = Number(req.user?.id);
+  if (isNaN(userId)) {
+    throw new ForbiddenException('Acceso no permitido');
+  }
+  return userId;
+}
 
 @UseGuards(JwtGuard)
 @Controller('notes')
@@ -28,7 +37,7 @@ export class NotesController {
   @Post('generate/topic_or_reference')
   @UseGuards(RequireAuthGuard)
   generate(@Body() input: GenerateNoteDto, @Req() req: any) {
-    return this.notesService.generateNote(input, req.user.id);
+    return this.notesService.generateNote(input, getNumericUserId(req));
   }
 
   @Get()
@@ -44,7 +53,7 @@ export class NotesController {
   @Get('private')
   @UseGuards(RequireAuthGuard)
   async getPrivate(@Req() req: any) {
-    return this.notesService.findPrivate(req.user.id);
+    return this.notesService.findPrivate(getNumericUserId(req));
   }
 
   @Get('search')
@@ -67,7 +76,7 @@ export class NotesController {
   @Post()
   @UseGuards(RequireAuthGuard)
   async create(@Body() body: any, @Req() req: any) {
-    return this.notesService.create(body, req.user.id);
+    return this.notesService.create(body, getNumericUserId(req));
   }
 
   @Get('code/:code')
@@ -82,7 +91,7 @@ export class NotesController {
     @Body() body: any,
     @Req() req: any,
   ) {
-    return this.notesService.update(id, body, req.user.id);
+    return this.notesService.update(id, body, getNumericUserId(req));
   }
 
   @Get(':id')
@@ -93,12 +102,12 @@ export class NotesController {
   @Delete(':id')
   @UseGuards(RequireAuthGuard)
   async delete(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
-    return this.notesService.remove(id, req.user.id);
+    return this.notesService.remove(id, getNumericUserId(req));
   }
 
   @Delete('all')
   @UseGuards(RequireAuthGuard)
   async deleteAll(@Req() req: any) {
-    return this.notesService.deleteAll(req.user.id);
+    return this.notesService.deleteAll(getNumericUserId(req));
   }
 }

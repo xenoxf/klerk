@@ -11,7 +11,7 @@ import { ExamQuestion } from './entities/examQuestion.entity';
 import { ExamOption } from './entities/exam-option.entity';
 import { GenerateExamDto } from './dto/generate-exam.dto';
 import { GroqService, GroqApiError } from '../groq/groq.service';
-import { CreditsService } from '../credits/credits.service';
+import { CreditsService, calculateExamCost } from '../credits/credits.service';
 import { UpdateExamDto } from './dto/update-exam.dto';
 
 @Injectable()
@@ -28,10 +28,16 @@ export class ExamsService {
   // ==================== GENERATE EXAM FROM TOPIC ====================
 
   async generateExam(input: GenerateExamDto, userId: number) {
-    // Verificar y consumir créditos (se hace ANTES de llamar a la IA)
+    const dynamicCost = calculateExamCost(
+      input.numberOfQuestions,
+      input.difficulty,
+      input.reference,
+    );
+
     const creditStatus = await this.creditsService.consumeCredits(
       userId,
       'EXAM_GENERATION',
+      dynamicCost,
     );
 
     try {
@@ -178,16 +184,6 @@ export class ExamsService {
     }
     return code;
   }
-  async getAll(userId: number) {
-    const exams = await this.examRepo.find({
-      where: { userId },
-      relations: ['questions', 'questions.options'],
-      order: { createdAt: 'DESC' },
-    });
-    // Devuelve lista simple sin preguntas
-    return this.examRefactor(exams, userId, false);
-  }
-
   async getById(id: number, userId: number) {
     const exam = await this.examRepo.findOne({
       where: { id, userId },
@@ -195,7 +191,6 @@ export class ExamsService {
     });
 
     if (!exam) throw new NotFoundException('Exam not found');
-    // Devuelve con preguntas y opciones (sin isCorrect)
     return this.examRefactor(exam, userId, true);
   }
 
@@ -232,10 +227,10 @@ export class ExamsService {
   }
 
   async updateExamScore(query: UpdateExamDto, userId: number) {
-    const examReferido = this.getById(query.id, userId);
-    if (!examReferido) throw new NotFoundException('Exam not found');
-    this.examRepo.update(query.id, { score: query.score });
-    return this.getAll(userId);
+    const exam = await this.getById(query.id, userId);
+    if (!exam) throw new NotFoundException('Exam not found');
+    await this.examRepo.update(query.id, { score: query.score });
+    return this.getMyExamsDeck(userId);
   }
 
   async delete(id: number, userId: number) {
@@ -426,7 +421,7 @@ export class ExamsService {
     // Construir query para búsqueda en múltiples campos
     const queryBuilder = this.examRepo
       .createQueryBuilder('exam')
-      .leftJoinAndSelect('exam.questions', 'questions')
+      .leftJoin('exam.questions', 'questions')
       .where('LOWER(exam.title) LIKE :query', { query: `%${normalizedQuery}%` })
       .orWhere('LOWER(exam.description) LIKE :query', {
         query: `%${normalizedQuery}%`,
@@ -474,7 +469,8 @@ export class ExamsService {
     return this.examRefactor(exams, userId, false);
   }
 
-  deleteAll(userId: number) {
-    this.examRepo.delete({ userId });
+  async deleteAll(userId: number): Promise<{ deleted: boolean; message: string }> {
+    await this.examRepo.delete({ userId });
+    return { deleted: true, message: 'All exams deleted' };
   }
 }
