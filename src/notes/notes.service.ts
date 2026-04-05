@@ -21,7 +21,7 @@ export class NotesService {
     @InjectRepository(Note) private readonly noteRepo: Repository<Note>,
     @InjectRepository(NoteContent)
     private readonly noteContentRepo: Repository<NoteContent>,
-  ) {}
+  ) { }
 
   private parseJSON(raw: string): any {
     try {
@@ -141,7 +141,8 @@ export class NotesService {
       if (!response || typeof response !== 'object') {
         throw new BadRequestException({
           message: 'Error al generar notas',
-          details: 'La IA respondió con un formato inválido. Por favor, intenta de nuevo con un tema más específico.',
+          details:
+            'La IA respondió con un formato inválido. Por favor, intenta de nuevo con un tema más específico.',
           errorCode: 'INVALID_AI_RESPONSE',
         });
       }
@@ -156,7 +157,8 @@ export class NotesService {
       if (!title) {
         throw new BadRequestException({
           message: 'Datos incompletos de la IA',
-          details: 'La IA generó las notas pero no incluyó un título. Por favor, intenta de nuevo.',
+          details:
+            'La IA generó las notas pero no incluyó un título. Por favor, intenta de nuevo.',
           errorCode: 'MISSING_METADATA',
         });
       }
@@ -168,7 +170,8 @@ export class NotesService {
       if (!normalizedNotes || normalizedNotes.length === 0) {
         throw new BadRequestException({
           message: 'No se generaron notas',
-          details: 'La IA no pudo generar contenido para las notas. Intenta con otro tema o una referencia más detallada.',
+          details:
+            'La IA no pudo generar contenido para las notas. Intenta con otro tema o una referencia más detallada.',
           errorCode: 'NO_CONTENT_GENERATED',
         });
       }
@@ -209,7 +212,7 @@ export class NotesService {
       };
     } catch (error) {
       if (error instanceof BadRequestException) throw error;
-      
+
       // Si es un GroqApiError, incluimos la respuesta completa de la IA
       if (error instanceof GroqApiError) {
         throw new BadRequestException({
@@ -218,10 +221,13 @@ export class NotesService {
           errorCode: error.code,
         });
       }
-      
+
       throw new BadRequestException({
         message: 'Error al generar notas',
-        details: error instanceof Error ? error.message : 'Ocurrió un error inesperado. Por favor, intenta de nuevo.',
+        details:
+          error instanceof Error
+            ? error.message
+            : 'Ocurrió un error inesperado. Por favor, intenta de nuevo.',
         errorCode: 'NOTE_GENERATION_ERROR',
       });
     }
@@ -503,5 +509,9 @@ export class NotesService {
       canDelete: userId === note.userId,
       contents: includeContents ? note.contents : [],
     }));
+  }
+
+  deleteAll(userId: number) {
+    this.noteRepo.delete({ userId });
   }
 }

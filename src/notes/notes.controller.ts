@@ -22,11 +22,11 @@ import { RequireAuthGuard } from '../common/guards/require-auth/require-auth.gua
 @UseGuards(JwtGuard)
 @Controller('notes')
 export class NotesController {
-  constructor(private notesService: NotesService) {}
+  constructor(private notesService: NotesService) { }
 
   // ==================== AI GENERATION ====================
   @Post('generate/topic_or_reference')
-  @UseGuards( RequireAuthGuard)
+  @UseGuards(RequireAuthGuard)
   generate(@Body() input: GenerateNoteDto, @Req() req: any) {
     return this.notesService.generateNote(input, req.user.id);
   }
@@ -65,7 +65,7 @@ export class NotesController {
   }
 
   @Post()
-  @UseGuards( RequireAuthGuard)
+  @UseGuards(RequireAuthGuard)
   async create(@Body() body: any, @Req() req: any) {
     return this.notesService.create(body, req.user.id);
   }
@@ -76,7 +76,7 @@ export class NotesController {
   }
 
   @Patch(':id')
-  @UseGuards( RequireAuthGuard)
+  @UseGuards(RequireAuthGuard)
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() body: any,
@@ -91,8 +91,14 @@ export class NotesController {
   }
 
   @Delete(':id')
-  @UseGuards( RequireAuthGuard)
+  @UseGuards(RequireAuthGuard)
   async delete(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
     return this.notesService.remove(id, req.user.id);
+  }
+
+  @Delete('all')
+  @UseGuards(RequireAuthGuard)
+  async deleteAll(@Req() req: any) {
+    return this.notesService.deleteAll(req.user.id);
   }
 }

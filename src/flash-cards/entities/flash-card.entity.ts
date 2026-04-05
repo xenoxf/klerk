@@ -16,7 +16,6 @@ export class FlashCard {
 
   @Column({ type: 'text', default: '' })
   front: string;
-
   @Column({ type: 'text', default: '' })
   back: string;
 

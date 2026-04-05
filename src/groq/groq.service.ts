@@ -2,6 +2,7 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import Groq from 'groq-sdk';
 import { AI_PROMPTS } from './AI_PROMPTS';
+import { raw } from 'express';
 
 // Custom error class for Groq API errors
 export class GroqApiError extends Error {
@@ -52,7 +53,7 @@ export class GroqService {
         this.handleGroqError(groqError, 'generateExam');
       }
 
-      const raw = completion.choices[0]?.message?.content?.trim() || '';
+      const raw: string = completion.choices[0]?.message?.content?.trim() || '';
 
       if (!raw) {
         throw new GroqApiError(
@@ -99,13 +100,13 @@ export class GroqService {
       } catch (parseError) {
         console.error(
           'JSON parse error:',
-          parseError,
+          parseError + raw,
           'Raw response:',
           raw.substring(0, 500),
         );
         throw new GroqApiError(
           'INVALID_JSON',
-          `Formato JSON inválido: ${parseError.message}`,
+          `Formato JSON inválido: ${parseError.message}+raw`,
           raw,
         );
       }
@@ -118,7 +119,7 @@ export class GroqService {
       // Error inesperado
       throw new GroqApiError(
         'UNEXPECTED_ERROR',
-        'Ocurrió un error inesperado al generar el examen.',
+        'Ocurrió un error inesperado al generar el examen.' + raw,
       );
     }
   }
@@ -458,7 +459,11 @@ export class GroqService {
   /**
    * Detecta errores de la API de Groq y los convierte en errores personalizados
    */
-  private handleGroqError(error: any, operation: string, rawResponse?: string): never {
+  private handleGroqError(
+    error: any,
+    operation: string,
+    rawResponse?: string,
+  ): never {
     // Detectar error de límite de tokens/créditos
     if (error.status === 429 || error.code === 'rate_limit_exceeded') {
       throw new GroqApiError(
@@ -469,9 +474,11 @@ export class GroqService {
     }
 
     // Detectar error de tokens agotados
-    if (error.message?.includes('insufficient_quota') || 
-        error.message?.includes('rate limit') ||
-        error.message?.includes('quota exceeded')) {
+    if (
+      error.message?.includes('insufficient_quota') ||
+      error.message?.includes('rate limit') ||
+      error.message?.includes('quota exceeded')
+    ) {
       throw new GroqApiError(
         'GROQ_TOKEN_LIMIT',
         'Se han agotado los tokens de la IA. Por favor, espera unos minutos antes de intentar de nuevo.',

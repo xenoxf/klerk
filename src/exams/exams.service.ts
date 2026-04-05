@@ -45,7 +45,8 @@ export class ExamsService {
       if (!response || typeof response !== 'object') {
         throw new BadRequestException({
           message: 'Error al generar el examen',
-          details: 'La IA respondió con un formato inválido. Por favor, intenta de nuevo con un tema más específico.',
+          details:
+            'La IA respondió con un formato inválido. Por favor, intenta de nuevo con un tema más específico.',
           errorCode: 'INVALID_AI_RESPONSE',
         });
       }
@@ -56,7 +57,8 @@ export class ExamsService {
       if (!questions || !Array.isArray(questions) || questions.length === 0) {
         throw new BadRequestException({
           message: 'No se generaron preguntas',
-          details: 'La IA no pudo generar preguntas para este tema. Intenta con otro tema o verifica que el tema sea claro.',
+          details:
+            'La IA no pudo generar preguntas para este tema. Intenta con otro tema o verifica que el tema sea claro.',
           errorCode: 'NO_QUESTIONS_GENERATED',
         });
       }
@@ -65,7 +67,8 @@ export class ExamsService {
       if (!metadata || typeof metadata !== 'object') {
         throw new BadRequestException({
           message: 'Error en los datos del examen',
-          details: 'La IA generó preguntas pero faltan los metadatos del examen (título, descripción, etc.). Por favor, intenta de nuevo.',
+          details:
+            'La IA generó preguntas pero faltan los metadatos del examen (título, descripción, etc.). Por favor, intenta de nuevo.',
           errorCode: 'MISSING_METADATA',
         });
       }
@@ -97,14 +100,6 @@ export class ExamsService {
       const savedExam = await this.examRepo.save(exam);
 
       for (const q of questions) {
-        if (!q.question || !Array.isArray(q.options)) {
-          throw new BadRequestException({
-            message: 'Formato de pregunta inválido',
-            details: 'La IA generó una pregunta con formato incorrecto. Falta el texto de la pregunta o las opciones.',
-            errorCode: 'INVALID_QUESTION_FORMAT',
-          });
-        }
-
         const question = this.questionRepo.create({
           question: q.question,
           explanation: q.explanation || '',
@@ -148,7 +143,9 @@ export class ExamsService {
       // Error genérico con más detalles
       throw new BadRequestException({
         message: 'Error al generar el examen',
-        details: error.message || 'Ocurrió un error inesperado. Por favor, intenta de nuevo.',
+        details:
+          error.message ||
+          'Ocurrió un error inesperado. Por favor, intenta de nuevo.',
         errorCode: 'EXAM_GENERATION_ERROR',
       });
     }
@@ -475,5 +472,9 @@ export class ExamsService {
     }
 
     return this.examRefactor(exams, userId, false);
+  }
+
+  deleteAll(userId: number) {
+    this.examRepo.delete({ userId });
   }
 }
