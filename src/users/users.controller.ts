@@ -16,6 +16,7 @@ import { UsersService } from './users.service';
 //import { UpdateUserDto } from './dto/update-user.dto';
 import { ApiKeyGuard } from '../common/guards/api-key/api-key.guard';
 import { JwtGuard } from '../auth/jwt/jwt.guard';
+import { RequireAuthGuard } from 'src/common/guards/require-auth/require-auth.guard';
 
 function getNumericUserId(req: any): number {
   const userId = Number(req.user?.id);
@@ -26,10 +27,10 @@ function getNumericUserId(req: any): number {
 }
 
 @UseGuards(ApiKeyGuard)
-@UseGuards(JwtGuard)
+@UseGuards(JwtGuard, RequireAuthGuard)
 @Controller('users')
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(private readonly usersService: UsersService) { }
 
   @Put('/name')
   async putName(@Req() req: any, @Body() name: string) {

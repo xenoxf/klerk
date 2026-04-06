@@ -7,6 +7,7 @@ import { Message } from './entities/message.entity';
 import { GeminiModule } from '../gemini/gemini.module';
 import { SharedModule } from '../shared/shared.module';
 import { CreditsModule } from '../credits/credits.module';
+import { JwtModule } from '@nestjs/jwt';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { CreditsModule } from '../credits/credits.module';
     GeminiModule,
     SharedModule,
     CreditsModule,
+    JwtModule,
   ],
   controllers: [MessagesController],
   providers: [MessagesService],
