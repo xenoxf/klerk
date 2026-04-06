@@ -179,9 +179,14 @@ export class NotesService {
   }
 
   async findPrivate(userId: number) {
-    const notes = await this.findAll(userId);
+    const notes = await this.noteRepo.find({
+      where: { userId },
+      relations: ['noteContents'],
+      order: { createdAt: 'DESC' },
+    });
+    const result = this.noteRefactorArray(notes, userId);
     // Randomize order
-    return this.shuffleArray(notes);
+    return this.shuffleArray(result);
   }
 
   async findPublic(userId?: number) {

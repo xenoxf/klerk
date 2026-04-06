@@ -168,6 +168,7 @@ export class FlashCardsService {
   async findMyCardsDeck(userId: number) {
     const cards = await this.cardRepo.find({
       where: { userId },
+      relations: ['flashcards'],
       order: { createdAt: 'DESC' },
     });
     const result = this.deckRefactor(cards, userId);
