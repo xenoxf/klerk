@@ -17,16 +17,17 @@ async function bootstrap() {
   app.enableCors({
     origin: [
       'http://localhost:3000',
+      'http://localhost:3001',
       'https://learnyos.vercel.app',
       'https://klerk.onrender.com',
       'https://learnyos-love.vercel.app',
     ],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
-    allowedHeaders: 'Content-Type, Authorization, X-Requested-With, x-api-key',
+    allowedHeaders: 'Content-Type, Authorization, X-Requested-With, x-api-key, Accept',
     preflightContinue: false,
     optionsSuccessStatus: 204,
-    maxAge: 600, // Cachea preflight por 10 minutos
+    maxAge: 600,
   });
 
   // ============================================
@@ -77,7 +78,7 @@ async function bootstrap() {
   // ============================================
   // Limita el uso de generación con IA para prevenir abuso
   app.use(
-    '/exams/generate',
+    '/exams/generate/topic_or_reference',
     rateLimit({
       windowMs: 60 * 60 * 1000, // 1 hora
       max: 20, // Máximo 20 generaciones por hora
@@ -92,7 +93,7 @@ async function bootstrap() {
   );
 
   app.use(
-    '/flash-cards/generate',
+    '/flash-cards/generate/topic_or_reference',
     rateLimit({
       windowMs: 60 * 60 * 1000, // 1 hora
       max: 20, // Máximo 20 generaciones por hora
@@ -108,7 +109,7 @@ async function bootstrap() {
   );
 
   app.use(
-    '/notes/generate',
+    '/notes/generate/topic_or_reference',
     rateLimit({
       windowMs: 60 * 60 * 1000, // 1 hora
       max: 20, // Máximo 20 generaciones por hora

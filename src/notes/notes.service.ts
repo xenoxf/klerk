@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
-import { GroqService, GroqApiError } from '../groq/groq.service';
+import { GeminiService } from '../gemini/gemini.service';
 import { CreditsService, calculateNoteCost } from '../credits/credits.service';
 //import { AI_PROMPTS } from '../groq/AI_PROMPTS';
 import { Note } from './entities/note.entity';
@@ -16,12 +16,12 @@ import { GenerateNoteDto } from './dto/create-note.dto';
 @Injectable()
 export class NotesService {
   constructor(
-    private readonly groqService: GroqService,
+    private readonly geminiService: GeminiService,
     private readonly creditsService: CreditsService,
     @InjectRepository(Note) private readonly noteRepo: Repository<Note>,
     @InjectRepository(NoteContent)
     private readonly noteContentRepo: Repository<NoteContent>,
-  ) { }
+  ) {}
 
   private isPublicAccess(acceso?: string | null): boolean {
     const normalized = (acceso ?? '').toLowerCase();
@@ -118,111 +118,55 @@ export class NotesService {
       dynamicCost,
     );
 
-    try {
-      const numberOfNotes = input.numberOfNotes ?? 3;
-      const level = input.levelOfDetail ?? 'medio';
-      const acceso = this.normalizeAccess(input.acceso);
+    const numberOfNotes = input.numberOfNotes ?? 3;
+    const level = input.levelOfDetail ?? 'medio';
+    const acceso = this.normalizeAccess(input.acceso);
 
-      const response = await this.groqService.generateNote(
-        promptText,
-        numberOfNotes,
-        level,
-      );
+    const response = await this.geminiService.generateNote(
+      promptText,
+      numberOfNotes,
+      level,
+    );
 
-      // Validate response structure
-      if (!response || typeof response !== 'object') {
-        throw new BadRequestException({
-          message: 'Error al generar notas',
-          details:
-            'La IA respondió con un formato inválido. Por favor, intenta de nuevo con un tema más específico.',
-          errorCode: 'INVALID_AI_RESPONSE',
-        });
-      }
+    const meta = (response.metadata || {}) as Record<string, unknown>;
+    const title = meta.title as string;
+    const description = (meta.description as string) || '';
+    const area = meta.area as string | undefined;
+    const tema = meta.tema as string | undefined;
 
-      const meta = (response.metadata || {}) as Record<string, unknown>;
-      const title = meta.title as string;
-      const description = (meta.description as string) || '';
-      const area = meta.area as string | undefined;
-      const tema = meta.tema as string | undefined;
+    const rawNotes = response.notes;
+    const normalizedNotes = this.normalizeAiNoteItems(rawNotes);
 
-      // Validate metadata
-      if (!title) {
-        throw new BadRequestException({
-          message: 'Datos incompletos de la IA',
-          details:
-            'La IA generó las notas pero no incluyó un título. Por favor, intenta de nuevo.',
-          errorCode: 'MISSING_METADATA',
-        });
-      }
+    const note = this.noteRepo.create({
+      description,
+      tema,
+      title,
+      area,
+      acceso,
+      levelOfDetail: level,
+      code: await this.generateCode(),
+      userId,
+    });
 
-      const rawNotes = response.notes;
-      const normalizedNotes = this.normalizeAiNoteItems(rawNotes);
+    const savedNote = await this.noteRepo.save(note);
 
-      // Validate notes array
-      if (!normalizedNotes || normalizedNotes.length === 0) {
-        throw new BadRequestException({
-          message: 'No se generaron notas',
-          details:
-            'La IA no pudo generar contenido para las notas. Intenta con otro tema o una referencia más detallada.',
-          errorCode: 'NO_CONTENT_GENERATED',
-        });
-      }
-
-      // Create the note first
-      const note = this.noteRepo.create({
-        description,
-        tema,
-        title,
-        area,
-        acceso,
-        levelOfDetail: level,
-        code: await this.generateCode(),
+    for (let i = 0; i < normalizedNotes.length; i++) {
+      const item = normalizedNotes[i];
+      const noteContent = this.noteContentRepo.create({
+        content: item.markdown,
+        noteId: savedNote.id,
         userId,
       });
-
-      const savedNote = await this.noteRepo.save(note);
-
-      // Create note contents
-      if (normalizedNotes.length > 0) {
-        for (let i = 0; i < normalizedNotes.length; i++) {
-          const item = normalizedNotes[i];
-          const noteContent = this.noteContentRepo.create({
-            content: item.markdown,
-            noteId: savedNote.id,
-            userId,
-          });
-          await this.noteContentRepo.save(noteContent);
-        }
-      }
-
-      return {
-        message: 'Notas creadas correctamente',
-        noteId: savedNote.id,
-        totalSections: normalizedNotes.length,
-        creditsRemaining: creditStatus.remaining,
-        creditsTotal: creditStatus.total,
-      };
-    } catch (error) {
-      if (error instanceof BadRequestException) throw error;
-
-      // Si es un GroqApiError, incluimos la respuesta completa de la IA
-      if (error instanceof GroqApiError) {
-        throw new BadRequestException({
-          message: error.message,
-          details: error.rawResponse || error.message,
-          errorCode: error.code,
-        });
-      }
-
-      throw new BadRequestException({
-        message: 'Error al generar notas',
-        details:
-          error instanceof Error
-            ? error.message
-            : 'Ocurrió un error inesperado. Por favor, intenta de nuevo.',
-        errorCode: 'NOTE_GENERATION_ERROR',
-      });
+      await this.noteContentRepo.save(noteContent);
     }
+
+    return {
+      message: 'Notas creadas correctamente',
+      noteId: savedNote.id,
+      totalSections: normalizedNotes.length,
+      creditsRemaining: creditStatus.remaining,
+      creditsTotal: creditStatus.total,
+    };
   }
   // ==================== BASIC CRUD ====================
   async findAll(userId: number) {
@@ -503,9 +447,14 @@ export class NotesService {
     }));
   }
 
-  async deleteAll(userId: number): Promise<{ deleted: boolean; message: string }> {
-    const notes = await this.noteRepo.find({ where: { userId }, select: ['id'] });
-    const noteIds = notes.map(n => n.id);
+  async deleteAll(
+    userId: number,
+  ): Promise<{ deleted: boolean; message: string }> {
+    const notes = await this.noteRepo.find({
+      where: { userId },
+      select: ['id'],
+    });
+    const noteIds = notes.map((n) => n.id);
     if (noteIds.length > 0) {
       await this.noteContentRepo.delete({ noteId: In(noteIds) } as any);
       await this.noteRepo.delete({ userId });

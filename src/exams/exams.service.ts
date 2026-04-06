@@ -10,7 +10,7 @@ import { Exam } from './entities/exam.entity';
 import { ExamQuestion } from './entities/examQuestion.entity';
 import { ExamOption } from './entities/exam-option.entity';
 import { GenerateExamDto } from './dto/generate-exam.dto';
-import { GroqService, GroqApiError } from '../groq/groq.service';
+import { GeminiService } from '../gemini/gemini.service';
 import { CreditsService, calculateExamCost } from '../credits/credits.service';
 import { UpdateExamDto } from './dto/update-exam.dto';
 
@@ -21,7 +21,7 @@ export class ExamsService {
     @InjectRepository(ExamQuestion)
     private questionRepo: Repository<ExamQuestion>,
     @InjectRepository(ExamOption) private optionRepo: Repository<ExamOption>,
-    private readonly groqService: GroqService,
+    private readonly geminiService: GeminiService,
     private readonly creditsService: CreditsService,
   ) { }
 
@@ -40,121 +40,56 @@ export class ExamsService {
       dynamicCost,
     );
 
-    try {
-      const response = await this.groqService.generateExam(
-        input.reference,
-        input.numberOfQuestions,
-        input.difficulty,
-      );
+    const response = await this.geminiService.generateExam(
+      input.reference,
+      input.numberOfQuestions,
+      input.difficulty,
+    );
 
-      // Validate response structure
-      if (!response || typeof response !== 'object') {
-        throw new BadRequestException({
-          message: 'Error al generar el examen',
-          details:
-            'La IA respondió con un formato inválido. Por favor, intenta de nuevo con un tema más específico.',
-          errorCode: 'INVALID_AI_RESPONSE',
-        });
-      }
+    const { questions, metadata } = response;
+    const { title, description, tema, area } = metadata;
 
-      const { questions, metadata } = response;
+    const exam = this.examRepo.create({
+      area,
+      tema,
+      title,
+      description,
+      difficulty: input.difficulty,
+      userId,
+      totalQuestions: input.numberOfQuestions,
+      createdAt: new Date().toISOString(),
+      acceso: this.normalizeAccess(input.acceso),
+      code: await this.generateCode(),
+    });
 
-      // Validate questions array
-      if (!questions || !Array.isArray(questions) || questions.length === 0) {
-        throw new BadRequestException({
-          message: 'No se generaron preguntas',
-          details:
-            'La IA no pudo generar preguntas para este tema. Intenta con otro tema o verifica que el tema sea claro.',
-          errorCode: 'NO_QUESTIONS_GENERATED',
-        });
-      }
+    const savedExam = await this.examRepo.save(exam);
 
-      // Validate metadata exists
-      if (!metadata || typeof metadata !== 'object') {
-        throw new BadRequestException({
-          message: 'Error en los datos del examen',
-          details:
-            'La IA generó preguntas pero faltan los metadatos del examen (título, descripción, etc.). Por favor, intenta de nuevo.',
-          errorCode: 'MISSING_METADATA',
-        });
-      }
-
-      const { title, description, tema, area } = metadata;
-
-      // Validate required metadata fields
-      if (!title || !description || !tema || !area) {
-        throw new BadRequestException({
-          message: 'Datos del examen incompletos',
-          details: `Faltan campos requeridos: ${!title ? 'título, ' : ''}${!description ? 'descripción, ' : ''}${!tema ? 'tema, ' : ''}${!area ? 'área' : ''}. Por favor, intenta de nuevo.`,
-          errorCode: 'INCOMPLETE_METADATA',
-        });
-      }
-
-      const exam = this.examRepo.create({
-        area,
-        tema,
-        title,
-        description,
-        difficulty: input.difficulty,
-        userId,
-        totalQuestions: input.numberOfQuestions,
-        createdAt: new Date().toISOString(),
-        acceso: this.normalizeAccess(input.acceso),
-        code: await this.generateCode(),
+    for (const q of questions) {
+      const question = this.questionRepo.create({
+        question: q.question,
+        explanation: q.explanation || '',
+        exam: savedExam,
       });
 
-      const savedExam = await this.examRepo.save(exam);
+      const savedQuestion = await this.questionRepo.save(question);
 
-      for (const q of questions) {
-        const question = this.questionRepo.create({
-          question: q.question,
-          explanation: q.explanation || '',
-          exam: savedExam,
+      for (const opt of q.options) {
+        const option = this.optionRepo.create({
+          text: opt.text,
+          isCorrect: opt.isCorrect,
+          question: savedQuestion,
         });
-
-        const savedQuestion = await this.questionRepo.save(question);
-
-        for (const opt of q.options) {
-          const option = this.optionRepo.create({
-            text: opt.text,
-            isCorrect: opt.isCorrect,
-            question: savedQuestion,
-          });
-          await this.optionRepo.save(option);
-        }
+        await this.optionRepo.save(option);
       }
-
-      return {
-        message: 'Examen generado exitosamente',
-        examId: savedExam.id,
-        totalQuestions: savedExam.totalQuestions,
-        creditsRemaining: creditStatus.remaining,
-        creditsTotal: creditStatus.total,
-      };
-    } catch (error) {
-      // Si ya es una BadRequestException, la relanzamos
-      if (error instanceof BadRequestException) {
-        throw error;
-      }
-
-      // Si es un GroqApiError, incluimos la respuesta completa de la IA
-      if (error instanceof GroqApiError) {
-        throw new BadRequestException({
-          message: error.message,
-          details: error.rawResponse || error.message,
-          errorCode: error.code,
-        });
-      }
-
-      // Error genérico con más detalles
-      throw new BadRequestException({
-        message: 'Error al generar el examen',
-        details:
-          error.message ||
-          'Ocurrió un error inesperado. Por favor, intenta de nuevo.',
-        errorCode: 'EXAM_GENERATION_ERROR',
-      });
     }
+
+    return {
+      message: 'Examen generado exitosamente',
+      examId: savedExam.id,
+      totalQuestions: savedExam.totalQuestions,
+      creditsRemaining: creditStatus.remaining,
+      creditsTotal: creditStatus.total,
+    };
   }
   // ==================== BASIC CRUD ====================
 

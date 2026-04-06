@@ -8,7 +8,7 @@ import { ExamsModule } from './exams/exams.module';
 import { FlashCardsModule } from './flash-cards/flash-cards.module';
 import { NotesModule } from './notes/notes.module';
 import { MessagesModule } from './messages/messages.module';
-import { GroqModule } from './groq/groq.module';
+import { GeminiModule } from './gemini/gemini.module';
 import { GlobalChatModule } from './global-chat/global-chat.module';
 import { CreditsModule } from './credits/credits.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -57,7 +57,7 @@ import { ThrottlerModule } from '@nestjs/throttler';
     FlashCardsModule,
     NotesModule,
     MessagesModule,
-    GroqModule,
+    GeminiModule,
     GlobalChatModule,
     CreditsModule,
   ],

@@ -8,7 +8,11 @@ import {
   UseGuards,
   Req,
   ForbiddenException,
+  Res,
+  Sse,
+  MessageEvent,
 } from '@nestjs/common';
+import { Response } from 'express';
 import { MessagesService } from './messages.service';
 import { JwtGuard } from '../auth/jwt/jwt.guard';
 import { RequireAuthGuard } from '../common/guards/require-auth/require-auth.guard';
@@ -32,6 +36,26 @@ export class MessagesController {
     @Req() req,
   ) {
     return this.messagesService.sendMessageWithAIResponse(input, getNumericUserId(req));
+  }
+
+  @Post('send/stream')
+  async sendStream(
+    @Body() input: { prompt: string; chatId?: number },
+    @Req() req,
+    @Res() res: Response,
+  ) {
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders();
+
+    const stream = await this.messagesService.sendMessageStream(input, getNumericUserId(req));
+
+    for await (const chunk of stream) {
+      res.write(chunk);
+    }
+
+    res.end();
   }
 
   @Post('chats')

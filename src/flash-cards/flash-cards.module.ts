@@ -4,14 +4,14 @@ import { FlashCardsController } from './flash-cards.controller';
 import { FlashCardsService } from './flash-cards.service';
 import { FlashCard } from './entities/flash-card.entity';
 import { Card } from './entities/card.entity';
-import { GroqModule } from '../groq/groq.module';
+import { GeminiModule } from '../gemini/gemini.module';
 import { SharedModule } from '../shared/shared.module';
 import { CreditsModule } from '../credits/credits.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([FlashCard, Card]),
-    GroqModule,
+    GeminiModule,
     SharedModule,
     CreditsModule,
   ],

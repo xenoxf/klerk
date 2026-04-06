@@ -4,14 +4,14 @@ import { NotesController } from './notes.controller';
 import { NotesService } from './notes.service';
 import { Note } from './entities/note.entity';
 import { NoteContent } from './entities/note-content.entity';
-import { GroqModule } from '../groq/groq.module';
+import { GeminiModule } from '../gemini/gemini.module';
 import { SharedModule } from '../shared/shared.module';
 import { CreditsModule } from '../credits/credits.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Note, NoteContent]),
-    GroqModule,
+    GeminiModule,
     SharedModule,
     CreditsModule,
   ],
