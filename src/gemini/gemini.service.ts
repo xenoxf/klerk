@@ -8,8 +8,10 @@ export class GeminiService {
   private model: GenerativeModel;
 
   constructor() {
-    this.genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    this.model = this.genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+    this.genAI = new GoogleGenerativeAI(String(process.env.GEMINI_API_KEY));
+    this.model = this.genAI.getGenerativeModel({
+      model: 'gemini-2.5-flash-lite',
+    });
   }
 
   // ==================== HELPER ====================
@@ -24,7 +26,10 @@ export class GeminiService {
   }
 
   private cleanJson(raw: string): string {
-    let cleaned = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    let cleaned = raw
+      .replace(/```json\n?/g, '')
+      .replace(/```\n?/g, '')
+      .trim();
     if (!cleaned.startsWith('{') && !cleaned.startsWith('[')) {
       const start = Math.min(
         cleaned.indexOf('{') === -1 ? Infinity : cleaned.indexOf('{'),
@@ -42,26 +47,40 @@ export class GeminiService {
     try {
       return JSON.parse(cleaned);
     } catch {
-      throw new Error(`Formato JSON inv\u00e1lido. Respuesta: ${raw.substring(0, 200)}`);
+      throw new Error(
+        `Formato JSON inv\u00e1lido. Respuesta: ${raw.substring(0, 200)}`,
+      );
     }
   }
 
   // ==================== EXAM ====================
 
-  async generateExam(topic: string, numberOfQuestions: number, difficulty: string) {
+  async generateExam(
+    topic: string,
+    numberOfQuestions: number,
+    difficulty: string,
+  ) {
     const prompt = AI_PROMPTS.generateExam(numberOfQuestions, difficulty);
     const raw = await this.generateText(`${prompt}\n\nTema: ${topic}`);
     const parsed = this.parseJson<any>(raw);
 
-    if (!parsed.questions || !Array.isArray(parsed.questions) || parsed.questions.length === 0) {
-      throw new Error('No se generaron preguntas v\u00e1lidas. Intenta con otro tema.');
+    if (
+      !parsed.questions ||
+      !Array.isArray(parsed.questions) ||
+      parsed.questions.length === 0
+    ) {
+      throw new Error(
+        'No se generaron preguntas v\u00e1lidas. Intenta con otro tema.',
+      );
     }
     if (!parsed.metadata || typeof parsed.metadata !== 'object') {
       throw new Error('Faltan metadatos en la respuesta del examen.');
     }
     for (const q of parsed.questions) {
       if (!q.question || !q.options || !Array.isArray(q.options)) {
-        throw new Error('Las preguntas generadas tienen formato inv\u00e1lido.');
+        throw new Error(
+          'Las preguntas generadas tienen formato inv\u00e1lido.',
+        );
       }
     }
     return parsed;
@@ -69,13 +88,23 @@ export class GeminiService {
 
   // ==================== NOTE ====================
 
-  async generateNote(topic: string, numberOfNotes: number, levelOfDetail: string) {
+  async generateNote(
+    topic: string,
+    numberOfNotes: number,
+    levelOfDetail: string,
+  ) {
     const prompt = AI_PROMPTS.generateNote(numberOfNotes, levelOfDetail);
     const raw = await this.generateText(`${prompt}\n\nTema: ${topic}`);
     const parsed = this.parseJson<any>(raw);
 
-    if (!parsed.notes || !Array.isArray(parsed.notes) || parsed.notes.length === 0) {
-      throw new Error('No se generaron notas v\u00e1lidas. Intenta con otro tema.');
+    if (
+      !parsed.notes ||
+      !Array.isArray(parsed.notes) ||
+      parsed.notes.length === 0
+    ) {
+      throw new Error(
+        'No se generaron notas v\u00e1lidas. Intenta con otro tema.',
+      );
     }
     if (!parsed.metadata || typeof parsed.metadata !== 'object') {
       throw new Error('Faltan metadatos en la respuesta de notas.');
@@ -90,8 +119,14 @@ export class GeminiService {
     const raw = await this.generateText(`${prompt}\n\nTema: ${topic}`);
     const parsed = this.parseJson<any>(raw);
 
-    if (!parsed.cards || !Array.isArray(parsed.cards) || parsed.cards.length === 0) {
-      throw new Error('No se generaron flashcards v\u00e1lidas. Intenta con otro tema.');
+    if (
+      !parsed.cards ||
+      !Array.isArray(parsed.cards) ||
+      parsed.cards.length === 0
+    ) {
+      throw new Error(
+        'No se generaron flashcards v\u00e1lidas. Intenta con otro tema.',
+      );
     }
     if (!parsed.metadata || typeof parsed.metadata !== 'object') {
       throw new Error('Faltan metadatos en la respuesta de flashcards.');
@@ -104,12 +139,18 @@ export class GeminiService {
   async generateEducationalChatResponse(
     userMessage: string,
     _conversationContext?: string,
-    conversationHistory?: Array<{ prompt: string; response: string; createdAt: string }>,
+    conversationHistory?: Array<{
+      prompt: string;
+      response: string;
+      createdAt: string;
+    }>,
   ) {
     let historyText = '';
     if (conversationHistory && conversationHistory.length > 0) {
       const recent = conversationHistory.slice(-5);
-      historyText = recent.map((m) => `Usuario: ${m.prompt}\nJunior: ${m.response}`).join('\n\n---\n\n');
+      historyText = recent
+        .map((m) => `Usuario: ${m.prompt}\nJunior: ${m.response}`)
+        .join('\n\n---\n\n');
     }
 
     const systemPrompt = AI_PROMPTS.SYSTEM_PROMPT({
@@ -125,12 +166,18 @@ export class GeminiService {
 
   async *generateEducationalChatResponseStream(
     userMessage: string,
-    conversationHistory?: Array<{ prompt: string; response: string; createdAt: string }>,
+    conversationHistory?: Array<{
+      prompt: string;
+      response: string;
+      createdAt: string;
+    }>,
   ): AsyncIterable<string> {
     let historyText = '';
     if (conversationHistory && conversationHistory.length > 0) {
       const recent = conversationHistory.slice(-5);
-      historyText = recent.map((m) => `Usuario: ${m.prompt}\nJunior: ${m.response}`).join('\n\n---\n\n');
+      historyText = recent
+        .map((m) => `Usuario: ${m.prompt}\nJunior: ${m.response}`)
+        .join('\n\n---\n\n');
     }
 
     const systemPrompt = AI_PROMPTS.SYSTEM_PROMPT({
@@ -152,9 +199,18 @@ export class GeminiService {
   async generateChatTitleFromMessage(firstMessage: string): Promise<string> {
     const raw = await this.model.generateContent({
       contents: [
-        { role: 'user', parts: [{ text: AI_PROMPTS.CHAT_TITLE_SYSTEM_PROMPT }] },
-        { role: 'model', parts: [{ text: 'Entendido. Solo devolver\u00e9 el t\u00edtulo.' }] },
-        { role: 'user', parts: [{ text: firstMessage.substring(0, 100).trim() }] },
+        {
+          role: 'user',
+          parts: [{ text: AI_PROMPTS.CHAT_TITLE_SYSTEM_PROMPT }],
+        },
+        {
+          role: 'model',
+          parts: [{ text: 'Entendido. Solo devolver\u00e9 el t\u00edtulo.' }],
+        },
+        {
+          role: 'user',
+          parts: [{ text: firstMessage.substring(0, 100).trim() }],
+        },
       ],
       generationConfig: { temperature: 0.3, maxOutputTokens: 30 },
     });
