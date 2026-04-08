@@ -9,7 +9,6 @@ import { GeminiModule } from '../gemini/gemini.module';
 import { SharedModule } from '../shared/shared.module';
 import { CreditsModule } from '../credits/credits.module';
 import { LikesModule } from '../likes/likes.module';
-import { JwtModule } from '@nestjs/jwt';
 
 @Module({
   imports: [
@@ -18,7 +17,6 @@ import { JwtModule } from '@nestjs/jwt';
     SharedModule,
     CreditsModule,
     LikesModule,
-    JwtModule,
   ],
   controllers: [ExamsController],
   providers: [ExamsService],

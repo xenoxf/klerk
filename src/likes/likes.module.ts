@@ -3,10 +3,9 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { LikesController } from './likes.controller';
 import { LikesService } from './likes.service';
 import { CardLike } from './entities/card-like.entity';
-import { JwtModule } from '@nestjs/jwt';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([CardLike]), JwtModule],
+  imports: [TypeOrmModule.forFeature([CardLike])],
   controllers: [LikesController],
   providers: [LikesService],
   exports: [LikesService],

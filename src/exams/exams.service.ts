@@ -59,7 +59,6 @@ export class ExamsService {
       difficulty: input.difficulty,
       userId,
       totalQuestions: input.numberOfQuestions,
-      createdAt: new Date().toISOString(),
       acceso: this.normalizeAccess(input.acceso),
       code: await this.generateCode(),
     });
@@ -124,7 +123,7 @@ export class ExamsService {
   async getById(id: number, userId: number) {
     const exam = await this.examRepo.findOne({
       where: { id, userId },
-      relations: ['questions', 'questions.options'],
+      relations: ['questions', 'questions.options', 'user'],
     });
 
     if (!exam) throw new NotFoundException('Exam not found');
@@ -134,7 +133,7 @@ export class ExamsService {
   async getByIdWithAccess(id: number, userId?: number) {
     const exam = await this.examRepo.findOne({
       where: { id },
-      relations: ['questions', 'questions.options'],
+      relations: ['questions', 'questions.options', 'user'],
     });
     if (!exam) throw new NotFoundException('Exam not found');
     if (!this.isPublicAccess(exam.acceso) && exam.userId !== userId) {
@@ -193,7 +192,7 @@ export class ExamsService {
     const exam = await this.examRepo.findOne({ where: { id, userId } });
     if (!exam)
       throw new NotFoundException('Exam not found or not owned by user');
-    await this.questionRepo.delete({ exam: { id } } as any);
+    // ExamQuestion has onDelete: 'CASCADE', so questions are deleted automatically
     await this.examRepo.delete(id);
     return { message: 'Exam deleted' };
   }
@@ -347,7 +346,7 @@ export class ExamsService {
   async getExamByCode(code: string, userId?: number) {
     const exam = await this.examRepo.findOne({
       where: { code },
-      relations: ['questions', 'questions.options'],
+      relations: ['questions', 'questions.options', 'user'],
     });
     if (!exam) throw new NotFoundException('Exam not found');
     if (!this.isPublicAccess(exam.acceso)) {

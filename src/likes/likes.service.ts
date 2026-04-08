@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CardLike } from './entities/card-like.entity';
@@ -20,14 +20,21 @@ export class LikesService {
     });
 
     if (existing) {
-      // Unlike
       await this.likesRepo.delete(existing.id);
       this.logger.log(`User ${userId} unliked ${cardType} ${cardId}`);
     } else {
-      // Like
-      const like = this.likesRepo.create({ userId, cardType, cardId });
-      await this.likesRepo.save(like);
-      this.logger.log(`User ${userId} liked ${cardType} ${cardId}`);
+      try {
+        const like = this.likesRepo.create({ userId, cardType, cardId });
+        await this.likesRepo.save(like);
+        this.logger.log(`User ${userId} liked ${cardType} ${cardId}`);
+      } catch (error: any) {
+        // Handle unique constraint race condition
+        if (error.code === '23505') { // PostgreSQL unique violation
+          this.logger.warn(`Race condition: duplicate like for user ${userId} ${cardType} ${cardId}`);
+        } else {
+          throw error;
+        }
+      }
     }
 
     const count = await this.getLikeCount(cardType, cardId);

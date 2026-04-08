@@ -51,8 +51,16 @@ export class MessagesController {
 
     const stream = await this.messagesService.sendMessageStream(input, getNumericUserId(req));
 
-    for await (const chunk of stream) {
-      res.write(chunk);
+    try {
+      for await (const chunk of stream) {
+        res.write(chunk);
+      }
+    } catch (error: any) {
+      if (!res.headersSent) {
+        res.status(500).json({ message: error.message || 'Error en el stream' });
+      } else {
+        res.write(JSON.stringify({ type: 'error', content: error.message || 'Error en el stream' }));
+      }
     }
 
     res.end();

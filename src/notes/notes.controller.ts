@@ -42,7 +42,7 @@ export class NotesController {
 
   @Get()
   async getAll(@Req() req: any) {
-    return this.notesService.findAll(req.user.id);
+    return this.notesService.findAll(getNumericUserId(req));
   }
 
   @Get('public')

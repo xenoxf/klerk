@@ -260,7 +260,7 @@ export class NotesService {
           content: nc.content,
         })) ?? [],
       canDelete: userId ? note.userId === userId : false,
-      contentsCount: note.noteContents.length,
+      contentsCount: note.noteContents?.length || 0,
       creatorName: note.user?.name || 'Anónimo',
       likesCount: likesData?.counts?.get(note.id) || 0,
       userLiked: likesData?.userLiked?.has(note.id) || false,
@@ -415,6 +415,7 @@ export class NotesService {
     if (!query || query.trim().length === 0) {
       const notes = await this.noteRepo.find({
         where: { acceso: 'publico' },
+        relations: ['noteContents', 'user'],
         order: { createdAt: 'DESC' },
         take: limit,
         skip: offset,

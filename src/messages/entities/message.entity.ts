@@ -31,6 +31,6 @@ export class Message {
   @Index()
   chatId?: number;
 
-  @ManyToOne(() => Chat, (chat) => chat.messages)
+  @ManyToOne(() => Chat, (chat) => chat.messages, { onDelete: 'CASCADE' })
   chat: Chat;
 }

@@ -148,7 +148,7 @@ export class FlashCardsService {
         likesCount: likesData?.counts?.get(card.id) || 0,
         userLiked: likesData?.userLiked?.has(card.id) || false,
         canDelete: userId ? card.userId === userId : false,
-        totalCards: card.flashcards.length,
+        totalCards: card.flashcards?.length || 0,
       }));
     }
     return {
@@ -161,7 +161,7 @@ export class FlashCardsService {
       likesCount: likesData?.counts?.get(cards.id) || 0,
       userLiked: likesData?.userLiked?.has(cards.id) || false,
       canDelete: userId ? cards.userId === userId : false,
-      totalCards: cards.flashcards.length,
+      totalCards: cards.flashcards?.length || 0,
     };
   }
 
@@ -356,6 +356,7 @@ export class FlashCardsService {
     if (!query || query.trim().length === 0) {
       const cards = await this.cardRepo.find({
         where: { acceso: 'publico' },
+        relations: ['user', 'flashcards'],
         order: { createdAt: 'DESC' },
         take: limit,
         skip: offset,
