@@ -2,10 +2,9 @@ import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 
 // Endpoints públicos que no requieren API key
 // NOTA: endpoints con su propio guard (JWT, RequireAuth) se agregan aquí
-// porque ya tienen su propia protección. El API key es una capa EXTRA
-// para endpoints que procesan datos sensibles, no para verificación básica.
+// porque ya tienen su propia protección. El API key es una capa EXTRA.
 const PUBLIC_PATHS = new Set([
-  // Auth - already protected by their own logic
+  // Auth endpoints - already protected by their own logic
   '/auth/login',
   '/auth/register',
   '/auth/google',
@@ -14,7 +13,8 @@ const PUBLIC_PATHS = new Set([
   '/auth/guest',
   '/auth/verify_token',
   '/auth/me',
-  '/logout',
+  // All auth sub-paths
+  '/auth/logout',
   // Public info
   '/health',
   '/ping',
@@ -26,14 +26,14 @@ export class ApiKeyGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest();
     const path = request.path;
-
-    // Saltar verificación para endpoints públicos
     const cleanPath = path.split('?')[0];
+
+    // Skip public paths
     if (PUBLIC_PATHS.has(cleanPath)) {
       return true;
     }
 
-    // Saltar verificación para archivos estáticos
+    // Skip static assets
     const accept = request.headers['accept'] || '';
     const isStaticAsset = /\.(png|jpe?g|gif|svg|ico|css|js|woff2?|ttf|eot|webp|map)(\?.*)?$/.test(cleanPath);
     const isBrowserRequest = accept.includes('text/html') || isStaticAsset;
@@ -42,8 +42,14 @@ export class ApiKeyGuard implements CanActivate {
       return true;
     }
 
+    // Check API key
     const apiKey = request.headers['x-api-key'];
     if (apiKey === process.env.API_KEY) {
+      return true;
+    }
+
+    // If no API key configured on server, allow all (dev mode fallback)
+    if (!process.env.API_KEY) {
       return true;
     }
 
