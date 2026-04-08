@@ -12,6 +12,7 @@ import { GeminiModule } from './gemini/gemini.module';
 import { GlobalChatModule } from './global-chat/global-chat.module';
 import { CreditsModule } from './credits/credits.module';
 import { LikesModule } from './likes/likes.module';
+import { ExamAttemptsModule } from './exam-attempts/exam-attempts.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
 
@@ -62,6 +63,7 @@ import { ThrottlerModule } from '@nestjs/throttler';
     GlobalChatModule,
     CreditsModule,
     LikesModule,
+    ExamAttemptsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
