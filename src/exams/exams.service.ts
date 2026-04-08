@@ -5,13 +5,14 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { Exam } from './entities/exam.entity';
 import { ExamQuestion } from './entities/examQuestion.entity';
 import { ExamOption } from './entities/exam-option.entity';
 import { GenerateExamDto } from './dto/generate-exam.dto';
 import { GeminiService } from '../gemini/gemini.service';
 import { CreditsService, calculateExamCost } from '../credits/credits.service';
+import { LikesService } from '../likes/likes.service';
 import { UpdateExamDto } from './dto/update-exam.dto';
 
 @Injectable()
@@ -23,6 +24,7 @@ export class ExamsService {
     @InjectRepository(ExamOption) private optionRepo: Repository<ExamOption>,
     private readonly geminiService: GeminiService,
     private readonly creditsService: CreditsService,
+    private readonly likesService: LikesService,
   ) { }
 
   // ==================== GENERATE EXAM FROM TOPIC ====================
@@ -161,6 +163,25 @@ export class ExamsService {
     return this.examRefactor(exam, userId, true);
   }
 
+  /**
+   * Get exam in locked format - ONLY for owner
+   * Returns full exam data only if the requesting user is the owner
+   */
+  async getLockedExam(id: number, userId: number) {
+    const exam = await this.examRepo.findOne({
+      where: { id },
+      relations: ['questions', 'questions.options', 'user'],
+    });
+    if (!exam) throw new NotFoundException('Exam not found');
+
+    // ONLY the owner can access locked format
+    if (exam.userId !== userId) {
+      throw new UnauthorizedException('No tienes permiso para ver este quiz');
+    }
+
+    return this.examRefactor(exam, userId, true);
+  }
+
   async updateExamScore(query: UpdateExamDto, userId: number) {
     const exam = await this.getById(query.id, userId);
     if (!exam) throw new NotFoundException('Exam not found');
@@ -226,19 +247,21 @@ export class ExamsService {
     exams: Exam[] | Exam,
     userId?: number,
     includeQuestionsAndOptions: boolean = false,
+    likesData?: { counts: Map<number, number>; userLiked: Set<number> },
   ) {
     if (Array.isArray(exams)) {
       return exams.map((exam) =>
-        this._examRefactorSingle(exam, userId, includeQuestionsAndOptions),
+        this._examRefactorSingle(exam, userId, includeQuestionsAndOptions, likesData),
       );
     }
-    return this._examRefactorSingle(exams, userId, includeQuestionsAndOptions);
+    return this._examRefactorSingle(exams, userId, includeQuestionsAndOptions, likesData);
   }
 
   private _examRefactorSingle(
     exam: Exam,
     userId?: number,
     includeQuestionsAndOptions: boolean = false,
+    likesData?: { counts: Map<number, number>; userLiked: Set<number> },
   ) {
     const base = {
       id: exam.id,
@@ -248,6 +271,9 @@ export class ExamsService {
       tema: exam.tema,
       difficulty: exam.difficulty,
       totalQuestions: exam.totalQuestions,
+      creatorName: exam.user?.name || 'Anónimo',
+      likesCount: likesData?.counts?.get(exam.id) || 0,
+      userLiked: likesData?.userLiked?.has(exam.id) || false,
       canDelete: userId ? exam.userId === userId : false,
     };
 
@@ -283,9 +309,13 @@ export class ExamsService {
   async getPublicExamsDeck(userId?: number) {
     const exams = await this.examRepo.find({
       order: { createdAt: 'DESC' },
+      relations: ['user'],
     });
     const filtered = exams.filter((exam) => this.isPublicAccess(exam.acceso));
-    const result = this.examRefactor(filtered, userId);
+    const examIds = filtered.map(e => e.id);
+    const countsMap = await this.likesService.getLikeCountsForCards('exam', examIds);
+    const userLikedSet = userId ? await this.likesService.getUserLikedCards('exam', userId, examIds) : new Set<number>();
+    const result = this.examRefactor(filtered, userId, false, { counts: countsMap, userLiked: userLikedSet });
     // Randomize order
     return Array.isArray(result) ? this.shuffleArray(result) : result;
   }
@@ -294,8 +324,12 @@ export class ExamsService {
     const exams = await this.examRepo.find({
       where: { userId },
       order: { createdAt: 'DESC' },
+      relations: ['user'],
     });
-    const result = this.examRefactor(exams, userId);
+    const examIds = exams.map(e => e.id);
+    const countsMap = await this.likesService.getLikeCountsForCards('exam', examIds);
+    const userLikedSet = await this.likesService.getUserLikedCards('exam', userId, examIds);
+    const result = this.examRefactor(exams, userId, false, { counts: countsMap, userLiked: userLikedSet });
     // Randomize order
     return Array.isArray(result) ? this.shuffleArray(result) : result;
   }
@@ -396,9 +430,14 @@ export class ExamsService {
 
     const exams = await queryBuilder.getMany();
 
-    // Si searchInQuestions está activo, necesitamos cargar las preguntas explícitamente
-    if (searchInQuestions && exams.length > 0) {
-      return this.examRefactor(exams, userId, false);
+    // Load user relation for exams that were found
+    if (exams.length > 0) {
+      const examIds = exams.map(e => e.id);
+      const examsWithUsers = await this.examRepo.find({
+        where: { id: In(examIds) },
+        relations: ['user'],
+      });
+      return this.examRefactor(examsWithUsers, userId, false);
     }
 
     return this.examRefactor(exams, userId, false);

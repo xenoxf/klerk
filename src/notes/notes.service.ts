@@ -8,6 +8,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import { GeminiService } from '../gemini/gemini.service';
 import { CreditsService, calculateNoteCost } from '../credits/credits.service';
+import { LikesService } from '../likes/likes.service';
 //import { AI_PROMPTS } from '../groq/AI_PROMPTS';
 import { Note } from './entities/note.entity';
 import { NoteContent } from './entities/note-content.entity';
@@ -18,6 +19,7 @@ export class NotesService {
   constructor(
     private readonly geminiService: GeminiService,
     private readonly creditsService: CreditsService,
+    private readonly likesService: LikesService,
     @InjectRepository(Note) private readonly noteRepo: Repository<Note>,
     @InjectRepository(NoteContent)
     private readonly noteContentRepo: Repository<NoteContent>,
@@ -172,32 +174,41 @@ export class NotesService {
   async findAll(userId: number) {
     const notes = await this.noteRepo.find({
       where: { userId },
-      relations: ['noteContents'],
+      relations: ['noteContents', 'user'],
       order: { createdAt: 'DESC' },
     });
-    return this.noteRefactorArray(notes, userId);
+    const noteIds = notes.map(n => n.id);
+    const countsMap = await this.likesService.getLikeCountsForCards('note', noteIds);
+    const userLikedSet = await this.likesService.getUserLikedCards('note', userId, noteIds);
+    return this.noteRefactorArray(notes, userId, { counts: countsMap, userLiked: userLikedSet });
   }
 
   async findPrivate(userId: number) {
     const notes = await this.noteRepo.find({
       where: { userId },
-      relations: ['noteContents'],
+      relations: ['noteContents', 'user'],
       order: { createdAt: 'DESC' },
     });
-    const result = this.noteRefactorArray(notes, userId);
+    const noteIds = notes.map(n => n.id);
+    const countsMap = await this.likesService.getLikeCountsForCards('note', noteIds);
+    const userLikedSet = await this.likesService.getUserLikedCards('note', userId, noteIds);
+    const result = this.noteRefactorArray(notes, userId, { counts: countsMap, userLiked: userLikedSet });
     // Randomize order
     return this.shuffleArray(result);
   }
 
   async findPublic(userId?: number) {
     const notes = await this.noteRepo.find({
-      relations: ['noteContents'],
+      relations: ['noteContents', 'user'],
       order: { createdAt: 'DESC' },
     });
     const publicNotes = notes.filter((note) =>
       this.isPublicAccess(note.acceso),
     );
-    const result = this.noteRefactorArray(publicNotes, userId);
+    const noteIds = publicNotes.map(n => n.id);
+    const countsMap = await this.likesService.getLikeCountsForCards('note', noteIds);
+    const userLikedSet = userId ? await this.likesService.getUserLikedCards('note', userId, noteIds) : new Set<number>();
+    const result = this.noteRefactorArray(publicNotes, userId, { counts: countsMap, userLiked: userLikedSet });
     // Randomize order
     return this.shuffleArray(result);
   }
@@ -219,6 +230,7 @@ export class NotesService {
   noteRefactor(
     note: Note,
     userId?: number,
+    likesData?: { counts: Map<number, number>; userLiked: Set<number> },
   ): {
     id: number;
     title: string;
@@ -230,6 +242,9 @@ export class NotesService {
     noteContents: Array<{ id: number; content: string }>;
     canDelete: boolean;
     contentsCount: number;
+    creatorName: string;
+    likesCount: number;
+    userLiked: boolean;
   } {
     return {
       id: note.id,
@@ -246,11 +261,14 @@ export class NotesService {
         })) ?? [],
       canDelete: userId ? note.userId === userId : false,
       contentsCount: note.noteContents.length,
+      creatorName: note.user?.name || 'Anónimo',
+      likesCount: likesData?.counts?.get(note.id) || 0,
+      userLiked: likesData?.userLiked?.has(note.id) || false,
     };
   }
 
-  noteRefactorArray(notes: Note[], userId?: number) {
-    return notes.map((note) => this.noteRefactor(note, userId));
+  noteRefactorArray(notes: Note[], userId?: number, likesData?: { counts: Map<number, number>; userLiked: Set<number> }) {
+    return notes.map((note) => this.noteRefactor(note, userId, likesData));
   }
 
   async findOne(id: number, userId: number) {
@@ -265,11 +283,28 @@ export class NotesService {
   async findOneByAccess(id: number, userId?: number) {
     const note = await this.noteRepo.findOne({
       where: { id },
-      relations: ['noteContents'],
+      relations: ['noteContents', 'user'],
     });
     if (!note) throw new NotFoundException('Note not found');
     if (!this.isPublicAccess(note.acceso) && note.userId !== userId) {
       throw new UnauthorizedException('No tienes acceso a esta nota');
+    }
+    return this.noteRefactor(note, userId);
+  }
+
+  /**
+   * Get note in locked format - ONLY for owner
+   */
+  async getLockedNote(id: number, userId: number) {
+    const note = await this.noteRepo.findOne({
+      where: { id },
+      relations: ['noteContents', 'user'],
+    });
+    if (!note) throw new NotFoundException('Note not found');
+
+    // ONLY the owner can access locked format
+    if (note.userId !== userId) {
+      throw new UnauthorizedException('No tienes permiso para ver esta nota');
     }
     return this.noteRefactor(note, userId);
   }

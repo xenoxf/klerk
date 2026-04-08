@@ -8,6 +8,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { GeminiService } from '../gemini/gemini.service';
 import { CreditsService, calculateFlashcardCost } from '../credits/credits.service';
+import { LikesService } from '../likes/likes.service';
 import { FlashCard } from './entities/flash-card.entity';
 import { Card } from './entities/card.entity';
 import { GenerateFlashCardsDto } from './dto/generate-flash-cards.dto';
@@ -18,6 +19,7 @@ export class FlashCardsService {
   constructor(
     private readonly geminiService: GeminiService,
     private readonly creditsService: CreditsService,
+    private readonly likesService: LikesService,
     @InjectRepository(FlashCard)
     private readonly flashCardRepo: Repository<FlashCard>,
     @InjectRepository(Card)
@@ -134,7 +136,7 @@ export class FlashCardsService {
   /**
    * Refactor para lista de decks - solo datos para listar
    */
-  async deckRefactor(cards: Card[] | Card, userId?: number) {
+  async deckRefactor(cards: Card[] | Card, userId?: number, likesData?: { counts: Map<number, number>; userLiked: Set<number> }) {
     if (Array.isArray(cards)) {
       return cards.map((card) => ({
         id: card.id,
@@ -142,6 +144,9 @@ export class FlashCardsService {
         description: card.description,
         area: card.area,
         tema: card.tema,
+        creatorName: card.user?.name || 'Anónimo',
+        likesCount: likesData?.counts?.get(card.id) || 0,
+        userLiked: likesData?.userLiked?.has(card.id) || false,
         canDelete: userId ? card.userId === userId : false,
         totalCards: card.flashcards.length,
       }));
@@ -152,15 +157,21 @@ export class FlashCardsService {
       description: cards.description,
       area: cards.area,
       tema: cards.tema,
+      creatorName: cards.user?.name || 'Anónimo',
+      likesCount: likesData?.counts?.get(cards.id) || 0,
+      userLiked: likesData?.userLiked?.has(cards.id) || false,
       canDelete: userId ? cards.userId === userId : false,
       totalCards: cards.flashcards.length,
     };
   }
 
   async findPublicCardsDeck(userId?: number) {
-    const cards = await this.cardRepo.find({ relations: ['flashcards'] });
+    const cards = await this.cardRepo.find({ relations: ['flashcards', 'user'] });
     const filtered = cards.filter((card) => this.isPublicAccess(card.acceso));
-    const result = this.deckRefactor(filtered, userId);
+    const cardIds = filtered.map(c => c.id);
+    const countsMap = await this.likesService.getLikeCountsForCards('card', cardIds);
+    const userLikedSet = userId ? await this.likesService.getUserLikedCards('card', userId, cardIds) : new Set<number>();
+    const result = this.deckRefactor(filtered, userId, { counts: countsMap, userLiked: userLikedSet });
     // Randomize order
     return Array.isArray(result) ? this.shuffleArray(result) : result;
   }
@@ -168,10 +179,13 @@ export class FlashCardsService {
   async findMyCardsDeck(userId: number) {
     const cards = await this.cardRepo.find({
       where: { userId },
-      relations: ['flashcards'],
+      relations: ['flashcards', 'user'],
       order: { createdAt: 'DESC' },
     });
-    const result = this.deckRefactor(cards, userId);
+    const cardIds = cards.map(c => c.id);
+    const countsMap = await this.likesService.getLikeCountsForCards('card', cardIds);
+    const userLikedSet = await this.likesService.getUserLikedCards('card', userId, cardIds);
+    const result = this.deckRefactor(cards, userId, { counts: countsMap, userLiked: userLikedSet });
     // Randomize order
     return Array.isArray(result) ? this.shuffleArray(result) : result;
   }
@@ -214,7 +228,7 @@ export class FlashCardsService {
   async getCardKlekById(id: number, userId: number) {
     const card = await this.cardRepo.findOne({
       where: { id },
-      relations: ['flashcards'],
+      relations: ['flashcards', 'user'],
     });
     if (!card) throw new NotFoundException('Card not found');
     if (!this.isPublicAccess(card.acceso)) {
@@ -224,6 +238,24 @@ export class FlashCardsService {
     } else {
       return this.klekRefactor(card);
     }
+  }
+
+  /**
+   * Get card in locked format - ONLY for owner
+   */
+  async getLockedCard(id: number, userId: number) {
+    const card = await this.cardRepo.findOne({
+      where: { id },
+      relations: ['flashcards', 'user'],
+    });
+    if (!card) throw new NotFoundException('Card not found');
+
+    // ONLY the owner can access locked format
+    if (card.userId !== userId) {
+      throw new UnauthorizedException('No tienes permiso para ver este mazo');
+    }
+
+    return this.klekRefactor(card);
   }
 
   async getCardById(id: number, userId?: number) {

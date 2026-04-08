@@ -69,6 +69,18 @@ export class ExamsController {
     return this.examsService.getByIdForPlay(id, getNumericUserId(req));
   }
 
+  /**
+   * Get exam in locked format - ONLY for owner
+   */
+  @Get('locked/:id')
+  @UseGuards(JwtGuard, RequireAuthGuard)
+  getLocked(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: any,
+  ) {
+    return this.examsService.getLockedExam(id, getNumericUserId(req));
+  }
+
   @Get('deck') getExamsDeck(@Req() req: any) {
     return this.examsService.getMyExamsDeck(getNumericUserId(req));
   }

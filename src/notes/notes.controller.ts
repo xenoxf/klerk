@@ -99,6 +99,15 @@ export class NotesController {
     return this.notesService.findOneByAccess(id, req?.user?.id);
   }
 
+  /**
+   * Get note in locked format - ONLY for owner
+   */
+  @Get('locked/:id')
+  @UseGuards(JwtGuard, RequireAuthGuard)
+  async getLocked(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+    return this.notesService.getLockedNote(id, getNumericUserId(req));
+  }
+
   @Delete(':id')
   @UseGuards(JwtGuard, RequireAuthGuard)
   async delete(@Param('id', ParseIntPipe) id: number, @Req() req: any) {

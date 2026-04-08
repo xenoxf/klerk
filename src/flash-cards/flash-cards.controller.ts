@@ -78,6 +78,15 @@ export class FlashCardsController {
     return this.flashCardsService.getCardKlekById(+id, req?.user?.id);
   }
 
+  /**
+   * Get card in locked format - ONLY for owner
+   */
+  @Get('locked/:id')
+  @UseGuards(JwtGuard, RequireAuthGuard)
+  findLocked(@Param('id') id: string, @Req() req: any) {
+    return this.flashCardsService.getLockedCard(+id, getNumericUserId(req));
+  }
+
   @Get('code/:code')
   findByCode(@Param('code') code: string, @Req() req: any) {
     return this.flashCardsService.getCardByCode(code, req?.user?.id);
