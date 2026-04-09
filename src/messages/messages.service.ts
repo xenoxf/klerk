@@ -98,7 +98,7 @@ export class MessagesService {
     });
     await this.messageRepo.save(userMessage);
 
-    yield `data: ${JSON.stringify({ type: 'done', messageId: userMessage.id })}\n\n`;
+    yield `data: ${JSON.stringify({ type: 'done', messageId: userMessage.id, chatId: chat.id })}\n\n`;
   }
 
   // Create a new chat with custom title (public method for controller)
