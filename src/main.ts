@@ -17,14 +17,14 @@ async function bootstrap() {
   app.enableCors({
     origin: [
       'http://localhost:3000',
-      'http://localhost:3001',
       'https://learnyos.vercel.app',
       'https://klerk.onrender.com',
       'https://learnyos-love.vercel.app',
     ],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
-    allowedHeaders: 'Content-Type, Authorization, X-Requested-With, x-api-key, Accept',
+    allowedHeaders:
+      'Content-Type, Authorization, X-Requested-With, x-api-key, Accept',
     preflightContinue: false,
     optionsSuccessStatus: 204,
     maxAge: 600,
@@ -37,7 +37,7 @@ async function bootstrap() {
   app.use(
     rateLimit({
       windowMs: 15 * 60 * 1000, // 15 minutos
-      max: 35, // Máximo 35 peticiones por IP cada 15 minutos
+      max: 45, // Máximo 35 peticiones por IP cada 15 minutos
       message: {
         statusCode: 429,
         error: 'Too Many Requests',
@@ -288,7 +288,7 @@ async function bootstrap() {
   🌐  💙: https://klerk-love.onrender.com
 
   🛡️  SECURITY FEATURES:
-     • Rate Limiting: 35 req/15min global
+     • Rate Limiting: 45 req/15min global
      • Auth Rate Limit: 10 req/15min
      • AI Gen Rate Limit: 20 req/hour
      • Max Payload: 1MB
@@ -301,7 +301,6 @@ async function bootstrap() {
   🔑  X-API-KEY: ${process.env.API_KEY}
   ==========================================
   `);
-
 }
 
 bootstrap();
