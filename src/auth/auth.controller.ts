@@ -15,7 +15,6 @@ import { Response } from 'express';
 import { AuthService } from './auth.service';
 import { CreateAuthDto } from './dto/create-auth.dto';
 import { LoginAuthDto } from './dto/login-auth.dto';
-import { Validate } from 'class-validator';
 
 @Controller('auth')
 export class AuthController {
@@ -185,7 +184,9 @@ export class AuthController {
     } catch (error) {
       this.logger.error('Guest login error:', error);
       throw new BadRequestException(
-        error instanceof Error ? error.message : 'Error al iniciar como invitado',
+        error instanceof Error
+          ? error.message
+          : 'Error al iniciar como invitado',
       );
     }
   }

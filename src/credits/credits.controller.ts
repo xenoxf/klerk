@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { CreditsService, CREDIT_CONFIG } from './credits.service';
 import { JwtGuard } from '../auth/jwt/jwt.guard';
-import { RequireAuthGuard } from 'src/common/guards/require-auth/require-auth.guard';
+import { RequireAuthGuard } from '../common/guards/require-auth/require-auth.guard';
 
 function getNumericUserId(req: any): number {
   const userId = Number(req.user?.id);
