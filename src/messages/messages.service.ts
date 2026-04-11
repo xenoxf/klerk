@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Message } from './entities/message.entity';
@@ -8,6 +8,8 @@ import { CreditsService } from '../credits/credits.service';
 
 @Injectable()
 export class MessagesService {
+  private readonly logger = new Logger(MessagesService.name);
+  
   constructor(
     @InjectRepository(Message) private messageRepo: Repository<Message>,
     @InjectRepository(Chat) private chatRepo: Repository<Chat>,
@@ -29,38 +31,58 @@ export class MessagesService {
       throw new BadRequestException('Prompt is required');
     }
 
+    // Check credits BEFORE consuming - return early if insufficient
     const creditStatus = await this.creditsService.consumeCredits(
       userId,
       'CHAT_MESSAGE',
     );
 
-    const chatTitlePromise = this.generateChatTitle(input.prompt).catch(
-      () => 'Nuevo Chat',
-    );
-
-    let chat: Chat;
+    // Only create a new chat when NO chatId is provided
+    // If chatId IS provided, reuse that chat (don't create a new one)
+    let chat: Chat | null = null;
 
     if (input.chatId) {
+      // User is sending to an existing chat - reuse it, don't create new
       chat = await this.chatRepo.findOne({
         where: { id: input.chatId, userId },
         select: ['id', 'title', 'userId'],
       });
-
+      // If the chat doesn't exist, we'll create one with the provided ID as reference
+      // This handles the case where the user deleted the chat on frontend but it exists on backend
       if (!chat) {
-        const chatTitle = await chatTitlePromise;
-        chat = await this.createChat(userId, chatTitle);
+        chat = await this.chatRepo.findOne({
+          where: { id: input.chatId },
+          select: ['id', 'title', 'userId'],
+        });
+        // If chat belongs to another user, create a new one for this user
+        if (chat && chat.userId !== userId) {
+          const chatTitle = await this.generateChatTitle(input.prompt).catch(
+            () => 'Nuevo Chat',
+          );
+          chat = await this.createChat(userId, chatTitle);
+        } else if (!chat) {
+          // Chat doesn't exist at all - create a new one
+          const chatTitle = await this.generateChatTitle(input.prompt).catch(
+            () => 'Nuevo Chat',
+          );
+          chat = await this.createChat(userId, chatTitle);
+        }
       }
     } else {
-      const chatTitle = await chatTitlePromise;
+      // No chatId - this is a new conversation
+      const chatTitle = await this.generateChatTitle(input.prompt).catch(
+        () => 'Nuevo Chat',
+      );
       chat = await this.createChat(userId, chatTitle);
     }
 
+    // Get conversation context from the ACTUAL chat being used
     let recentMessages: any[] = [];
-    if (input.chatId) {
+    if (chat) {
       recentMessages = await this.messageRepo
         .createQueryBuilder('message')
         .select(['message.prompt', 'message.response'])
-        .where('message.chatId = :chatId', { chatId: input.chatId })
+        .where('message.chatId = :chatId', { chatId: chat.id })
         .orderBy('message.createdAt', 'DESC')
         .limit(5)
         .getMany();
@@ -73,32 +95,50 @@ export class MessagesService {
       createdAt: msg.createdAt,
     }));
 
-    const aiStream = this.geminiService.generateEducationalChatResponseStream(
-      input.prompt,
-      conversationHistory.length > 0 ? conversationHistory : undefined,
-    );
-
-    let fullResponse = '';
-
+    // Yield credits info first
     yield `data: ${JSON.stringify({ type: 'credits', remaining: creditStatus.remaining, total: creditStatus.total })}\n\n`;
 
-    for await (const chunk of aiStream) {
-      fullResponse += chunk;
-      yield `data: ${JSON.stringify({ type: 'chunk', content: chunk })}\n\n`;
+    let fullResponse = '';
+    let aiError: Error | null = null;
+
+    try {
+      const aiStream =
+        this.geminiService.generateEducationalChatResponseStream(
+          input.prompt,
+          conversationHistory.length > 0 ? conversationHistory : undefined,
+        );
+
+      for await (const chunk of aiStream) {
+        fullResponse += chunk;
+        yield `data: ${JSON.stringify({ type: 'chunk', content: chunk })}\n\n`;
+      }
+    } catch (error) {
+      aiError = error as Error;
+      this.logger.error(`AI stream failed: ${aiError?.message}`);
+      // Don't rethrow - we'll save whatever response we have
     }
 
+    // If AI failed completely, provide a friendly fallback
+    if (!fullResponse.trim()) {
+      fullResponse =
+        aiError?.message ||
+        'Lo siento, estoy teniendo dificultades técnicas en este momento. Por favor, intenta de nuevo en unos segundos.';
+      yield `data: ${JSON.stringify({ type: 'chunk', content: fullResponse })}\n\n`;
+    }
+
+    // Save the message (even if it's a fallback response)
     const createdAt = new Date().toISOString();
     const userMessage = this.messageRepo.create({
       prompt: input.prompt,
       response: fullResponse,
       chat,
       userId,
-      chatId: chat.id,
+      chatId: chat!.id,
       createdAt,
     });
     await this.messageRepo.save(userMessage);
 
-    yield `data: ${JSON.stringify({ type: 'done', messageId: userMessage.id, chatId: chat.id })}\n\n`;
+    yield `data: ${JSON.stringify({ type: 'done', messageId: userMessage.id, chatId: chat!.id })}\n\n`;
   }
 
   // Create a new chat with custom title (public method for controller)
@@ -127,41 +167,50 @@ export class MessagesService {
       'CHAT_MESSAGE',
     );
 
-    // Generar título en paralelo (no bloquear)
-    const chatTitlePromise = this.generateChatTitle(input.prompt).catch(
-      () => 'Nuevo Chat',
-    );
-
-    let chat: Chat;
+    // Only create a new chat when NO chatId is provided
+    let chat: Chat | null = null;
 
     if (input.chatId) {
       chat = await this.chatRepo.findOne({
         where: { id: input.chatId, userId },
         select: ['id', 'title', 'userId'],
       });
-
       if (!chat) {
-        const chatTitle = await chatTitlePromise;
-        chat = await this.createChat(userId, chatTitle);
+        chat = await this.chatRepo.findOne({
+          where: { id: input.chatId },
+          select: ['id', 'title', 'userId'],
+        });
+        if (chat && chat.userId !== userId) {
+          const chatTitle = await this.generateChatTitle(input.prompt).catch(
+            () => 'Nuevo Chat',
+          );
+          chat = await this.createChat(userId, chatTitle);
+        } else if (!chat) {
+          const chatTitle = await this.generateChatTitle(input.prompt).catch(
+            () => 'Nuevo Chat',
+          );
+          chat = await this.createChat(userId, chatTitle);
+        }
       }
     } else {
-      // Create new chat if not provided
-      const chatTitle = await chatTitlePromise;
+      const chatTitle = await this.generateChatTitle(input.prompt).catch(
+        () => 'Nuevo Chat',
+      );
       chat = await this.createChat(userId, chatTitle);
     }
 
     // Obtener solo últimos 5 mensajes para contexto (no todo el historial)
     let recentMessages: any[] = [];
-    if (input.chatId) {
+    if (chat) {
       recentMessages = await this.messageRepo
         .createQueryBuilder('message')
         .select(['message.prompt', 'message.response'])
-        .where('message.chatId = :chatId', { chatId: input.chatId })
+        .where('message.chatId = :chatId', { chatId: chat.id })
         .orderBy('message.createdAt', 'DESC')
-        .limit(5) // Solo últimos 5 mensajes para contexto
+        .limit(5)
         .getMany();
-      
-      recentMessages = recentMessages.reverse(); // Ordenar ASC para contexto
+
+      recentMessages = recentMessages.reverse();
     }
 
     const conversationHistory = recentMessages.map((msg) => ({
@@ -170,34 +219,40 @@ export class MessagesService {
       createdAt: msg.createdAt,
     }));
 
+    let aiResponse = '';
+
     try {
       const response = await this.geminiService.generateEducationalChatResponse(
         input.prompt,
         undefined,
         conversationHistory.length > 0 ? conversationHistory : undefined,
       );
-
-      const createdAt = new Date().toISOString();
-
-      const userMessage = this.messageRepo.create({
-        prompt: input.prompt,
-        response: response.response,
-        chat,
-        userId,
-        chatId: chat.id,
-        createdAt,
-      });
-      const savedMessage = await this.messageRepo.save(userMessage);
-
-      return {
-        ...savedMessage,
-        creditsRemaining: creditStatus.remaining,
-        creditsTotal: creditStatus.total,
-      };
+      aiResponse = response.response;
     } catch (error) {
-      if (error instanceof BadRequestException) throw error;
-      throw new BadRequestException(error instanceof Error ? error.message : 'Error al procesar el mensaje');
+      Logger.error(
+        `AI response failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
+      aiResponse =
+        'Lo siento, estoy teniendo dificultades técnicas en este momento. Por favor, intenta de nuevo en unos segundos.';
     }
+
+    const createdAt = new Date().toISOString();
+
+    const userMessage = this.messageRepo.create({
+      prompt: input.prompt,
+      response: aiResponse,
+      chat,
+      userId,
+      chatId: chat!.id,
+      createdAt,
+    });
+    const savedMessage = await this.messageRepo.save(userMessage);
+
+    return {
+      ...savedMessage,
+      creditsRemaining: creditStatus.remaining,
+      creditsTotal: creditStatus.total,
+    };
   }
   // Obtener todos los chats del usuario - OPTIMIZADO SIN RELACIONES
   async getUserChats(userId: number) {
