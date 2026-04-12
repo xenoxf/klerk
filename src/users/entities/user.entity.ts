@@ -23,8 +23,11 @@ export class User {
   @Column({ type: 'text', nullable: true })
   avatar?: string;
 
-  @Column({ type: 'varchar', length: 255, nullable: true })
+  @Column({ type: 'text', nullable: true })
   refreshToken?: string;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  refreshTokenExpiresAt?: Date;
 
   // 👉 provider por defecto
   @Column({ default: 'local' })

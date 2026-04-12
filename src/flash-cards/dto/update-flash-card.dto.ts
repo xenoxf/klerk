@@ -1,6 +1,6 @@
 import { IsOptional, IsString } from 'class-validator';
 
-export class UpdateNoteDto {
+export class UpdateFlashCardDto {
   @IsOptional()
   @IsString({ message: 'El título debe ser un texto' })
   title?: string;
@@ -10,8 +10,12 @@ export class UpdateNoteDto {
   description?: string;
 
   @IsOptional()
-  @IsString({ message: 'El nivel de detalle debe ser un texto' })
-  levelOfDetail?: string;
+  @IsString({ message: 'El tema debe ser un texto' })
+  tema?: string;
+
+  @IsOptional()
+  @IsString({ message: 'El área debe ser un texto' })
+  area?: string;
 
   @IsOptional()
   @IsString({ message: 'El acceso debe ser un texto' })

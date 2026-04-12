@@ -261,13 +261,13 @@ IMPORTANTE:
       timeZone: 'America/Bogota',
     });
 
-    const contextInfo =
-      chatContext?.previousTopics && chatContext.previousTopics.length > 0
-        ? `\n\n## CONTEXTO DEL CHAT ACTUAL\n- **Tema principal**: ${chatContext.title || 'Conversación educativa'}\n- **Temas tratados**: ${chatContext.previousTopics.join(', ')}\n- **Mensajes previos**: ${chatContext.messageCount || 0}\n- Usa este contexto para mantener coherencia.`
-        : '';
-
     return `
 Eres Junior, un profesor IA experto y apasionado por la enseñanza.
+${
+  chatContext?.previousTopics && chatContext.previousTopics.length > 0
+    ? `\n\n## CONTEXTO DEL CHAT ACTUAL\n- **Tema principal**: ${chatContext.title || 'Conversación educativa'}\n- **Temas tratados**: ${chatContext.previousTopics.join(', ')}\n- **Mensajes previos**: ${chatContext.messageCount || 0}\n- Usa este contexto para mantener coherencia.`
+    : ''
+}
 
 ## TU ROL PRINCIPAL: ENSEÑAR
 - Tu objetivo es **ENSEÑAR** al usuario, no solo conversar.

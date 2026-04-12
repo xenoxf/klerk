@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, Logger, ConflictException } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CardLike } from './entities/card-like.entity';
@@ -14,7 +14,11 @@ export class LikesService {
     private likesRepo: Repository<CardLike>,
   ) {}
 
-  async toggleLike(userId: number, cardType: CardType, cardId: number): Promise<{ liked: boolean; count: number }> {
+  async toggleLike(
+    userId: number,
+    cardType: CardType,
+    cardId: number,
+  ): Promise<{ liked: boolean; count: number }> {
     const existing = await this.likesRepo.findOne({
       where: { userId, cardType, cardId },
     });
@@ -29,8 +33,11 @@ export class LikesService {
         this.logger.log(`User ${userId} liked ${cardType} ${cardId}`);
       } catch (error: any) {
         // Handle unique constraint race condition
-        if (error.code === '23505') { // PostgreSQL unique violation
-          this.logger.warn(`Race condition: duplicate like for user ${userId} ${cardType} ${cardId}`);
+        if (error.code === '23505') {
+          // PostgreSQL unique violation
+          this.logger.warn(
+            `Race condition: duplicate like for user ${userId} ${cardType} ${cardId}`,
+          );
         } else {
           throw error;
         }
@@ -47,14 +54,21 @@ export class LikesService {
     return this.likesRepo.count({ where: { cardType, cardId } });
   }
 
-  async hasUserLiked(userId: number, cardType: CardType, cardId: number): Promise<boolean> {
+  async hasUserLiked(
+    userId: number,
+    cardType: CardType,
+    cardId: number,
+  ): Promise<boolean> {
     const existing = await this.likesRepo.findOne({
       where: { userId, cardType, cardId },
     });
     return !!existing;
   }
 
-  async getLikeCountsForCards(cardType: CardType, cardIds: number[]): Promise<Map<number, number>> {
+  async getLikeCountsForCards(
+    cardType: CardType,
+    cardIds: number[],
+  ): Promise<Map<number, number>> {
     if (cardIds.length === 0) return new Map();
 
     const results = await this.likesRepo
@@ -73,7 +87,11 @@ export class LikesService {
     return map;
   }
 
-  async getUserLikedCards(cardType: CardType, userId: number, cardIds: number[]): Promise<Set<number>> {
+  async getUserLikedCards(
+    cardType: CardType,
+    userId: number,
+    cardIds: number[],
+  ): Promise<Set<number>> {
     if (cardIds.length === 0) return new Set();
 
     const results = await this.likesRepo

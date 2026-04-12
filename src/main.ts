@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ApiKeyGuard } from './common/guards/api-key/api-key.guard';
@@ -47,8 +48,8 @@ async function bootstrap() {
       standardHeaders: true,
       legacyHeaders: false,
       skip: (req) => {
-        // Skip rate limiting para health checks internos
-        return req.path === '/health' || req.path === '/ping';
+        // Skip rate limiting para health checks y hello
+        return req.path === '/health' || req.path === '/ping' || req.path === '/hello';
       },
     }),
   );
@@ -245,24 +246,25 @@ async function bootstrap() {
   // ============================================
   // SECURITY LOGGING MIDDLEWARE
   // ============================================
+  const securityLogger = new Logger('Security');
+
   app.use((req, res, next) => {
     const start = Date.now();
 
-    // Log de peticiones sospechosas
     res.on('finish', () => {
       const duration = Date.now() - start;
 
-      // Log de errores 4xx y 5xx
-      if (res.statusCode >= 400) {
-        console.log(
-          `[SECURITY] ${req.method} ${req.path} - ${res.statusCode} - ${duration}ms - IP: ${req.ip}`,
+      // Log errors 4xx and 5xx only in development
+      if (res.statusCode >= 400 && process.env.NODE_ENV !== 'production') {
+        securityLogger.log(
+          `${req.method} ${req.path} - ${res.statusCode} - ${duration}ms - IP: ${req.ip}`,
         );
       }
 
-      // Log de peticiones lentas (posible ataque)
-      if (duration > 5000) {
-        console.log(
-          `[SECURITY] Slow request: ${req.method} ${req.path} - ${duration}ms - IP: ${req.ip}`,
+      // Log slow requests only in development
+      if (duration > 5000 && process.env.NODE_ENV !== 'production') {
+        securityLogger.warn(
+          `Slow request: ${req.method} ${req.path} - ${duration}ms`,
         );
       }
     });
@@ -278,6 +280,9 @@ async function bootstrap() {
   const port = process.env.PORT ?? 3500;
 
   await app.listen(port, '0.0.0.0');
+  const maskedApiKey = process.env.API_KEY
+    ? process.env.API_KEY.substring(0, 4) + '••••'
+    : 'not-set';
   console.log(`
   🚀  ==========================================
   ✅  SERVIDOR INICIADO CORRECTAMENTE
@@ -289,16 +294,16 @@ async function bootstrap() {
 
   🛡️  SECURITY FEATURES:
      • Rate Limiting: 45 req/15min global
-     • Auth Rate Limit: 10 req/15min
+     • Auth Rate Limit: 20 req/15min
      • AI Gen Rate Limit: 20 req/hour
      • Max Payload: 1MB
      • Helmet Security: ENABLED
      • XSS Protection: ENABLED
      • SQL Injection Protection: ENABLED
      • Suspicious Activity Logging: ENABLED
-  
+
   🔐  Health Check: http://localhost:${port}/health
-  🔑  X-API-KEY: ${process.env.API_KEY}
+  🔑  X-API-KEY: ${maskedApiKey}
   ==========================================
   `);
 }

@@ -6,6 +6,7 @@ import {
   CreateDateColumn,
   OneToMany,
   ManyToOne,
+  Index,
 } from 'typeorm';
 import { NoteContent } from './note-content.entity';
 
@@ -38,6 +39,7 @@ export class Note {
   createdAt: Date;
 
   @Column()
+  @Index()
   userId: number;
 
   @OneToMany(() => NoteContent, (noteContent) => noteContent.note, {

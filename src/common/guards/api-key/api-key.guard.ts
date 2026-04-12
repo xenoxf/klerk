@@ -13,9 +13,11 @@ const PUBLIC_PATHS = new Set([
   '/auth/guest',
   '/auth/verify_token',
   '/auth/me',
+  '/auth/refresh',
   // All auth sub-paths
   '/auth/logout',
-  // Public info
+  // Public endpoints
+  '/hello',
   '/health',
   '/ping',
   '/credits/costs',
@@ -35,7 +37,10 @@ export class ApiKeyGuard implements CanActivate {
 
     // Skip static assets
     const accept = request.headers['accept'] || '';
-    const isStaticAsset = /\.(png|jpe?g|gif|svg|ico|css|js|woff2?|ttf|eot|webp|map)(\?.*)?$/.test(cleanPath);
+    const isStaticAsset =
+      /\.(png|jpe?g|gif|svg|ico|css|js|woff2?|ttf|eot|webp|map)(\?.*)?$/.test(
+        cleanPath,
+      );
     const isBrowserRequest = accept.includes('text/html') || isStaticAsset;
 
     if (isBrowserRequest && !cleanPath.startsWith('/api/')) {

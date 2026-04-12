@@ -10,8 +10,13 @@ export class AppController {
     return this.appService.getHello();
   }
 
-  @Get()
-  encender(): boolean {
+  @Get('health')
+  health(): boolean {
     return true;
+  }
+
+  @Get('ping')
+  ping(): string {
+    return 'pong';
   }
 }

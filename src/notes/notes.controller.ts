@@ -10,28 +10,19 @@ import {
   Query,
   ParseIntPipe,
   Req,
-  ForbiddenException,
 } from '@nestjs/common';
-//import { Request } from 'express';
 import { NotesService } from './notes.service';
-//import { UpdateNoteDto } from './dto/update-note.dto';
 import { JwtGuard } from '../auth/jwt/jwt.guard';
 import { GenerateNoteDto } from './dto/create-note.dto';
+import { CreateNoteDto } from './dto/create-note-body.dto';
+import { UpdateNoteDto } from './dto/update-note.dto';
 import { RequireAuthGuard } from '../common/guards/require-auth/require-auth.guard';
-//import { ApiKeyGuard } from '../common/guards/api-key/api-key.guard';
-
-function getNumericUserId(req: any): number {
-  const userId = Number(req.user?.id);
-  if (isNaN(userId)) {
-    throw new ForbiddenException('Acceso no permitido');
-  }
-  return userId;
-}
+import { getNumericUserId } from '../common/utils/shared.utils';
 
 @UseGuards(JwtGuard)
 @Controller('notes')
 export class NotesController {
-  constructor(private notesService: NotesService) { }
+  constructor(private notesService: NotesService) {}
 
   // ==================== AI GENERATION ====================
   @Post('generate/topic_or_reference')
@@ -75,7 +66,7 @@ export class NotesController {
 
   @Post()
   @UseGuards(JwtGuard, RequireAuthGuard)
-  async create(@Body() body: any, @Req() req: any) {
+  async create(@Body() body: CreateNoteDto, @Req() req: any) {
     return this.notesService.create(body, getNumericUserId(req));
   }
 
@@ -88,7 +79,7 @@ export class NotesController {
   @UseGuards(JwtGuard, RequireAuthGuard)
   async update(
     @Param('id', ParseIntPipe) id: number,
-    @Body() body: any,
+    @Body() body: UpdateNoteDto,
     @Req() req: any,
   ) {
     return this.notesService.update(id, body, getNumericUserId(req));

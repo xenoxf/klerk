@@ -5,14 +5,12 @@ import { JwtStrategy } from './jwt/jwt.strategy';
 import { GoogleStrategy } from './strategies/google.strategy';
 import { UsersModule } from '../users/users.module';
 import { MailService } from './mail.service';
-import { SharedModule } from '../shared/shared.module';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 
 @Global()
 @Module({
   imports: [
-    SharedModule,
     UsersModule,
     ConfigModule,
     JwtModule.registerAsync({
@@ -38,4 +36,4 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
   controllers: [AuthController],
   exports: [AuthService, JwtModule],
 })
-export class AuthModule { }
+export class AuthModule {}

@@ -6,17 +6,17 @@ import { Exam } from './entities/exam.entity';
 import { ExamQuestion } from './entities/examQuestion.entity';
 import { ExamOption } from './entities/exam-option.entity';
 import { GeminiModule } from '../gemini/gemini.module';
-import { SharedModule } from '../shared/shared.module';
 import { CreditsModule } from '../credits/credits.module';
 import { LikesModule } from '../likes/likes.module';
+import { ExamAttemptsModule } from '../exam-attempts/exam-attempts.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Exam, ExamQuestion, ExamOption]),
     GeminiModule,
-    SharedModule,
     CreditsModule,
     LikesModule,
+    ExamAttemptsModule,
   ],
   controllers: [ExamsController],
   providers: [ExamsService],

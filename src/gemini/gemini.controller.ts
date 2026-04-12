@@ -1,7 +1,5 @@
-import { Controller, Get, Sse } from '@nestjs/common';
+import { Controller, Get } from '@nestjs/common';
 import { GeminiService } from './gemini.service';
-import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
 
 @Controller('gemini')
 export class GeminiController {

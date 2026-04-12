@@ -5,9 +5,9 @@ import { AI_PROMPTS } from './AI_PROMPTS';
 // Available Gemini models for fallback chain
 const MODELS = [
   'gemini-2.5-flash-lite', // Primary: fast, cheap
-  'gemini-2.5-flash',      // Fallback 1: more capable
-  'gemini-2.0-flash',      // Fallback 2: older but reliable
-  'gemini-1.5-flash',      // Fallback 3: stable fallback
+  'gemini-2.5-flash', // Fallback 1: more capable
+  'gemini-2.0-flash', // Fallback 2: older but reliable
+  'gemini-1.5-flash', // Fallback 3: stable fallback
 ] as const;
 
 type ModelName = (typeof MODELS)[number];
@@ -192,9 +192,7 @@ export class GeminiService {
     }
     for (const q of parsed.questions) {
       if (!q.question || !q.options || !Array.isArray(q.options)) {
-        throw new Error(
-          'Las preguntas generadas tienen formato inválido.',
-        );
+        throw new Error('Las preguntas generadas tienen formato inválido.');
       }
     }
     return parsed;
@@ -218,9 +216,7 @@ export class GeminiService {
       !Array.isArray(parsed.notes) ||
       parsed.notes.length === 0
     ) {
-      throw new Error(
-        'No se generaron notas válidas. Intenta con otro tema.',
-      );
+      throw new Error('No se generaron notas válidas. Intenta con otro tema.');
     }
     if (!parsed.metadata || typeof parsed.metadata !== 'object') {
       throw new Error('Faltan metadatos en la respuesta de notas.');

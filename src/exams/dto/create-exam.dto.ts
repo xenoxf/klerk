@@ -1,4 +1,11 @@
-import { IsOptional, IsString, IsEnum, IsInt, Min } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsNotEmpty,
+  IsEnum,
+  IsInt,
+  Min,
+} from 'class-validator';
 
 enum Dificultad {
   EASY = 'easy',
@@ -6,14 +13,10 @@ enum Dificultad {
   HARD = 'hard',
 }
 
-export class UpdateExamDto {
-  @IsOptional()
-  @IsInt({ message: 'El ID debe ser un número entero' })
-  id?: number;
-
-  @IsOptional()
+export class CreateExamDto {
   @IsString({ message: 'El título debe ser un texto' })
-  title?: string;
+  @IsNotEmpty({ message: 'El título es requerido' })
+  title: string;
 
   @IsOptional()
   @IsString({ message: 'La descripción debe ser un texto' })
@@ -36,7 +39,7 @@ export class UpdateExamDto {
   acceso?: string;
 
   @IsOptional()
-  @IsInt({ message: 'El puntaje debe ser un número entero' })
-  @Min(0, { message: 'El puntaje debe ser mayor o igual a 0' })
-  score?: number;
+  @IsInt({ message: 'El total de preguntas debe ser un número entero' })
+  @Min(1, { message: 'El total de preguntas debe ser al menos 1' })
+  totalQuestions?: number;
 }

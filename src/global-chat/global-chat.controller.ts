@@ -13,14 +13,7 @@ import { GlobalChatService } from './global-chat.service';
 import { CreateGlobalChatMessageDto } from './dto/create-global-chat-message.dto';
 import { JwtGuard } from '../auth/jwt/jwt.guard';
 import { RequireAuthGuard } from '../common/guards/require-auth/require-auth.guard';
-
-function getNumericUserId(req: any): number {
-  const userId = Number(req.user?.id);
-  if (isNaN(userId)) {
-    throw new Error('Acceso no permitido');
-  }
-  return userId;
-}
+import { getNumericUserId } from '../common/utils/shared.utils';
 
 @UseGuards(JwtGuard)
 @Controller('global-chat')
@@ -35,7 +28,7 @@ export class GlobalChatController {
   @Post('message')
   @UseGuards(JwtGuard, RequireAuthGuard)
   async create(@Body() createDto: CreateGlobalChatMessageDto, @Req() req: any) {
-    return this.globalChatService.create(createDto, req.user.id);
+    return this.globalChatService.create(createDto, getNumericUserId(req));
   }
 
   @Get('user/messages')
@@ -47,6 +40,6 @@ export class GlobalChatController {
   @Delete('message/:id')
   @UseGuards(JwtGuard, RequireAuthGuard)
   async remove(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
-    return this.globalChatService.remove(id, req.user.id);
+    return this.globalChatService.remove(id, getNumericUserId(req));
   }
 }

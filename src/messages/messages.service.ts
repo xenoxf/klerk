@@ -9,7 +9,7 @@ import { CreditsService } from '../credits/credits.service';
 @Injectable()
 export class MessagesService {
   private readonly logger = new Logger(MessagesService.name);
-  
+
   constructor(
     @InjectRepository(Message) private messageRepo: Repository<Message>,
     @InjectRepository(Chat) private chatRepo: Repository<Chat>,
@@ -102,11 +102,10 @@ export class MessagesService {
     let aiError: Error | null = null;
 
     try {
-      const aiStream =
-        this.geminiService.generateEducationalChatResponseStream(
-          input.prompt,
-          conversationHistory.length > 0 ? conversationHistory : undefined,
-        );
+      const aiStream = this.geminiService.generateEducationalChatResponseStream(
+        input.prompt,
+        conversationHistory.length > 0 ? conversationHistory : undefined,
+      );
 
       for await (const chunk of aiStream) {
         fullResponse += chunk;
@@ -265,18 +264,21 @@ export class MessagesService {
     });
 
     // Contar mensajes con query separada más rápida
-    const chatIds = chats.map(c => c.id);
-    const messageCounts = chatIds.length > 0
-      ? await this.messageRepo
-          .createQueryBuilder('message')
-          .select('message.chatId', 'chatId')
-          .addSelect('COUNT(message.id)', 'count')
-          .where('message.chatId IN (:...chatIds)', { chatIds })
-          .groupBy('message.chatId')
-          .getRawMany()
-      : [];
+    const chatIds = chats.map((c) => c.id);
+    const messageCounts =
+      chatIds.length > 0
+        ? await this.messageRepo
+            .createQueryBuilder('message')
+            .select('message.chatId', 'chatId')
+            .addSelect('COUNT(message.id)', 'count')
+            .where('message.chatId IN (:...chatIds)', { chatIds })
+            .groupBy('message.chatId')
+            .getRawMany()
+        : [];
 
-    const countMap = new Map(messageCounts.map(mc => [mc.chatId, parseInt(mc.count)]));
+    const countMap = new Map(
+      messageCounts.map((mc) => [mc.chatId, parseInt(mc.count)]),
+    );
 
     return chats.map((chat) => ({
       id: chat.id,
@@ -300,7 +302,12 @@ export class MessagesService {
     // Cargar mensajes con query builder optimizado
     const messages = await this.messageRepo
       .createQueryBuilder('message')
-      .select(['message.id', 'message.prompt', 'message.response', 'message.createdAt'])
+      .select([
+        'message.id',
+        'message.prompt',
+        'message.response',
+        'message.createdAt',
+      ])
       .where('message.chatId = :chatId', { chatId })
       .orderBy('message.createdAt', 'ASC')
       .limit(100) // Últimos 100 mensajes

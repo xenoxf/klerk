@@ -21,7 +21,7 @@ export class GlobalChatService {
         userId,
       });
       return await this.globalChatMessageRepo.save(message);
-    } catch (error) {
+    } catch {
       throw new BadRequestException('Error al crear mensaje');
     }
   }

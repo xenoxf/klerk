@@ -1,13 +1,8 @@
-import { Controller, Get, Post, Body, Param, ParseIntPipe, UseGuards, Req, ForbiddenException } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards, Req } from '@nestjs/common';
 import { ExamAttemptsService } from './exam-attempts.service';
 import { JwtGuard } from '../auth/jwt/jwt.guard';
 import { RequireAuthGuard } from '../common/guards/require-auth/require-auth.guard';
-
-function getNumericUserId(req: any): number {
-  const userId = Number(req.user?.id);
-  if (isNaN(userId)) throw new ForbiddenException('Acceso no permitido');
-  return userId;
-}
+import { getNumericUserId } from '../common/utils/shared.utils';
 
 @UseGuards(JwtGuard, RequireAuthGuard)
 @Controller('exam-attempts')
@@ -16,7 +11,13 @@ export class ExamAttemptsController {
 
   @Post()
   async recordAttempt(
-    @Body() body: { examId: number; correctAnswers: number; totalQuestions: number; examTitle: string },
+    @Body()
+    body: {
+      examId: number;
+      correctAnswers: number;
+      totalQuestions: number;
+      examTitle: string;
+    },
     @Req() req: any,
   ) {
     return this.service.recordAttempt(

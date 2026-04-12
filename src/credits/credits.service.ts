@@ -1,11 +1,6 @@
-import {
-  Injectable,
-  BadRequestException,
-  Logger,
-  ForbiddenException,
-} from '@nestjs/common';
+import { Injectable, Logger, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, MoreThanOrEqual, LessThan } from 'typeorm';
+import { Repository, LessThan } from 'typeorm';
 import { DailyCredits } from './entities/daily-credits.entity';
 
 // Configuración de créditos
@@ -38,25 +33,41 @@ export const CREDIT_CONFIG = {
   },
 };
 
-export function calculateExamCost(numberOfQuestions: number, difficulty: string, topic: string): number {
+export function calculateExamCost(
+  numberOfQuestions: number,
+  difficulty: string,
+  topic: string,
+): number {
   const base = CREDIT_CONFIG.BASE_COSTS.EXAM_GENERATION;
-  const questionCost = numberOfQuestions * CREDIT_CONFIG.MULTIPLIERS.EXAM_PER_QUESTION;
-  const difficultyMult = CREDIT_CONFIG.MULTIPLIERS.EXAM_DIFFICULTY[difficulty] || 1.3;
-  const topicExtra = topic.length > CREDIT_CONFIG.MULTIPLIERS.TOPIC_LENGTH_THRESHOLD ? 1 : 0;
+  const questionCost =
+    numberOfQuestions * CREDIT_CONFIG.MULTIPLIERS.EXAM_PER_QUESTION;
+  const difficultyMult =
+    CREDIT_CONFIG.MULTIPLIERS.EXAM_DIFFICULTY[difficulty] || 1.3;
+  const topicExtra =
+    topic.length > CREDIT_CONFIG.MULTIPLIERS.TOPIC_LENGTH_THRESHOLD ? 1 : 0;
   return Math.ceil((base + questionCost) * difficultyMult + topicExtra);
 }
 
-export function calculateNoteCost(levelOfDetail: string, topic: string): number {
+export function calculateNoteCost(
+  levelOfDetail: string,
+  topic: string,
+): number {
   const base = CREDIT_CONFIG.BASE_COSTS.NOTE_GENERATION;
-  const detailMult = CREDIT_CONFIG.MULTIPLIERS.NOTE_DETAIL[levelOfDetail] || 1.4;
-  const topicExtra = topic.length > CREDIT_CONFIG.MULTIPLIERS.TOPIC_LENGTH_THRESHOLD ? 1 : 0;
+  const detailMult =
+    CREDIT_CONFIG.MULTIPLIERS.NOTE_DETAIL[levelOfDetail] || 1.4;
+  const topicExtra =
+    topic.length > CREDIT_CONFIG.MULTIPLIERS.TOPIC_LENGTH_THRESHOLD ? 1 : 0;
   return Math.ceil(base * detailMult + topicExtra);
 }
 
-export function calculateFlashcardCost(numberOfCards: number, topic: string): number {
+export function calculateFlashcardCost(
+  numberOfCards: number,
+  topic: string,
+): number {
   const base = CREDIT_CONFIG.BASE_COSTS.FLASHCARD_GENERATION;
   const cardCost = numberOfCards * CREDIT_CONFIG.MULTIPLIERS.FLASHCARD_PER_CARD;
-  const topicExtra = topic.length > CREDIT_CONFIG.MULTIPLIERS.TOPIC_LENGTH_THRESHOLD ? 1 : 0;
+  const topicExtra =
+    topic.length > CREDIT_CONFIG.MULTIPLIERS.TOPIC_LENGTH_THRESHOLD ? 1 : 0;
   return Math.ceil(base + cardCost + topicExtra);
 }
 

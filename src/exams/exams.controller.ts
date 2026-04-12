@@ -10,30 +10,23 @@ import {
   Query,
   ParseIntPipe,
   Req,
-  ForbiddenException,
 } from '@nestjs/common';
 import { ExamsService } from './exams.service';
+import { ExamAttemptsService } from '../exam-attempts/exam-attempts.service';
 import { JwtGuard } from '../auth/jwt/jwt.guard';
 import { GenerateExamDto } from './dto/generate-exam.dto';
+import { CreateExamDto } from './dto/create-exam.dto';
 import { UpdateExamDto } from './dto/update-exam.dto';
-import { Exam } from './entities/exam.entity';
 import { RequireAuthGuard } from '../common/guards/require-auth/require-auth.guard';
-
-// letras mas usadas
-// a & $ e & @ i & ! o & 0 u & v
-
-function getNumericUserId(req: any): number {
-  const userId = Number(req.user?.id);
-  if (isNaN(userId)) {
-    throw new ForbiddenException('Acceso no permitido');
-  }
-  return userId;
-}
+import { getNumericUserId } from '../common/utils/shared.utils';
 
 @UseGuards(JwtGuard)
 @Controller('exams')
 export class ExamsController {
-  constructor(private examsService: ExamsService) { }
+  constructor(
+    private examsService: ExamsService,
+    private examAttemptsService: ExamAttemptsService,
+  ) {}
 
   // ==================== BASIC CRUD ====================
 
@@ -74,10 +67,7 @@ export class ExamsController {
    */
   @Get('locked/:id')
   @UseGuards(JwtGuard, RequireAuthGuard)
-  getLocked(
-    @Param('id', ParseIntPipe) id: number,
-    @Req() req: any,
-  ) {
+  getLocked(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
     return this.examsService.getLockedExam(id, getNumericUserId(req));
   }
 
@@ -103,8 +93,33 @@ export class ExamsController {
   }
 
   @Get('score')
-  updateExamScore(@Query() query: UpdateExamDto, @Req() req: any) {
-    return this.examsService.updateExamScore(query, getNumericUserId(req));
+  async updateExamScore(
+    @Query() query: UpdateExamDto,
+    @Req() req: any,
+  ) {
+    const userId = getNumericUserId(req);
+    const decks = await this.examsService.updateExamScore(query, userId);
+
+    // Auto-record exam attempt when score is updated
+    if (query.score !== undefined && query.id) {
+      const examResult = await this.examsService.getById(query.id, userId);
+      // examResult can be single exam or array, handle both
+      const exam = Array.isArray(examResult) ? examResult[0] : examResult;
+      if (exam && 'totalQuestions' in exam && 'title' in exam) {
+        const correctAnswers = Math.round(
+          (query.score / 100) * (exam as any).totalQuestions,
+        );
+        await this.examAttemptsService.recordAttempt(
+          userId,
+          query.id,
+          correctAnswers,
+          (exam as any).totalQuestions,
+          (exam as any).title || 'Unknown Exam',
+        );
+      }
+    }
+
+    return decks;
   }
 
   @Get(':id')
@@ -130,7 +145,7 @@ export class ExamsController {
 
   @Post()
   @UseGuards(JwtGuard, RequireAuthGuard)
-  create(@Body() body: Partial<Exam>, @Req() req: any) {
+  create(@Body() body: CreateExamDto, @Req() req: any) {
     return this.examsService.create(body, getNumericUserId(req));
   }
 
@@ -138,7 +153,7 @@ export class ExamsController {
   @UseGuards(JwtGuard, RequireAuthGuard)
   update(
     @Param('id', ParseIntPipe) id: number,
-    @Body() body: Partial<Exam>,
+    @Body() body: UpdateExamDto,
     @Req() req: any,
   ) {
     return this.examsService.update(id, body, getNumericUserId(req));

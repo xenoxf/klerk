@@ -7,12 +7,20 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { GeminiService } from '../gemini/gemini.service';
-import { CreditsService, calculateFlashcardCost } from '../credits/credits.service';
+import {
+  CreditsService,
+  calculateFlashcardCost,
+} from '../credits/credits.service';
 import { LikesService } from '../likes/likes.service';
 import { FlashCard } from './entities/flash-card.entity';
 import { Card } from './entities/card.entity';
 import { GenerateFlashCardsDto } from './dto/generate-flash-cards.dto';
 import { CardResponse } from './types';
+import {
+  shuffleArray,
+  isPublicAccess,
+  normalizeAccess,
+} from '../common/utils/shared.utils';
 
 @Injectable()
 export class FlashCardsService {
@@ -24,13 +32,10 @@ export class FlashCardsService {
     private readonly flashCardRepo: Repository<FlashCard>,
     @InjectRepository(Card)
     private readonly cardRepo: Repository<Card>,
-  ) { }
+  ) {}
 
   async generateFrom(input: GenerateFlashCardsDto, userId: number) {
-    const dynamicCost = calculateFlashcardCost(
-      input.quantity,
-      input.reference,
-    );
+    const dynamicCost = calculateFlashcardCost(input.quantity, input.reference);
 
     const creditStatus = await this.creditsService.consumeCredits(
       userId,
@@ -52,7 +57,7 @@ export class FlashCardsService {
       tema,
       userId,
       code: await this.generateCode(),
-      acceso: this.normalizeAccess(input.acceso),
+      acceso: normalizeAccess(input.acceso),
     });
     const savedCard = await this.cardRepo.save(card);
 
@@ -79,19 +84,6 @@ export class FlashCardsService {
       creditsRemaining: creditStatus.remaining,
       creditsTotal: creditStatus.total,
     };
-  }
-
-  private isPublicAccess(acceso?: string | null): boolean {
-    const normalized = (acceso ?? '').toLowerCase();
-    return normalized === 'public' || normalized === 'publico';
-  }
-
-  /** Normaliza el acceso a 'publico' o 'privado' (valores de la BD) */
-  private normalizeAccess(acceso?: string): string {
-    if (!acceso) return 'privado';
-    const normalized = acceso.toLowerCase().trim();
-    if (normalized === 'public' || normalized === 'publico') return 'publico';
-    return 'privado';
   }
 
   async findCardById(id: number, userId: number) {
@@ -136,7 +128,11 @@ export class FlashCardsService {
   /**
    * Refactor para lista de decks - solo datos para listar
    */
-  async deckRefactor(cards: Card[] | Card, userId?: number, likesData?: { counts: Map<number, number>; userLiked: Set<number> }) {
+  async deckRefactor(
+    cards: Card[] | Card,
+    userId?: number,
+    likesData?: { counts: Map<number, number>; userLiked: Set<number> },
+  ) {
     if (Array.isArray(cards)) {
       return cards.map((card) => ({
         id: card.id,
@@ -166,14 +162,23 @@ export class FlashCardsService {
   }
 
   async findPublicCardsDeck(userId?: number) {
-    const cards = await this.cardRepo.find({ relations: ['flashcards', 'user'] });
-    const filtered = cards.filter((card) => this.isPublicAccess(card.acceso));
-    const cardIds = filtered.map(c => c.id);
-    const countsMap = await this.likesService.getLikeCountsForCards('card', cardIds);
-    const userLikedSet = userId ? await this.likesService.getUserLikedCards('card', userId, cardIds) : new Set<number>();
-    const result = this.deckRefactor(filtered, userId, { counts: countsMap, userLiked: userLikedSet });
-    // Randomize order
-    return Array.isArray(result) ? this.shuffleArray(result) : result;
+    const cards = await this.cardRepo.find({
+      relations: ['flashcards', 'user'],
+    });
+    const filtered = cards.filter((card) => isPublicAccess(card.acceso));
+    const cardIds = filtered.map((c) => c.id);
+    const countsMap = await this.likesService.getLikeCountsForCards(
+      'card',
+      cardIds,
+    );
+    const userLikedSet = userId
+      ? await this.likesService.getUserLikedCards('card', userId, cardIds)
+      : new Set<number>();
+    const result = this.deckRefactor(filtered, userId, {
+      counts: countsMap,
+      userLiked: userLikedSet,
+    });
+    return Array.isArray(result) ? shuffleArray(result) : result;
   }
 
   async findMyCardsDeck(userId: number) {
@@ -182,22 +187,21 @@ export class FlashCardsService {
       relations: ['flashcards', 'user'],
       order: { createdAt: 'DESC' },
     });
-    const cardIds = cards.map(c => c.id);
-    const countsMap = await this.likesService.getLikeCountsForCards('card', cardIds);
-    const userLikedSet = await this.likesService.getUserLikedCards('card', userId, cardIds);
-    const result = this.deckRefactor(cards, userId, { counts: countsMap, userLiked: userLikedSet });
-    // Randomize order
-    return Array.isArray(result) ? this.shuffleArray(result) : result;
-  }
-
-  // Helper method to shuffle array (Fisher-Yates)
-  private shuffleArray<T>(array: T[]): T[] {
-    const shuffled = [...array];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-    }
-    return shuffled;
+    const cardIds = cards.map((c) => c.id);
+    const countsMap = await this.likesService.getLikeCountsForCards(
+      'card',
+      cardIds,
+    );
+    const userLikedSet = await this.likesService.getUserLikedCards(
+      'card',
+      userId,
+      cardIds,
+    );
+    const result = this.deckRefactor(cards, userId, {
+      counts: countsMap,
+      userLiked: userLikedSet,
+    });
+    return Array.isArray(result) ? shuffleArray(result) : result;
   }
 
   async returnIdByCard(id: number, userId: number) {
@@ -219,7 +223,7 @@ export class FlashCardsService {
       relations: ['flashcards'],
     });
     if (!card) throw new NotFoundException('Card not found');
-    if (!this.isPublicAccess(card.acceso)) {
+    if (!isPublicAccess(card.acceso) && card.userId !== userId) {
       throw new UnauthorizedException('No tienes acceso a este mazo');
     }
     return this.klekRefactor(card);
@@ -231,7 +235,7 @@ export class FlashCardsService {
       relations: ['flashcards', 'user'],
     });
     if (!card) throw new NotFoundException('Card not found');
-    if (!this.isPublicAccess(card.acceso)) {
+    if (!isPublicAccess(card.acceso)) {
       if (userId === card.userId) {
         return this.klekRefactor(card);
       } else throw new UnauthorizedException('No tienes acceso a este lugar');
@@ -264,7 +268,7 @@ export class FlashCardsService {
       relations: ['flashcards'],
     });
     if (!card) throw new NotFoundException('Card not found');
-    if (!this.isPublicAccess(card.acceso) && card.userId !== userId) {
+    if (!isPublicAccess(card.acceso) && card.userId !== userId) {
       throw new UnauthorizedException('No tienes acceso a este mazo');
     }
     return this.klekRefactor(card);
@@ -291,7 +295,7 @@ export class FlashCardsService {
         description: payload.description ?? '',
         tema: payload.tema ?? '',
         area: payload.area ?? '',
-        acceso: this.normalizeAccess(payload.acceso),
+        acceso: normalizeAccess(payload.acceso),
         code: await this.generateCode(),
         userId,
       }),
@@ -411,7 +415,9 @@ export class FlashCardsService {
     return this.deckRefactor(cards, userId);
   }
 
-  async deleteAll(userId: number): Promise<{ deleted: boolean; message: string }> {
+  async deleteAll(
+    userId: number,
+  ): Promise<{ deleted: boolean; message: string }> {
     await this.cardRepo.delete({ userId });
     return { deleted: true, message: 'All flashcards deleted' };
   }

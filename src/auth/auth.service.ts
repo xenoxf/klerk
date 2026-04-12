@@ -10,6 +10,7 @@ import { UsersService } from '../users/users.service';
 import { CreateAuthDto } from './dto/create-auth.dto';
 import { LoginAuthDto } from './dto/login-auth.dto';
 import * as bcrypt from 'bcryptjs';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class AuthService {
@@ -20,13 +21,33 @@ export class AuthService {
     private readonly jwtService: JwtService,
   ) {}
 
-  /** 🔐 Generar JWT */
-  private generateAuthToken(user: any) {
-    return this.jwtService.sign({
-      sub: user.id,
-      email: user.email ?? null,
-      provider: user.provider,
-    });
+  /** 🔐 Generar JWT access token (duración de 24h para buena UX) */
+  private generateAccessToken(user: any) {
+    return this.jwtService.sign(
+      {
+        sub: user.id,
+        email: user.email ?? null,
+        provider: user.provider,
+      },
+      { expiresIn: '24h' },
+    );
+  }
+
+  /** 🔑 Generar refresh token (larga duración) */
+  private generateRefreshToken() {
+    return crypto.randomBytes(40).toString('hex');
+  }
+
+  /** 🔐 Hash refresh token antes de guardar en DB */
+  private hashRefreshToken(token: string) {
+    return crypto.createHash('sha256').update(token).digest('hex');
+  }
+
+  /** 📅 Calcular fecha de expiración del refresh token (30 días) */
+  private getRefreshTokenExpiry() {
+    const expiry = new Date();
+    expiry.setDate(expiry.getDate() + 30); // 30 días
+    return expiry;
   }
 
   /** Validar email único (soporta email nullable) */
@@ -101,7 +122,7 @@ export class AuthService {
       if (payload.purpose !== 'email-verification') {
         throw new BadRequestException('Token inválido para este propósito.');
       }
-    } catch (err) {
+    } catch {
       throw new BadRequestException('Token inválido o expirado.');
     }
 
@@ -113,10 +134,15 @@ export class AuthService {
       password: payload.password,
     });
 
-    const tokenJwt = this.generateAuthToken(user);
+    const accessToken = this.generateAccessToken(user);
+    const refreshToken = this.generateRefreshToken();
+    const hashedRefreshToken = this.hashRefreshToken(refreshToken);
+    const refreshTokenExpiresAt = this.getRefreshTokenExpiry();
+    await this.usersService.update(user.id, { refreshToken: hashedRefreshToken, refreshTokenExpiresAt });
 
     return {
-      token: tokenJwt,
+      token: accessToken,
+      refreshToken,
       user: {
         id: user.id,
         name: user.name,
@@ -136,10 +162,15 @@ export class AuthService {
       name: dto.name ?? dto.email,
     });
 
-    const token = this.generateAuthToken(user);
+    const accessToken = this.generateAccessToken(user);
+    const refreshToken = this.generateRefreshToken();
+    const hashedRefreshToken = this.hashRefreshToken(refreshToken);
+    const refreshTokenExpiresAt = this.getRefreshTokenExpiry();
+    await this.usersService.update(user.id, { refreshToken: hashedRefreshToken, refreshTokenExpiresAt });
 
     return {
-      token,
+      token: accessToken,
+      refreshToken,
       user: {
         id: user.id,
         email: user.email,
@@ -173,10 +204,15 @@ export class AuthService {
       throw new UnauthorizedException('Credenciales incorrectas.');
     }
 
-    const token = this.generateAuthToken(user);
+    const accessToken = this.generateAccessToken(user);
+    const refreshToken = this.generateRefreshToken();
+    const hashedRefreshToken = this.hashRefreshToken(refreshToken);
+    const refreshTokenExpiresAt = this.getRefreshTokenExpiry();
+    await this.usersService.update(user.id, { refreshToken: hashedRefreshToken, refreshTokenExpiresAt });
 
     return {
-      token,
+      token: accessToken,
+      refreshToken,
       user: {
         id: user.id,
         email: user.email,
@@ -201,9 +237,13 @@ export class AuthService {
       });
     }
 
-    const token = this.generateAuthToken(user);
+    const accessToken = this.generateAccessToken(user);
+    const refreshToken = this.generateRefreshToken();
+    const hashedRefreshToken = this.hashRefreshToken(refreshToken);
+    const refreshTokenExpiresAt = this.getRefreshTokenExpiry();
+    await this.usersService.update(user.id, { refreshToken: hashedRefreshToken, refreshTokenExpiresAt });
 
-    return { token, user };
+    return { token: accessToken, refreshToken, user };
   }
 
   /** 7️⃣ Flujo Google centralizado */
@@ -223,10 +263,15 @@ export class AuthService {
         });
       }
 
-      const token = this.generateAuthToken(user);
+      const accessToken = this.generateAccessToken(user);
+      const refreshToken = this.generateRefreshToken();
+      const hashedRefreshToken = this.hashRefreshToken(refreshToken);
+      const refreshTokenExpiresAt = this.getRefreshTokenExpiry();
+      await this.usersService.update(user.id, { refreshToken: hashedRefreshToken, refreshTokenExpiresAt });
 
       return {
-        token,
+        token: accessToken,
+        refreshToken,
         user: {
           id: user.id,
           email: user.email,
@@ -407,15 +452,22 @@ export class AuthService {
     };
 
     // Token con expiración de 24 horas y flag isGuest
-    const token = this.jwtService.sign({
-      sub: guestUser.id,
-      email: guestUser.email,
-      provider: guestUser.provider,
-      isGuest: true,
-    }, { expiresIn: '24h' });
+    const token = this.jwtService.sign(
+      {
+        sub: guestUser.id,
+        email: guestUser.email,
+        provider: guestUser.provider,
+        isGuest: true,
+      },
+      { expiresIn: '24h' },
+    );
+
+    // Guests también reciben refresh token (no se guarda en DB, se invalida al expirar)
+    const refreshToken = this.generateRefreshToken();
 
     return {
       token,
+      refreshToken,
       user: {
         id: guestUser.id,
         name: guestUser.name,
@@ -423,6 +475,58 @@ export class AuthService {
         isGuest: true,
       },
     };
+  }
+
+  /** 1️⃣3️⃣ Refresh Token - Rotar access token */
+  async refreshToken(refreshToken: string) {
+    const hashedToken = this.hashRefreshToken(refreshToken);
+
+    // Buscar usuario con este refresh token
+    const user = await this.usersService.findByRefreshToken(hashedToken);
+    if (!user) {
+      throw new UnauthorizedException('Refresh token inválido');
+    }
+
+    // Verificar que el refresh token no haya expirado
+    if (user.refreshTokenExpiresAt && new Date() > user.refreshTokenExpiresAt) {
+      // Token expirado - limpiar refresh token del usuario
+      await this.usersService.update(user.id, { refreshToken: null, refreshTokenExpiresAt: null });
+      throw new UnauthorizedException('Sesión expirada. Por favor, inicia sesión nuevamente.');
+    }
+
+    // Generar nuevo par de tokens
+    const newAccessToken = this.generateAccessToken(user);
+    const newRefreshToken = this.generateRefreshToken();
+    const newHashedRefreshToken = this.hashRefreshToken(newRefreshToken);
+    const newRefreshTokenExpiresAt = this.getRefreshTokenExpiry();
+
+    // Rotar refresh token (invalidar el anterior)
+    await this.usersService.update(user.id, {
+      refreshToken: newHashedRefreshToken,
+      refreshTokenExpiresAt: newRefreshTokenExpiresAt,
+    });
+
+    return {
+      token: newAccessToken,
+      refreshToken: newRefreshToken,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        picture: user.picture || null,
+      },
+    };
+  }
+
+  /** 1️⃣4️⃣ Logout - Invalidar refresh token */
+  async logout(userId: number | string) {
+    if (typeof userId === 'string' && userId.startsWith('guest_')) {
+      // Guests no tienen refresh token en DB
+      return { message: 'Sesión de invitado cerrada' };
+    }
+
+    await this.usersService.update(Number(userId), { refreshToken: null, refreshTokenExpiresAt: null });
+    return { message: 'Sesión cerrada correctamente' };
   }
 }
 

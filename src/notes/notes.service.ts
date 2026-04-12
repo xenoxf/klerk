@@ -10,6 +10,11 @@ import { GeminiService } from '../gemini/gemini.service';
 import { CreditsService, calculateNoteCost } from '../credits/credits.service';
 import { LikesService } from '../likes/likes.service';
 //import { AI_PROMPTS } from '../groq/AI_PROMPTS';
+import {
+  shuffleArray,
+  isPublicAccess,
+  normalizeAccess,
+} from '../common/utils/shared.utils';
 import { Note } from './entities/note.entity';
 import { NoteContent } from './entities/note-content.entity';
 import { GenerateNoteDto } from './dto/create-note.dto';
@@ -24,19 +29,6 @@ export class NotesService {
     @InjectRepository(NoteContent)
     private readonly noteContentRepo: Repository<NoteContent>,
   ) {}
-
-  private isPublicAccess(acceso?: string | null): boolean {
-    const normalized = (acceso ?? '').toLowerCase();
-    return normalized === 'public' || normalized === 'publico';
-  }
-
-  /** Normaliza el acceso a 'publico' o 'privado' (valores de la BD) */
-  private normalizeAccess(acceso?: string): string {
-    if (!acceso) return 'privado';
-    const normalized = acceso.toLowerCase().trim();
-    if (normalized === 'public' || normalized === 'publico') return 'publico';
-    return 'privado';
-  }
 
   private async generateCode(): Promise<string> {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -122,7 +114,7 @@ export class NotesService {
 
     const numberOfNotes = input.numberOfNotes ?? 3;
     const level = input.levelOfDetail ?? 'medio';
-    const acceso = this.normalizeAccess(input.acceso);
+    const acceso = normalizeAccess(input.acceso);
 
     const response = await this.geminiService.generateNote(
       promptText,
@@ -177,10 +169,20 @@ export class NotesService {
       relations: ['noteContents', 'user'],
       order: { createdAt: 'DESC' },
     });
-    const noteIds = notes.map(n => n.id);
-    const countsMap = await this.likesService.getLikeCountsForCards('note', noteIds);
-    const userLikedSet = await this.likesService.getUserLikedCards('note', userId, noteIds);
-    return this.noteRefactorArray(notes, userId, { counts: countsMap, userLiked: userLikedSet });
+    const noteIds = notes.map((n) => n.id);
+    const countsMap = await this.likesService.getLikeCountsForCards(
+      'note',
+      noteIds,
+    );
+    const userLikedSet = await this.likesService.getUserLikedCards(
+      'note',
+      userId,
+      noteIds,
+    );
+    return this.noteRefactorArray(notes, userId, {
+      counts: countsMap,
+      userLiked: userLikedSet,
+    });
   }
 
   async findPrivate(userId: number) {
@@ -189,12 +191,22 @@ export class NotesService {
       relations: ['noteContents', 'user'],
       order: { createdAt: 'DESC' },
     });
-    const noteIds = notes.map(n => n.id);
-    const countsMap = await this.likesService.getLikeCountsForCards('note', noteIds);
-    const userLikedSet = await this.likesService.getUserLikedCards('note', userId, noteIds);
-    const result = this.noteRefactorArray(notes, userId, { counts: countsMap, userLiked: userLikedSet });
+    const noteIds = notes.map((n) => n.id);
+    const countsMap = await this.likesService.getLikeCountsForCards(
+      'note',
+      noteIds,
+    );
+    const userLikedSet = await this.likesService.getUserLikedCards(
+      'note',
+      userId,
+      noteIds,
+    );
+    const result = this.noteRefactorArray(notes, userId, {
+      counts: countsMap,
+      userLiked: userLikedSet,
+    });
     // Randomize order
-    return this.shuffleArray(result);
+    return shuffleArray(result);
   }
 
   async findPublic(userId?: number) {
@@ -202,25 +214,21 @@ export class NotesService {
       relations: ['noteContents', 'user'],
       order: { createdAt: 'DESC' },
     });
-    const publicNotes = notes.filter((note) =>
-      this.isPublicAccess(note.acceso),
+    const publicNotes = notes.filter((note) => isPublicAccess(note.acceso));
+    const noteIds = publicNotes.map((n) => n.id);
+    const countsMap = await this.likesService.getLikeCountsForCards(
+      'note',
+      noteIds,
     );
-    const noteIds = publicNotes.map(n => n.id);
-    const countsMap = await this.likesService.getLikeCountsForCards('note', noteIds);
-    const userLikedSet = userId ? await this.likesService.getUserLikedCards('note', userId, noteIds) : new Set<number>();
-    const result = this.noteRefactorArray(publicNotes, userId, { counts: countsMap, userLiked: userLikedSet });
+    const userLikedSet = userId
+      ? await this.likesService.getUserLikedCards('note', userId, noteIds)
+      : new Set<number>();
+    const result = this.noteRefactorArray(publicNotes, userId, {
+      counts: countsMap,
+      userLiked: userLikedSet,
+    });
     // Randomize order
-    return this.shuffleArray(result);
-  }
-
-  // Helper method to shuffle array (Fisher-Yates)
-  private shuffleArray<T>(array: T[]): T[] {
-    const shuffled = [...array];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-    }
-    return shuffled;
+    return shuffleArray(result);
   }
 
   /**
@@ -267,7 +275,11 @@ export class NotesService {
     };
   }
 
-  noteRefactorArray(notes: Note[], userId?: number, likesData?: { counts: Map<number, number>; userLiked: Set<number> }) {
+  noteRefactorArray(
+    notes: Note[],
+    userId?: number,
+    likesData?: { counts: Map<number, number>; userLiked: Set<number> },
+  ) {
     return notes.map((note) => this.noteRefactor(note, userId, likesData));
   }
 
@@ -286,7 +298,7 @@ export class NotesService {
       relations: ['noteContents', 'user'],
     });
     if (!note) throw new NotFoundException('Note not found');
-    if (!this.isPublicAccess(note.acceso) && note.userId !== userId) {
+    if (!isPublicAccess(note.acceso) && note.userId !== userId) {
       throw new UnauthorizedException('No tienes acceso a esta nota');
     }
     return this.noteRefactor(note, userId);
@@ -315,7 +327,7 @@ export class NotesService {
       relations: ['noteContents'],
     });
     if (!note) throw new NotFoundException('Note not found');
-    if (!this.isPublicAccess(note.acceso) && note.userId !== userId) {
+    if (!isPublicAccess(note.acceso) && note.userId !== userId) {
       throw new UnauthorizedException('No tienes acceso a esta nota');
     }
     return this.noteRefactor(note, userId);
@@ -339,7 +351,7 @@ export class NotesService {
       title: payload.title.trim(),
       description: payload.description ?? '',
       levelOfDetail: payload.levelOfDetail ?? 'medio',
-      acceso: this.normalizeAccess(payload.acceso),
+      acceso: normalizeAccess(payload.acceso),
       code: await this.generateCode(),
       userId,
     });

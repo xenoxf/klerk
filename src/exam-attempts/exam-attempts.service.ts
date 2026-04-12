@@ -27,7 +27,10 @@ export class ExamAttemptsService {
     return this.attemptsRepo.save(attempt);
   }
 
-  async getUserAttempts(userId: number, limit: number = 50): Promise<ExamAttempt[]> {
+  async getUserAttempts(
+    userId: number,
+    limit: number = 50,
+  ): Promise<ExamAttempt[]> {
     return this.attemptsRepo.find({
       where: { userId },
       order: { attemptedAt: 'DESC' },
@@ -43,11 +46,19 @@ export class ExamAttemptsService {
   }> {
     const attempts = await this.getUserAttempts(userId, 1000);
     if (attempts.length === 0) {
-      return { totalAttempts: 0, avgCorrect: 0, bestScore: 0, totalQuestions: 0 };
+      return {
+        totalAttempts: 0,
+        avgCorrect: 0,
+        bestScore: 0,
+        totalQuestions: 0,
+      };
     }
 
     const totalCorrect = attempts.reduce((sum, a) => sum + a.correctAnswers, 0);
-    const totalQuestions = attempts.reduce((sum, a) => sum + a.totalQuestions, 0);
+    const totalQuestions = attempts.reduce(
+      (sum, a) => sum + a.totalQuestions,
+      0,
+    );
     const bestScore = Math.max(...attempts.map((a) => a.correctAnswers));
 
     return {

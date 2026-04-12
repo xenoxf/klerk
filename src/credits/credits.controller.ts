@@ -1,21 +1,8 @@
-import {
-  Controller,
-  Get,
-  UseGuards,
-  Req,
-  ForbiddenException,
-} from '@nestjs/common';
+import { Controller, Get, UseGuards, Req } from '@nestjs/common';
 import { CreditsService, CREDIT_CONFIG } from './credits.service';
 import { JwtGuard } from '../auth/jwt/jwt.guard';
 import { RequireAuthGuard } from '../common/guards/require-auth/require-auth.guard';
-
-function getNumericUserId(req: any): number {
-  const userId = Number(req.user?.id);
-  if (isNaN(userId)) {
-    throw new ForbiddenException('Acceso no permitido');
-  }
-  return userId;
-}
+import { getNumericUserId } from '../common/utils/shared.utils';
 
 @Controller('credits')
 export class CreditsController {

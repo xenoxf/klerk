@@ -5,14 +5,12 @@ import { MessagesService } from './messages.service';
 import { Chat } from './entities/chat.entity';
 import { Message } from './entities/message.entity';
 import { GeminiModule } from '../gemini/gemini.module';
-import { SharedModule } from '../shared/shared.module';
 import { CreditsModule } from '../credits/credits.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Chat, Message]),
     GeminiModule,
-    SharedModule,
     CreditsModule,
   ],
   controllers: [MessagesController],

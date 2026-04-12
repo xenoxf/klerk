@@ -6,6 +6,7 @@ import {
   CreateDateColumn,
   OneToMany,
   ManyToOne,
+  Index,
 } from 'typeorm';
 import { FlashCard } from './flash-card.entity';
 
@@ -36,6 +37,7 @@ export class Card {
   createdAt: Date;
 
   @Column({ nullable: true })
+  @Index()
   userId?: number;
 
   @OneToMany(() => FlashCard, (cards) => cards.card)

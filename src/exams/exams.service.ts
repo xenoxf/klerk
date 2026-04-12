@@ -14,6 +14,11 @@ import { GeminiService } from '../gemini/gemini.service';
 import { CreditsService, calculateExamCost } from '../credits/credits.service';
 import { LikesService } from '../likes/likes.service';
 import { UpdateExamDto } from './dto/update-exam.dto';
+import {
+  shuffleArray,
+  isPublicAccess,
+  normalizeAccess,
+} from '../common/utils/shared.utils';
 
 @Injectable()
 export class ExamsService {
@@ -25,7 +30,7 @@ export class ExamsService {
     private readonly geminiService: GeminiService,
     private readonly creditsService: CreditsService,
     private readonly likesService: LikesService,
-  ) { }
+  ) {}
 
   // ==================== GENERATE EXAM FROM TOPIC ====================
 
@@ -59,7 +64,7 @@ export class ExamsService {
       difficulty: input.difficulty,
       userId,
       totalQuestions: input.numberOfQuestions,
-      acceso: this.normalizeAccess(input.acceso),
+      acceso: normalizeAccess(input.acceso),
       code: await this.generateCode(),
     });
 
@@ -92,23 +97,10 @@ export class ExamsService {
       creditsTotal: creditStatus.total,
     };
   }
+
   // ==================== BASIC CRUD ====================
 
-  private isPublicAccess(acceso?: string | null): boolean {
-    const normalized = (acceso ?? '').toLowerCase();
-    return normalized === 'public' || normalized === 'publico';
-  }
-
-  /** Normaliza el acceso a 'publico' o 'privado' (valores de la BD) */
-  private normalizeAccess(acceso?: string): string {
-    if (!acceso) return 'privado';
-    const normalized = acceso.toLowerCase().trim();
-    if (normalized === 'public' || normalized === 'publico') return 'publico';
-    return 'privado';
-  }
-
   async generateCode() {
-    // debe tener 5 caracteres de letras mayúsculas y números
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     let code = '';
     for (let i = 0; i < 5; i++) {
@@ -116,10 +108,11 @@ export class ExamsService {
     }
     const existing = await this.examRepo.findOne({ where: { code } });
     if (existing) {
-      return this.generateCode(); // Regenerar si ya existe
+      return this.generateCode();
     }
     return code;
   }
+
   async getById(id: number, userId: number) {
     const exam = await this.examRepo.findOne({
       where: { id, userId },
@@ -136,17 +129,12 @@ export class ExamsService {
       relations: ['questions', 'questions.options', 'user'],
     });
     if (!exam) throw new NotFoundException('Exam not found');
-    if (!this.isPublicAccess(exam.acceso) && exam.userId !== userId) {
+    if (!isPublicAccess(exam.acceso) && exam.userId !== userId) {
       throw new UnauthorizedException('No tienes acceso a este quiz');
     }
-    // Devuelve con preguntas y opciones (sin isCorrect)
     return this.examRefactor(exam, userId, true);
   }
 
-  /**
-   * Get exam for playing (klek format) - always includes questions
-   * This is different from deck format which is just metadata
-   */
   async getByIdForPlay(id: number, userId: number) {
     const exam = await this.examRepo.findOne({
       where: { id },
@@ -154,18 +142,13 @@ export class ExamsService {
     });
     if (!exam) throw new NotFoundException('Exam not found');
 
-    // Check ownership or public access
-    if (!this.isPublicAccess(exam.acceso) && exam.userId !== userId) {
+    if (!isPublicAccess(exam.acceso) && exam.userId !== userId) {
       throw new UnauthorizedException('No tienes acceso a este quiz');
     }
 
     return this.examRefactor(exam, userId, true);
   }
 
-  /**
-   * Get exam in locked format - ONLY for owner
-   * Returns full exam data only if the requesting user is the owner
-   */
   async getLockedExam(id: number, userId: number) {
     const exam = await this.examRepo.findOne({
       where: { id },
@@ -173,7 +156,6 @@ export class ExamsService {
     });
     if (!exam) throw new NotFoundException('Exam not found');
 
-    // ONLY the owner can access locked format
     if (exam.userId !== userId) {
       throw new UnauthorizedException('No tienes permiso para ver este quiz');
     }
@@ -192,7 +174,6 @@ export class ExamsService {
     const exam = await this.examRepo.findOne({ where: { id, userId } });
     if (!exam)
       throw new NotFoundException('Exam not found or not owned by user');
-    // ExamQuestion has onDelete: 'CASCADE', so questions are deleted automatically
     await this.examRepo.delete(id);
     return { message: 'Exam deleted' };
   }
@@ -209,7 +190,7 @@ export class ExamsService {
       tema: payload.tema ?? '',
       difficulty: payload.difficulty ?? 'medium',
       totalQuestions: payload.totalQuestions ?? 0,
-      acceso: this.normalizeAccess(payload.acceso),
+      acceso: normalizeAccess(payload.acceso),
       code: await this.generateCode(),
       userId,
     });
@@ -235,13 +216,8 @@ export class ExamsService {
     return this.getById(id, userId);
   }
 
-  // ==================== REFACTOR DECKS (OPTIMIZAR DATOS) ====================
+  // ==================== REFACTOR DECKS ====================
 
-  /**
-   * Refactor de Exam para frontend - solo datos necesarios para mostrar
-   * Excluye: code, userId, score (datos internos)
-   * Para preguntas: solo texto, sin opciones ni isCorrect
-   */
   async examRefactor(
     exams: Exam[] | Exam,
     userId?: number,
@@ -250,10 +226,20 @@ export class ExamsService {
   ) {
     if (Array.isArray(exams)) {
       return exams.map((exam) =>
-        this._examRefactorSingle(exam, userId, includeQuestionsAndOptions, likesData),
+        this._examRefactorSingle(
+          exam,
+          userId,
+          includeQuestionsAndOptions,
+          likesData,
+        ),
       );
     }
-    return this._examRefactorSingle(exams, userId, includeQuestionsAndOptions, likesData);
+    return this._examRefactorSingle(
+      exams,
+      userId,
+      includeQuestionsAndOptions,
+      likesData,
+    );
   }
 
   private _examRefactorSingle(
@@ -290,19 +276,16 @@ export class ExamsService {
           options:
             q.options && q.options.length > 0
               ? q.options.map((opt) => ({
-                id: opt.id,
-                text: opt.text,
-                isCorrect: opt.isCorrect,
-              }))
+                  id: opt.id,
+                  text: opt.text,
+                  isCorrect: opt.isCorrect,
+                }))
               : [],
         })),
       };
     }
 
-    return {
-      ...base,
-      questions: [],
-    };
+    return { ...base, questions: [] };
   }
 
   async getPublicExamsDeck(userId?: number) {
@@ -310,13 +293,20 @@ export class ExamsService {
       order: { createdAt: 'DESC' },
       relations: ['user'],
     });
-    const filtered = exams.filter((exam) => this.isPublicAccess(exam.acceso));
-    const examIds = filtered.map(e => e.id);
-    const countsMap = await this.likesService.getLikeCountsForCards('exam', examIds);
-    const userLikedSet = userId ? await this.likesService.getUserLikedCards('exam', userId, examIds) : new Set<number>();
-    const result = this.examRefactor(filtered, userId, false, { counts: countsMap, userLiked: userLikedSet });
-    // Randomize order
-    return Array.isArray(result) ? this.shuffleArray(result) : result;
+    const filtered = exams.filter((exam) => isPublicAccess(exam.acceso));
+    const examIds = filtered.map((e) => e.id);
+    const countsMap = await this.likesService.getLikeCountsForCards(
+      'exam',
+      examIds,
+    );
+    const userLikedSet = userId
+      ? await this.likesService.getUserLikedCards('exam', userId, examIds)
+      : new Set<number>();
+    const result = this.examRefactor(filtered, userId, false, {
+      counts: countsMap,
+      userLiked: userLikedSet,
+    });
+    return Array.isArray(result) ? shuffleArray(result) : result;
   }
 
   async getMyExamsDeck(userId: number) {
@@ -325,22 +315,21 @@ export class ExamsService {
       order: { createdAt: 'DESC' },
       relations: ['user'],
     });
-    const examIds = exams.map(e => e.id);
-    const countsMap = await this.likesService.getLikeCountsForCards('exam', examIds);
-    const userLikedSet = await this.likesService.getUserLikedCards('exam', userId, examIds);
-    const result = this.examRefactor(exams, userId, false, { counts: countsMap, userLiked: userLikedSet });
-    // Randomize order
-    return Array.isArray(result) ? this.shuffleArray(result) : result;
-  }
-
-  // Helper method to shuffle array (Fisher-Yates)
-  private shuffleArray<T>(array: T[]): T[] {
-    const shuffled = [...array];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-    }
-    return shuffled;
+    const examIds = exams.map((e) => e.id);
+    const countsMap = await this.likesService.getLikeCountsForCards(
+      'exam',
+      examIds,
+    );
+    const userLikedSet = await this.likesService.getUserLikedCards(
+      'exam',
+      userId,
+      examIds,
+    );
+    const result = this.examRefactor(exams, userId, false, {
+      counts: countsMap,
+      userLiked: userLikedSet,
+    });
+    return Array.isArray(result) ? shuffleArray(result) : result;
   }
 
   async getExamByCode(code: string, userId?: number) {
@@ -349,23 +338,14 @@ export class ExamsService {
       relations: ['questions', 'questions.options', 'user'],
     });
     if (!exam) throw new NotFoundException('Exam not found');
-    if (!this.isPublicAccess(exam.acceso)) {
+    if (!isPublicAccess(exam.acceso)) {
       throw new UnauthorizedException('No tienes acceso a este quiz');
     }
-    // Devuelve con preguntas y opciones (sin isCorrect)
     return this.examRefactor(exam, userId, true);
   }
 
   // ==================== INTELLIGENT SEARCH ====================
 
-  /**
-   * Búsqueda inteligente de exámenes con soporte para:
-   * - Búsqueda por texto en título, descripción, tema y área
-   * - Búsqueda por código exacto
-   * - Búsqueda en preguntas (opcional)
-   * - Paginación con offset y limit (20 items por página)
-   * - Filtro por visibilidad (público/privado)
-   */
   async searchExams(
     query: string,
     userId?: number,
@@ -374,7 +354,6 @@ export class ExamsService {
     searchInQuestions: boolean = true,
   ) {
     if (!query || query.trim().length === 0) {
-      // Si no hay query, devolver exámenes públicos por defecto
       const exams = await this.examRepo.find({
         where: { acceso: 'publico' },
         order: { createdAt: 'DESC' },
@@ -386,7 +365,6 @@ export class ExamsService {
 
     const normalizedQuery = query.trim().toLowerCase();
 
-    // Construir query para búsqueda en múltiples campos
     const queryBuilder = this.examRepo
       .createQueryBuilder('exam')
       .leftJoin('exam.questions', 'questions')
@@ -404,18 +382,15 @@ export class ExamsService {
         exactQuery: normalizedQuery.toUpperCase(),
       });
 
-    // Búsqueda en preguntas si está habilitado
     if (searchInQuestions) {
       queryBuilder.orWhere('LOWER(questions.question) LIKE :query', {
         query: `%${normalizedQuery}%`,
       });
     }
 
-    // Filtrar solo públicos si no hay userId
     if (!userId) {
       queryBuilder.andWhere('exam.acceso = :acceso', { acceso: 'publico' });
     } else {
-      // Si hay userId, mostrar públicos y privados del usuario
       queryBuilder.andWhere(
         '(exam.acceso = :acceso OR exam.userId = :userId)',
         {
@@ -429,9 +404,8 @@ export class ExamsService {
 
     const exams = await queryBuilder.getMany();
 
-    // Load user relation for exams that were found
     if (exams.length > 0) {
-      const examIds = exams.map(e => e.id);
+      const examIds = exams.map((e) => e.id);
       const examsWithUsers = await this.examRepo.find({
         where: { id: In(examIds) },
         relations: ['user'],
@@ -442,7 +416,9 @@ export class ExamsService {
     return this.examRefactor(exams, userId, false);
   }
 
-  async deleteAll(userId: number): Promise<{ deleted: boolean; message: string }> {
+  async deleteAll(
+    userId: number,
+  ): Promise<{ deleted: boolean; message: string }> {
     await this.examRepo.delete({ userId });
     return { deleted: true, message: 'All exams deleted' };
   }

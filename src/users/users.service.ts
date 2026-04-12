@@ -33,6 +33,11 @@ export class UsersService {
     return this.userRepo.findOne({ where: { providerId } });
   }
 
+  /** Buscar usuario por refresh token */
+  async findByRefreshToken(hashedRefreshToken: string) {
+    return this.userRepo.findOne({ where: { refreshToken: hashedRefreshToken } });
+  }
+
   /** Alias para compatibilidad con código antiguo: buscar por Google ID */
   async findByGoogleId(googleId: string) {
     return this.findByProviderId(googleId);

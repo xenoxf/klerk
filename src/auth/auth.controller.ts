@@ -9,12 +9,14 @@ import {
   BadRequestException,
   InternalServerErrorException,
   Logger,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { Response } from 'express';
 import { AuthService } from './auth.service';
 import { CreateAuthDto } from './dto/create-auth.dto';
 import { LoginAuthDto } from './dto/login-auth.dto';
+import { getNumericUserId } from '../common/utils/shared.utils';
 
 @Controller('auth')
 export class AuthController {
@@ -157,8 +159,33 @@ export class AuthController {
   }
 
   @Post('logout')
-  logout() {
-    return { message: 'Sesión cerrada correctamente' };
+  async logout(@Request() req: any) {
+    try {
+      const userId = req.user?.id || req.user?.sub;
+      if (!userId) {
+        // Si no hay usuario autenticado, solo retornar éxito
+        return { message: 'Sesión cerrada correctamente' };
+      }
+      return await this.authService.logout(userId);
+    } catch (error) {
+      this.logger.error('Logout error:', error);
+      return { message: 'Sesión cerrada correctamente' };
+    }
+  }
+
+  @Post('refresh')
+  async refreshToken(@Body() body: { refreshToken: string }) {
+    try {
+      if (!body?.refreshToken?.trim()) {
+        throw new UnauthorizedException('Refresh token requerido');
+      }
+      return await this.authService.refreshToken(body.refreshToken);
+    } catch (error) {
+      this.logger.error('Refresh token error:', error);
+      throw new UnauthorizedException(
+        error instanceof Error ? error.message : 'Error al refrescar sesión',
+      );
+    }
   }
 
   @Get('me')

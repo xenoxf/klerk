@@ -10,25 +10,19 @@ import {
   Query,
   ParseIntPipe,
   Req,
-  ForbiddenException,
 } from '@nestjs/common';
 import { FlashCardsService } from './flash-cards.service';
 import { JwtGuard } from '../auth/jwt/jwt.guard';
 import { GenerateFlashCardsDto } from './dto/generate-flash-cards.dto';
+import { CreateFlashCardDto } from './dto/create-flash-card.dto';
+import { UpdateFlashCardDto } from './dto/update-flash-card.dto';
 import { RequireAuthGuard } from '../common/guards/require-auth/require-auth.guard';
-
-function getNumericUserId(req: any): number {
-  const userId = Number(req.user?.id);
-  if (isNaN(userId)) {
-    throw new ForbiddenException('Acceso no permitido');
-  }
-  return userId;
-}
+import { getNumericUserId } from '../common/utils/shared.utils';
 
 @UseGuards(JwtGuard)
 @Controller('flash-cards')
 export class FlashCardsController {
-  constructor(private readonly flashCardsService: FlashCardsService) { }
+  constructor(private readonly flashCardsService: FlashCardsService) {}
 
   // ==================== AI GENERATION ====================
   @Post('generate/topic_or_reference')
@@ -99,13 +93,13 @@ export class FlashCardsController {
 
   @Post()
   @UseGuards(JwtGuard, RequireAuthGuard)
-  create(@Body() body: any, @Req() req: any) {
+  create(@Body() body: CreateFlashCardDto, @Req() req: any) {
     return this.flashCardsService.create(body, getNumericUserId(req));
   }
 
   @Patch(':id')
   @UseGuards(JwtGuard, RequireAuthGuard)
-  update(@Param('id') id: string, @Body() body: any, @Req() req: any) {
+  update(@Param('id') id: string, @Body() body: UpdateFlashCardDto, @Req() req: any) {
     return this.flashCardsService.update(+id, body, getNumericUserId(req));
   }
 

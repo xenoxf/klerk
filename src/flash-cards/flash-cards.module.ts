@@ -5,7 +5,6 @@ import { FlashCardsService } from './flash-cards.service';
 import { FlashCard } from './entities/flash-card.entity';
 import { Card } from './entities/card.entity';
 import { GeminiModule } from '../gemini/gemini.module';
-import { SharedModule } from '../shared/shared.module';
 import { CreditsModule } from '../credits/credits.module';
 import { LikesModule } from '../likes/likes.module';
 
@@ -13,7 +12,6 @@ import { LikesModule } from '../likes/likes.module';
   imports: [
     TypeOrmModule.forFeature([FlashCard, Card]),
     GeminiModule,
-    SharedModule,
     CreditsModule,
     LikesModule,
   ],

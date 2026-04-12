@@ -5,6 +5,7 @@ import {
   CreateDateColumn,
   OneToMany,
   ManyToOne,
+  Index,
 } from 'typeorm';
 
 import { ExamQuestion } from './examQuestion.entity';
@@ -46,11 +47,12 @@ export class Exam {
   createdAt: Date;
 
   @Column({ nullable: true })
+  @Index()
   userId?: number;
 
   @ManyToOne(() => User, (user) => user.exams)
   user: User;
 
-  @OneToMany(() => ExamQuestion, (exam) => exam.exam)
+  @OneToMany(() => ExamQuestion, (eq) => eq.exam)
   questions: ExamQuestion[];
 }

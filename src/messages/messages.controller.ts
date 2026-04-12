@@ -7,23 +7,13 @@ import {
   Param,
   UseGuards,
   Req,
-  ForbiddenException,
   Res,
-  Sse,
-  MessageEvent,
 } from '@nestjs/common';
 import { Response } from 'express';
 import { MessagesService } from './messages.service';
 import { JwtGuard } from '../auth/jwt/jwt.guard';
 import { RequireAuthGuard } from '../common/guards/require-auth/require-auth.guard';
-
-function getNumericUserId(req: any): number {
-  const userId = Number(req.user?.id);
-  if (isNaN(userId)) {
-    throw new ForbiddenException('Acceso no permitido');
-  }
-  return userId;
-}
+import { getNumericUserId } from '../common/utils/shared.utils';
 
 @UseGuards(JwtGuard, RequireAuthGuard)
 @Controller('messages')
@@ -35,7 +25,10 @@ export class MessagesController {
     @Body() input: { prompt: string; chatId?: number },
     @Req() req,
   ) {
-    return this.messagesService.sendMessageWithAIResponse(input, getNumericUserId(req));
+    return this.messagesService.sendMessageWithAIResponse(
+      input,
+      getNumericUserId(req),
+    );
   }
 
   @Post('send/stream')
@@ -49,7 +42,10 @@ export class MessagesController {
     res.setHeader('Connection', 'keep-alive');
     res.flushHeaders();
 
-    const stream = await this.messagesService.sendMessageStream(input, getNumericUserId(req));
+    const stream = await this.messagesService.sendMessageStream(
+      input,
+      getNumericUserId(req),
+    );
 
     try {
       for await (const chunk of stream) {
@@ -57,9 +53,16 @@ export class MessagesController {
       }
     } catch (error: any) {
       if (!res.headersSent) {
-        res.status(500).json({ message: error.message || 'Error en el stream' });
+        res
+          .status(500)
+          .json({ message: error.message || 'Error en el stream' });
       } else {
-        res.write(JSON.stringify({ type: 'error', content: error.message || 'Error en el stream' }));
+        res.write(
+          JSON.stringify({
+            type: 'error',
+            content: error.message || 'Error en el stream',
+          }),
+        );
       }
     }
 

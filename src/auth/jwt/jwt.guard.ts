@@ -33,7 +33,7 @@ export class JwtGuard implements CanActivate {
       };
 
       return true;
-    } catch (error) {
+    } catch {
       throw new UnauthorizedException('Token inválido o expirado');
     }
   }
@@ -59,7 +59,8 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     return super.canActivate(context);
   }
 
-  handleRequest(err: any, user: any, info: any) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  handleRequest(err: any, user: any, _info: any) {
     if (err || !user) {
       throw err || new Error('Unauthorized');
     }
