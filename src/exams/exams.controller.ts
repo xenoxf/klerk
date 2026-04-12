@@ -20,7 +20,6 @@ import { UpdateExamDto } from './dto/update-exam.dto';
 import { RequireAuthGuard } from '../common/guards/require-auth/require-auth.guard';
 import { getNumericUserId } from '../common/utils/shared.utils';
 
-@UseGuards(JwtGuard)
 @Controller('exams')
 export class ExamsController {
   constructor(
@@ -65,12 +64,13 @@ export class ExamsController {
   /**
    * Get exam in locked format - ONLY for owner
    */
-  @Get('locked/:id')
   @UseGuards(JwtGuard, RequireAuthGuard)
+  @Get('locked/:id')
   getLocked(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
     return this.examsService.getLockedExam(id, getNumericUserId(req));
   }
 
+  @UseGuards(JwtGuard)
   @Get('deck') getExamsDeck(@Req() req: any) {
     return this.examsService.getMyExamsDeck(getNumericUserId(req));
   }
@@ -92,6 +92,7 @@ export class ExamsController {
     );
   }
 
+  @UseGuards(JwtGuard, RequireAuthGuard)
   @Get('score')
   async updateExamScore(
     @Query() query: UpdateExamDto,
@@ -127,30 +128,30 @@ export class ExamsController {
     return this.examsService.getByIdWithAccess(id, req?.user?.id);
   }
 
-  @Delete(':id')
   @UseGuards(JwtGuard, RequireAuthGuard)
+  @Delete(':id')
   delete(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
     return this.examsService.delete(id, getNumericUserId(req));
   }
 
   // ==================== AI GENERATION ====================
 
-  @Post('generate/topic_or_reference')
   @UseGuards(JwtGuard, RequireAuthGuard)
+  @Post('generate/topic_or_reference')
   generateFromTopic(@Body() input: GenerateExamDto, @Req() req: any) {
     return this.examsService.generateExam(input, getNumericUserId(req));
   }
 
   // ==================== CRUD OPERATIONS ====================
 
-  @Post()
   @UseGuards(JwtGuard, RequireAuthGuard)
+  @Post()
   create(@Body() body: CreateExamDto, @Req() req: any) {
     return this.examsService.create(body, getNumericUserId(req));
   }
 
-  @Put(':id')
   @UseGuards(JwtGuard, RequireAuthGuard)
+  @Put(':id')
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() body: UpdateExamDto,
