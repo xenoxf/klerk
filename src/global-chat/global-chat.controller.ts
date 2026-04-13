@@ -15,15 +15,18 @@ import { JwtGuard } from '../auth/jwt/jwt.guard';
 import { RequireAuthGuard } from '../common/guards/require-auth/require-auth.guard';
 import { getNumericUserId } from '../common/utils/shared.utils';
 
-@UseGuards(JwtGuard)
 @Controller('global-chat')
 export class GlobalChatController {
   constructor(private readonly globalChatService: GlobalChatService) {}
+
+  // ==================== PUBLIC ====================
 
   @Get('messages')
   async findAll() {
     return this.globalChatService.findAll();
   }
+
+  // ==================== AUTHENTICATED ====================
 
   @Post('message')
   @UseGuards(JwtGuard, RequireAuthGuard)
