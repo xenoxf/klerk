@@ -19,15 +19,28 @@ import { UpdateFlashCardDto } from './dto/update-flash-card.dto';
 import { RequireAuthGuard } from '../common/guards/require-auth/require-auth.guard';
 import { getNumericUserId } from '../common/utils/shared.utils';
 
+@UseGuards(JwtGuard)
 @Controller('flash-cards')
 export class FlashCardsController {
   constructor(private readonly flashCardsService: FlashCardsService) {}
 
-  // ==================== PUBLIC ENDPOINTS (no auth required) ====================
+  // ==================== AI GENERATION ====================
+  @Post('generate/topic_or_reference')
+  @UseGuards(JwtGuard, RequireAuthGuard)
+  generate(@Body() input: GenerateFlashCardsDto, @Req() req: any) {
+    return this.flashCardsService.generateFrom(input, getNumericUserId(req));
+  }
 
+  // ==================== BASIC CRUD ====================
   @Get('public')
   findAllPublic(@Req() req: any) {
     return this.flashCardsService.findPublicCardsDeck(req?.user?.id);
+  }
+
+  @Get('private')
+  @UseGuards(JwtGuard, RequireAuthGuard)
+  findMyCards(@Req() req: any) {
+    return this.flashCardsService.findMyCardsDeck(getNumericUserId(req));
   }
 
   @Get('search')
@@ -47,39 +60,15 @@ export class FlashCardsController {
     );
   }
 
-  @Get('code/:code')
-  findByCode(@Param('code') code: string, @Req() req: any) {
-    return this.flashCardsService.getCardByCode(code, req?.user?.id);
-  }
-
-  @Get(':id')
-  getById(@Param('id') id: string, @Req() req: any) {
-    return this.flashCardsService.getCardById(+id, req?.user?.id);
+  @Get()
+  @UseGuards(JwtGuard, RequireAuthGuard)
+  findAllMine(@Req() req: any) {
+    return this.flashCardsService.findMyCardsDeck(getNumericUserId(req));
   }
 
   @Get('klek/:id')
   findOne(@Param('id') id: string, @Req() req: any) {
     return this.flashCardsService.getCardKlekById(+id, req?.user?.id);
-  }
-
-  // ==================== AUTHENTICATED ENDPOINTS ====================
-
-  @Get()
-  @UseGuards(JwtGuard)
-  findAllMine(@Req() req: any) {
-    return this.flashCardsService.findMyCardsDeck(getNumericUserId(req));
-  }
-
-  @Get('private')
-  @UseGuards(JwtGuard, RequireAuthGuard)
-  findMyCards(@Req() req: any) {
-    return this.flashCardsService.findMyCardsDeck(getNumericUserId(req));
-  }
-
-  @UseGuards(JwtGuard)
-  @Get('deck')
-  getDeck(@Req() req: any) {
-    return this.flashCardsService.findMyCardsDeck(getNumericUserId(req));
   }
 
   /**
@@ -91,12 +80,14 @@ export class FlashCardsController {
     return this.flashCardsService.getLockedCard(+id, getNumericUserId(req));
   }
 
-  // ==================== AI GENERATION & CRUD ====================
+  @Get('code/:code')
+  findByCode(@Param('code') code: string, @Req() req: any) {
+    return this.flashCardsService.getCardByCode(code, req?.user?.id);
+  }
 
-  @Post('generate/topic_or_reference')
-  @UseGuards(JwtGuard, RequireAuthGuard)
-  generate(@Body() input: GenerateFlashCardsDto, @Req() req: any) {
-    return this.flashCardsService.generateFrom(input, getNumericUserId(req));
+  @Get(':id')
+  getById(@Param('id') id: string, @Req() req: any) {
+    return this.flashCardsService.getCardById(+id, req?.user?.id);
   }
 
   @Post()

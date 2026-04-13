@@ -20,6 +20,7 @@ import { UpdateExamDto } from './dto/update-exam.dto';
 import { RequireAuthGuard } from '../common/guards/require-auth/require-auth.guard';
 import { getNumericUserId } from '../common/utils/shared.utils';
 
+@UseGuards(JwtGuard)
 @Controller('exams')
 export class ExamsController {
   constructor(
@@ -64,13 +65,12 @@ export class ExamsController {
   /**
    * Get exam in locked format - ONLY for owner
    */
-  @UseGuards(JwtGuard, RequireAuthGuard)
   @Get('locked/:id')
+  @UseGuards(JwtGuard, RequireAuthGuard)
   getLocked(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
     return this.examsService.getLockedExam(id, getNumericUserId(req));
   }
 
-  @UseGuards(JwtGuard)
   @Get('deck') getExamsDeck(@Req() req: any) {
     return this.examsService.getMyExamsDeck(getNumericUserId(req));
   }
@@ -92,8 +92,8 @@ export class ExamsController {
     );
   }
 
-  @UseGuards(JwtGuard, RequireAuthGuard)
   @Get('score')
+  @UseGuards(JwtGuard, RequireAuthGuard)
   async updateExamScore(
     @Query() query: UpdateExamDto,
     @Req() req: any,
@@ -128,30 +128,30 @@ export class ExamsController {
     return this.examsService.getByIdWithAccess(id, req?.user?.id);
   }
 
-  @UseGuards(JwtGuard, RequireAuthGuard)
   @Delete(':id')
+  @UseGuards(JwtGuard, RequireAuthGuard)
   delete(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
     return this.examsService.delete(id, getNumericUserId(req));
   }
 
   // ==================== AI GENERATION ====================
 
-  @UseGuards(JwtGuard, RequireAuthGuard)
   @Post('generate/topic_or_reference')
+  @UseGuards(JwtGuard, RequireAuthGuard)
   generateFromTopic(@Body() input: GenerateExamDto, @Req() req: any) {
     return this.examsService.generateExam(input, getNumericUserId(req));
   }
 
   // ==================== CRUD OPERATIONS ====================
 
-  @UseGuards(JwtGuard, RequireAuthGuard)
   @Post()
+  @UseGuards(JwtGuard, RequireAuthGuard)
   create(@Body() body: CreateExamDto, @Req() req: any) {
     return this.examsService.create(body, getNumericUserId(req));
   }
 
-  @UseGuards(JwtGuard, RequireAuthGuard)
   @Put(':id')
+  @UseGuards(JwtGuard, RequireAuthGuard)
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() body: UpdateExamDto,

@@ -12,11 +12,31 @@ import { JwtGuard } from '../auth/jwt/jwt.guard';
 import { RequireAuthGuard } from '../common/guards/require-auth/require-auth.guard';
 import { getNumericUserId } from '../common/utils/shared.utils';
 
+@UseGuards(JwtGuard)
 @Controller('likes')
 export class LikesController {
   constructor(private readonly likesService: LikesService) {}
 
-  // ==================== PUBLIC (read likes) ====================
+  @Post('exams/:id')
+  @UseGuards(RequireAuthGuard)
+  async toggleExamLike(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+    return this.likesService.toggleLike(getNumericUserId(req), 'exam', id);
+  }
+
+  @Post('flashcards/:id')
+  @UseGuards(RequireAuthGuard)
+  async toggleFlashcardLike(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: any,
+  ) {
+    return this.likesService.toggleLike(getNumericUserId(req), 'card', id);
+  }
+
+  @Post('notes/:id')
+  @UseGuards(RequireAuthGuard)
+  async toggleNoteLike(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+    return this.likesService.toggleLike(getNumericUserId(req), 'note', id);
+  }
 
   @Get('exams/:id')
   async getExamLikes(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
@@ -49,28 +69,5 @@ export class LikesController {
       ? await this.likesService.hasUserLiked(userId, 'note', id)
       : false;
     return { count, userLiked };
-  }
-
-  // ==================== AUTHENTICATED (toggle likes) ====================
-
-  @Post('exams/:id')
-  @UseGuards(JwtGuard, RequireAuthGuard)
-  async toggleExamLike(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
-    return this.likesService.toggleLike(getNumericUserId(req), 'exam', id);
-  }
-
-  @Post('flashcards/:id')
-  @UseGuards(JwtGuard, RequireAuthGuard)
-  async toggleFlashcardLike(
-    @Param('id', ParseIntPipe) id: number,
-    @Req() req: any,
-  ) {
-    return this.likesService.toggleLike(getNumericUserId(req), 'card', id);
-  }
-
-  @Post('notes/:id')
-  @UseGuards(JwtGuard, RequireAuthGuard)
-  async toggleNoteLike(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
-    return this.likesService.toggleLike(getNumericUserId(req), 'note', id);
   }
 }
