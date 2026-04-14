@@ -8,12 +8,11 @@ import {
   Index,
 } from 'typeorm';
 
-import { ExamQuestion } from './examQuestion.entity';
-import { ExamContext } from './exam-context.entity';
+import { QuickQuizQuestion } from './quick-quiz-question.entity';
 import { User } from '../../users/entities/user.entity';
 
-@Entity('exams')
-export class Exam {
+@Entity('quick_quizzes')
+export class QuickQuiz {
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -39,24 +38,21 @@ export class Exam {
   totalQuestions: number;
 
   @Column({ nullable: true })
-  difficulty?: string;
+  difficulty: string;
 
   @Column({ nullable: true })
-  score?: number;
+  score: number;
 
   @CreateDateColumn()
   createdAt: Date;
 
   @Column({ nullable: true })
   @Index()
-  userId?: number;
+  userId: number;
 
-  @ManyToOne(() => User, (user) => user.exams)
+  @ManyToOne(() => User, (user) => user.quickQuizzes)
   user: User;
 
-  @OneToMany(() => ExamContext, (ctx) => ctx.exam, { cascade: true })
-  contexts: ExamContext[];
-
-  @OneToMany(() => ExamQuestion, (eq) => eq.exam)
-  questions: ExamQuestion[];
+  @OneToMany(() => QuickQuizQuestion, (qq) => qq.quickQuiz)
+  questions: QuickQuizQuestion[];
 }

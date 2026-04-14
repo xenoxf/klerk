@@ -4,6 +4,7 @@ import { Note } from '../../notes/entities/note.entity';
 import { Exam } from '../../exams/entities/exam.entity';
 import { Chat } from '../../messages/entities/chat.entity';
 import { Card } from '../../flash-cards/entities/card.entity';
+import { QuickQuiz } from '../../quick-quizzes/entities/quick-quiz.entity';
 
 @Entity()
 export class User {
@@ -56,4 +57,7 @@ export class User {
 
   @OneToMany(() => Note, (note) => note.user)
   notes: Note[];
+
+  @OneToMany(() => QuickQuiz, (qq) => qq.user)
+  quickQuizzes: QuickQuiz[];
 }

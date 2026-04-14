@@ -17,6 +17,11 @@ export class ExamAttemptsController {
       correctAnswers: number;
       totalQuestions: number;
       examTitle: string;
+      examTema?: string;
+      examArea?: string;
+      examDifficulty?: string;
+      score?: number;
+      timeSpent?: number;
     },
     @Req() req: any,
   ) {
@@ -26,6 +31,13 @@ export class ExamAttemptsController {
       body.correctAnswers,
       body.totalQuestions,
       body.examTitle,
+      {
+        examTema: body.examTema,
+        examArea: body.examArea,
+        examDifficulty: body.examDifficulty,
+        score: body.score,
+        timeSpent: body.timeSpent,
+      },
     );
   }
 

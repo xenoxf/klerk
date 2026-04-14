@@ -9,6 +9,69 @@ export const AI_PROMPTS = {
   INSTRUCCIONES CRÍTICAS:
   1. Genera EXACTAMENTE ${numberOfQuestions} preguntas de opción múltiple.
   2. Nivel de dificultad: ${difficulty}.
+
+  ★★★ ESTRUCTURA DE CONTEXTO COMPARTIDO - REGLA FUNDAMENTAL ★★★
+
+  En los exámenes estilo ICFES, un MISMO CONTEXTO puede usarse para responder MÚLTIPLES preguntas.
+  Debes estructurar tu examen siguiendo estas reglas:
+
+  **GRUPOS DE CONTEXTO:**
+  - Divide las preguntas en grupos de contexto cuando sea lógico.
+  - Un grupo de contexto incluye: UN contexto compartido + 2-4 preguntas relacionadas.
+  - También puede haber preguntas INDIVIDUALES (sin contexto compartido, contexto vacío).
+  - Ejemplo: Para 10 preguntas, podrías tener:
+    * Contexto grupo 1 → Preguntas 1, 2, 3 (mismo contexto sobre un tema)
+    * Contexto grupo 2 → Preguntas 4, 5 (otro contexto diferente)
+    * Pregunta 6 → Sin contexto (pregunta directa)
+    * Contexto grupo 3 → Preguntas 7, 8, 9, 10 (contexto largo con datos)
+  - Las preguntas que NO necesitan contexto deben tener "context": "" (vacío).
+  - Las preguntas que COMPARTEN contexto deben tener exactamente el MISMO texto en "context".
+
+  ★★★ REGLA DE DIFICULTAD - DEBES RESPETARLA ESTRICTAMENTE ★★★
+
+  La dificultad afecta DIRECTAMENTE la longitud del contexto y la complejidad de las preguntas:
+
+  **very_easy**:
+    - CONTEXTO: SIN contexto largo. Máximo 2-3 oraciones introductorias DIRECTAS.
+    - PREGUNTAS: Directas, tipo "¿Qué es...?", "¿Cuál de...?", sin escenarios complejos.
+    - Ejemplo: "La fotosíntesis es el proceso por el cual las plantas producen su alimento. ¿Qué gas absorben las plantas durante la fotosíntesis?"
+    - Opciones: 3 distractores obvios, 1 respuesta clara.
+    - NUNCA uses párrafos extensos para una pregunta de nivel very_easy.
+
+  **easy**:
+    - CONTEXTO: CORTO. Máximo 1 párrafo breve (3-5 líneas) o un escenario simple de 2-3 oraciones.
+    - PREGUNTAS: Directas con contexto mínimo. El usuario que pide "easy" QUIERE PREGUNTAS CORTAS Y RÁPIDAS.
+    - Ejemplo: "Un estudiante observa que al calentar agua esta se evapora. Este cambio de estado se llama:"
+    - Si el usuario escribió "easy", NO generes contextos de 3-5 párrafos. Eso es traicionar su solicitud.
+    - Opciones: distractores plausibles pero diferenciados.
+
+  **medium**:
+    - CONTEXTO: Moderado. 1-2 párrafos con algo de detalle.
+    - PREGUNTAS: Requieren análisis básico del contexto.
+    - Puedes incluir una tabla simple o datos comparativos.
+    - Opciones: distractores basados en errores de interpretación comunes.
+
+  **hard**:
+    - CONTEXTO: Extenso. 2-4 párrafos con información detallada.
+    - PREGUNTAS: Requieren análisis profundo, síntesis de múltiples variables.
+    - Incluye tablas, datos experimentales, escenarios complejos.
+    - Opciones: distractores sofisticados que requieren discernimiento fino.
+
+  **very_hard**:
+    - CONTEXTO: Muy extenso. 3-5 párrafos con múltiples capas de información.
+    - PREGUNTAS: Análisis crítico, evaluación de escenarios complejos con múltiples variables.
+    - Contextos con datos contradictorios, información irrelevante que debe filtrarse.
+    - Opciones: distractores muy plausibles que requieren dominio profundo.
+
+  **expert**:
+    - CONTEXTO: Máximo. 4-6 párrafos con información densa y técnica.
+    - PREGUNTAS: Nivel universitario avanzado. Integración de múltiples conceptos.
+    - Escenarios reales complejos, casos de estudio detallados.
+    - Opciones: todas plausibles para quien no domine el tema a nivel experto.
+
+  ★ IMPORTANTE: Si el usuario pidió "easy" o "very_easy", NO generes contextos largos.
+  Eso va en contra de lo que el usuario necesita: quiere aprender sin abrumarse con texto. ★★★
+
   3. Cada pregunta DEBE tener EXACTAMENTE 4 opciones.
   4. EXACTAMENTE UNA opción por pregunta debe ser correcta.
   5. **FORMATO DE CÓDIGO - REGLAS ESTRICTAS**:
@@ -23,25 +86,27 @@ export const AI_PROMPTS = {
        * Múltiples líneas de código (3+ líneas)
        * Estructuras completas (funciones, clases, componentes)
        * Snippets de programación reales de 5+ líneas
-  6. **SÍ puedes usar markdown** dentro de "question", "explanation" y "options.text" cuando sea necesario:
+  6. **SÍ puedes usar markdown** dentro de "context", "question", "explanation" y "options.text" cuando sea necesario:
      - Tablas (para datos, comparaciones, horarios, resultados experimentales)
      - LaTeX (fórmulas químicas, matemáticas, físicas: \\(E = mc^2\\), \\(\\frac{x}{y}\\), etc.)
      - Listas, negritas, citas textuales simuladas
      - Representaciones ASCII de gráficos simples si aplica (ej. ejes cartesianos, barras)
-  7. **ENUNCIADOS EXTENSOS Y CONTEXTUALIZADOS - ESTILO ICFES**:
-     - Cada pregunta DEBE tener un enunciado con **buena cantidad de texto** (mínimo 3-5 párrafos o un texto continuo sustancial)
-     - Presenta **contextos, escenarios o situaciones** antes de formular la pregunta específica
-     - Los enunciados deben ser tipo **prueba interpretativa**: proporciona información base (textos, datos, gráficos, situaciones) que el estudiante debe analizar
-     - Incluye elementos como:
-       * Textos de contexto (históricos, científicos, sociales, técnicos)
-       * Datos experimentales o resultados de investigaciones
-       * Situaciones problema con múltiples variables
-       * Casos de estudio con detalles relevantes
-     - La pregunta específica debe derivarse del análisis del contexto proporcionado
-     - Ejemplo de estructura:
-       * **Contexto**: Presentación del escenario (2-3 párrafos)
-       * **Datos/Información base**: Tablas, descripciones, relaciones (1-2 párrafos o elementos visuales en texto)
-       * **Pregunta**: Lo que se debe responder basado en el análisis del contexto
+  7. **ENUNCIADOS CONTEXTUALIZADOS - ESTILO ICFES (SOLO PARA MEDIUM+)**:
+     - Para dificultades **medium, hard, very_hard, expert**: sigue las reglas de arriba para contexto extenso
+     - Para dificultades **very_easy, easy**: CONTEXTO CORTO, preguntas directas como se especificó
+     - Presenta **contextos, escenarios o situaciones** ANTES de formular la pregunta específica SOLO cuando la dificultad lo amerite
+     - Los enunciados tipo **prueba interpretativa** (con información base extensa) son SOLO para medium+
+     - Incluye elementos según dificultad:
+       * **very_easy/easy**: Pregunta directa con mínimo contexto introductorio
+       * **medium**: Contexto breve + datos simples
+       * **hard+**: Contexto extenso + datos experimentales + múltiples variables
+     - La pregunta específica debe derivarse del análisis del contexto proporcionado (para medium+)
+     - Ejemplo de estructura para **easy**:
+       * **context**: "" (vacío o muy breve)
+       * **question**: "¿Pregunta directa?"
+     - Ejemplo de estructura para **hard**:
+       * **context**: "Presentación del escenario (2-3 párrafos)"
+       * **question**: "Lo que se debe responder basado en el análisis del contexto"
   8. **DISTRIBUCIÓN INTELIGENTE DE RESPUESTAS CORRECTAS - ORDEN IMPREDECIBLE**:
      - La posición de la respuesta correcta DEBE ser **totalmente aleatoria** en cada pregunta
      - **NO sigas ningún patrón predecible**: no puede ser siempre la primera, ni seguir secuencias como 1-2-3-4-1-2-3-4
@@ -50,6 +115,10 @@ export const AI_PROMPTS = {
      - Asegúrate de que a lo largo de todo el examen las posiciones correctas estén **balanceadas pero impredecibles**
      - Ejemplo de distribución válida: pregunta 1→opción 3, pregunta 2→opción 1, pregunta 3→opción 4, pregunta 4→opción 2, pregunta 5→opción 4, etc.
   9. Los distractores deben ser **plausibles y basados en errores comunes** de interpretación o cálculo, no obvios.
+     - Para **very_easy**: distractores bastante obvios, fácil de diferenciar
+     - Para **easy**: distractores claramente incorrectos pero relacionados al tema
+     - Para **medium**: distractores basados en errores comunes de interpretación
+     - Para **hard+**: distractores sofisticados que confunden incluso a estudiantes preparados
   10. **RETROALIMENTACIÓN OBLIGATORIA**:
      - "explanation": Explicación general de por qué la respuesta correcta lo es
      - "feedback" (en cada opción): Explicación específica de por qué ESA opción es correcta o incorrecta
@@ -61,21 +130,83 @@ export const AI_PROMPTS = {
   {
     "questions": [
       {
-        "question": "**Contexto:**\\n\\n[Texto extenso de contexto - 2 a 3 párrafos presentando el escenario, situación o información base. Por ejemplo: descripción de un experimento científico, análisis de datos históricos, situación problemática con múltiples variables, caso de estudio técnico, etc.]\\n\\n**Información adicional:**\\n\\n[Datos complementarios - puede incluir tablas, relaciones entre variables, resultados observados. Ejemplo:\\n\\n| Variable | Valor 1 | Valor 2 | Resultado |\\n|----------|---------|---------|-----------|\\n| A        | 10      | 20      | X         |\\n\\nO descripciones técnicas detalladas]\\n\\n**Pregunta:**\\n\\n[La pregunta específica que requiere analizar todo el contexto anterior para responder]",
-        "explanation": "Explicación general detallada de por qué la respuesta correcta es la adecuada, haciendo referencia al contexto y datos proporcionados.",
+        "context": "[Contexto compartido que puede ser igual para varias preguntas, o vacío \"\" si no aplica. Para very_easy/easy: máximo 2-3 oraciones. Para medium+: 1-2 párrafos. Para hard+: 2-4 párrafos. Si varias preguntas usan el mismo contexto, REPITE el MISMO texto exacto en cada una.]",
+        "question": "[La pregunta específica que se responde usando el contexto. Para very_easy/easy: pregunta directa. Para medium+: pregunta que requiere análisis del contexto.]",
+        "explanation": "Explicación general detallada de por qué la respuesta correcta es la adecuada.",
         "options": [
-          {"text": "Opción incorrecta pero muy plausible (error de interpretación del contexto o de los datos)", "isCorrect": false, "feedback": "Incorrecto. Este error surge cuando se malinterpreta [elemento específico del contexto] o se confunde [variable/concepto]. La razón es que..."},
-          {"text": "Opción correcta (única) - basada en el análisis correcto del contexto", "isCorrect": true, "feedback": "¡Correcto! Esta es la respuesta adecuada porque al analizar [elementos del contexto] se concluye que..."},
-          {"text": "Opción incorrecta (error conceptual común relacionado con el tema)", "isCorrect": false, "feedback": "Incorrecto. Este es un error común donde se asume que [concepto erróneo], pero en el contexto dado esto no aplica porque..."},
-          {"text": "Opción incorrecta (confunde variables, unidades o relaciones causales)", "isCorrect": false, "feedback": "Incorrecto. Aquí se comete el error de [mezclar unidades / confundir relaciones causales / interpretar mal los datos], ya que..."}
+          {"text": "Opción incorrecta pero plausible", "isCorrect": false, "feedback": "Incorrecto. Este error surge cuando se malinterpreta..."},
+          {"text": "Opción correcta (única)", "isCorrect": true, "feedback": "¡Correcto! Esta es la respuesta adecuada porque..."},
+          {"text": "Opción incorrecta (error conceptual)", "isCorrect": false, "feedback": "Incorrecto. Este es un error común donde se asume que..."},
+          {"text": "Opción incorrecta (confunde variables)", "isCorrect": false, "feedback": "Incorrecto. Aquí se comete el error de..."}
         ]
       }
     ],
     "metadata": {
       "title": "Título exigente y específico del examen",
-      "description": "Descripción breve indicando competencias evaluadas (lectura crítica, razonamiento cuantitativo, ciencias naturales, sociales, uso de información)",
+      "description": "Descripción breve indicando competencias evaluadas",
       "area": "Área académica (ej. Lectura Crítica, Matemáticas, Ciencias Naturales, Sociales, Cálculo, Sistemas, etc.)",
-      "tema": "Competencia específica (ej. Análisis e interpretación de datos experimentales, inferencia de tendencias, relaciones causales en contextos científicos)"
+      "tema": "Competencia específica o tema evaluado"
+    }
+  }
+
+  ★★ IMPORTANTE: Si varias preguntas comparten contexto, el texto en "context" debe ser IDÉNTICO en todas ellas. El sistema detectará contextos duplicados y los agrupará visualmente.
+  `,
+  generateQuickQuiz: (numberOfQuestions: number, difficulty: string) => `
+  Eres un profesor experto en diseño de preguntas de **QUIZ RÁPIDO**.
+  El usuario quiere preguntas CORTAS y DIRECTAS, tipo formulario, SIN contextos largos.
+
+  INSTRUCCIONES CRÍTICAS:
+  1. Genera EXACTAMENTE ${numberOfQuestions} preguntas de opción múltiple.
+  2. Nivel de dificultad: ${difficulty}.
+
+  ★★★ REGLAS DE QUIZ RÁPIDO - SIN CONTEXTOS LARGOS ★★★
+  
+  Este módulo es para **quizzes rápidos**: preguntas tipo formulario que se responden en segundos.
+  - **NUNCA** incluyas contextos largos, escenarios complejos, o párrafos extensos.
+  - **CADA PREGUNTA** debe ser de máximo 1-2 oraciones.
+  - **ESTILO**: Preguntas directas, tipo "¿Qué es...?", "¿Cuál es...?", "¿Verdadero o Falso...?"
+  - Ejemplo: "¿Cuál es la capital de Francia? A) Madrid B) París C) Roma D) Berlín"
+  - Ejemplo: "¿El agua hierve a 100°C? A) Verdadero B) Falso"
+  - Ejemplo: "¿Qué gas necesitamos para respirar? A) Nitrógeno B) Oxígeno C) CO₂ D) Hidrógeno"
+
+  Niveles de dificultad para quiz rápido:
+  - **very_easy**: Preguntas extremadamente básicas, casi trivia.
+  - **easy**: Preguntas simples de conocimiento general o conceptos básicos.
+  - **medium**: Preguntas que requieren un poco de estudio previo.
+  - **hard**: Preguntas específicas de un tema técnico.
+  - **very_hard**: Preguntas avanzadas, pero SIEMPRE cortas y directas.
+  - **expert**: Preguntas especializadas, sin contexto largo pero de alto nivel.
+
+  3. Cada pregunta DEBE tener EXACTAMENTE 4 opciones.
+  4. EXACTAMENTE UNA opción por pregunta debe ser correcta.
+  5. **FORMATO DE CÓDIGO**:
+     - Usa \`código en línea\` para términos técnicos.
+     - NO uses bloques de código triples.
+  6. **DISTRIBUCIÓN ALEATORIA**: La posición de la respuesta correcta debe ser impredecible.
+  7. **RETROALIMENTACIÓN OBLIGATORIA**:
+     - "explanation": Explicación breve de por qué la respuesta correcta lo es (máximo 2 oraciones).
+     - "feedback" (en cada opción): Explicación específica de por qué ESA opción es correcta o incorrecta.
+
+  RETORNA SOLO JSON VÁLIDO:
+
+  {
+    "questions": [
+      {
+        "question": "¿Pregunta corta y directa de máximo 1-2 oraciones?",
+        "explanation": "Explicación breve de por qué es correcta.",
+        "options": [
+          {"text": "Opción A", "isCorrect": false, "feedback": "Incorrecto porque..."},
+          {"text": "Opción B", "isCorrect": true, "feedback": "Correcto porque..."},
+          {"text": "Opción C", "isCorrect": false, "feedback": "Incorrecto porque..."},
+          {"text": "Opción D", "isCorrect": false, "feedback": "Incorrecto porque..."}
+        ]
+      }
+    ],
+    "metadata": {
+      "title": "Título corto del quiz",
+      "description": "Descripción breve del quiz",
+      "area": "Área del conocimiento",
+      "tema": "Tema específico"
     }
   }
   `,

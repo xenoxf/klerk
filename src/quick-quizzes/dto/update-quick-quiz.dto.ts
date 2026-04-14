@@ -1,11 +1,4 @@
-import {
-  IsString,
-  IsOptional,
-  IsNotEmpty,
-  IsEnum,
-  IsInt,
-  Min,
-} from 'class-validator';
+import { IsOptional, IsString, IsEnum, IsInt, Min } from 'class-validator';
 
 enum Dificultad {
   VERY_EASY = 'very_easy',
@@ -16,10 +9,14 @@ enum Dificultad {
   EXPERT = 'expert',
 }
 
-export class CreateExamDto {
+export class UpdateQuickQuizDto {
+  @IsOptional()
+  @IsInt({ message: 'El ID debe ser un número entero' })
+  id?: number;
+
+  @IsOptional()
   @IsString({ message: 'El título debe ser un texto' })
-  @IsNotEmpty({ message: 'El título es requerido' })
-  title: string;
+  title?: string;
 
   @IsOptional()
   @IsString({ message: 'La descripción debe ser un texto' })
@@ -45,7 +42,7 @@ export class CreateExamDto {
   acceso?: string;
 
   @IsOptional()
-  @IsInt({ message: 'El total de preguntas debe ser un número entero' })
-  @Min(1, { message: 'El total de preguntas debe ser al menos 1' })
-  totalQuestions?: number;
+  @IsInt({ message: 'El puntaje debe ser un número entero' })
+  @Min(0, { message: 'El puntaje debe ser mayor o igual a 0' })
+  score?: number;
 }

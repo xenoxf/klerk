@@ -9,6 +9,7 @@ import { Repository, In } from 'typeorm';
 import { Exam } from './entities/exam.entity';
 import { ExamQuestion } from './entities/examQuestion.entity';
 import { ExamOption } from './entities/exam-option.entity';
+import { ExamContext } from './entities/exam-context.entity';
 import { GenerateExamDto } from './dto/generate-exam.dto';
 import { GeminiService } from '../gemini/gemini.service';
 import { CreditsService, calculateExamCost } from '../credits/credits.service';
@@ -27,6 +28,8 @@ export class ExamsService {
     @InjectRepository(ExamQuestion)
     private questionRepo: Repository<ExamQuestion>,
     @InjectRepository(ExamOption) private optionRepo: Repository<ExamOption>,
+    @InjectRepository(ExamContext)
+    private contextRepo: Repository<ExamContext>,
     private readonly geminiService: GeminiService,
     private readonly creditsService: CreditsService,
     private readonly likesService: LikesService,
@@ -70,10 +73,39 @@ export class ExamsService {
 
     const savedExam = await this.examRepo.save(exam);
 
+    // Group questions by context to create ExamContext entities
+    const contextMap = new Map<string, ExamContext>();
+    const questionsWithNoContext: typeof questions = [];
+
     for (const q of questions) {
+      const contextText = (q.context || '').trim();
+
+      if (contextText) {
+        // Check if we already have this context
+        let ctx = contextMap.get(contextText);
+        if (!ctx) {
+          ctx = this.contextRepo.create({
+            text: contextText,
+            exam: savedExam,
+          });
+          ctx = await this.contextRepo.save(ctx);
+          contextMap.set(contextText, ctx);
+        }
+      } else {
+        questionsWithNoContext.push(q);
+      }
+    }
+
+    // Now create questions with their context groups
+    for (const q of questions) {
+      const contextText = (q.context || '').trim();
+      const contextGroup = contextText ? contextMap.get(contextText) : null;
+
       const question = this.questionRepo.create({
+        context: contextText || null,
         question: q.question,
         explanation: q.explanation || '',
+        contextGroup: contextGroup || null,
         exam: savedExam,
       });
 
@@ -83,6 +115,7 @@ export class ExamsService {
         const option = this.optionRepo.create({
           text: opt.text,
           isCorrect: opt.isCorrect,
+          feedback: opt.feedback || null,
           question: savedQuestion,
         });
         await this.optionRepo.save(option);
@@ -271,14 +304,17 @@ export class ExamsService {
         ...base,
         questions: exam.questions.map((q) => ({
           id: q.id,
+          context: q.context || '',
           question: q.question,
           explanation: q.explanation || '',
+          contextGroupId: q.contextGroupId,
           options:
             q.options && q.options.length > 0
               ? q.options.map((opt) => ({
                   id: opt.id,
                   text: opt.text,
                   isCorrect: opt.isCorrect,
+                  feedback: opt.feedback || '',
                 }))
               : [],
         })),

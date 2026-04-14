@@ -1,10 +1,10 @@
 import {
   IsString,
   IsOptional,
-  IsNotEmpty,
   IsEnum,
   IsInt,
   Min,
+  IsNotEmpty,
 } from 'class-validator';
 
 enum Dificultad {
@@ -16,7 +16,7 @@ enum Dificultad {
   EXPERT = 'expert',
 }
 
-export class CreateExamDto {
+export class CreateQuickQuizDto {
   @IsString({ message: 'El título debe ser un texto' })
   @IsNotEmpty({ message: 'El título es requerido' })
   title: string;

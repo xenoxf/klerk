@@ -198,6 +198,39 @@ export class GeminiService {
     return parsed;
   }
 
+  // ==================== QUICK QUIZ ====================
+
+  async generateQuickQuiz(
+    topic: string,
+    numberOfQuestions: number,
+    difficulty: string,
+  ) {
+    const prompt = AI_PROMPTS.generateQuickQuiz(numberOfQuestions, difficulty);
+    const { text: raw } = await this.generateTextWithFallback(
+      `${prompt}\n\nTema: ${topic}`,
+    );
+    const parsed = this.parseJson<any>(raw);
+
+    if (
+      !parsed.questions ||
+      !Array.isArray(parsed.questions) ||
+      parsed.questions.length === 0
+    ) {
+      throw new Error(
+        'No se generaron preguntas válidas para el quick quiz. Intenta con otro tema.',
+      );
+    }
+    if (!parsed.metadata || typeof parsed.metadata !== 'object') {
+      throw new Error('Faltan metadatos en la respuesta del quick quiz.');
+    }
+    for (const q of parsed.questions) {
+      if (!q.question || !q.options || !Array.isArray(q.options)) {
+        throw new Error('Las preguntas generadas tienen formato inválido.');
+      }
+    }
+    return parsed;
+  }
+
   // ==================== NOTE ====================
 
   async generateNote(

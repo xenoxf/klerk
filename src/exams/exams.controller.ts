@@ -94,10 +94,7 @@ export class ExamsController {
 
   @Get('score')
   @UseGuards(JwtGuard, RequireAuthGuard)
-  async updateExamScore(
-    @Query() query: UpdateExamDto,
-    @Req() req: any,
-  ) {
+  async updateExamScore(@Query() query: UpdateExamDto, @Req() req: any) {
     const userId = getNumericUserId(req);
     const decks = await this.examsService.updateExamScore(query, userId);
 
@@ -116,6 +113,12 @@ export class ExamsController {
           correctAnswers,
           (exam as any).totalQuestions,
           (exam as any).title || 'Unknown Exam',
+          {
+            examTema: (exam as any).tema,
+            examArea: (exam as any).area,
+            examDifficulty: (exam as any).difficulty,
+            score: query.score,
+          },
         );
       }
     }
