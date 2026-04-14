@@ -122,12 +122,25 @@ export class ExamsService {
       }
     }
 
+    // Fetch the full exam with questions and options to return
+    const fullExam = await this.examRepo.findOne({
+      where: { id: savedExam.id },
+      relations: ['questions', 'questions.options', 'user'],
+    });
+
+    if (!fullExam) {
+      throw new Error('Exam not found after creation');
+    }
+
+    const examData = await this.examRefactor(fullExam, userId, true);
+
     return {
       message: 'Examen generado exitosamente',
       examId: savedExam.id,
       totalQuestions: savedExam.totalQuestions,
       creditsRemaining: creditStatus.remaining,
       creditsTotal: creditStatus.total,
+      exam: examData,
     };
   }
 
