@@ -3,78 +3,29 @@
 
 export const AI_PROMPTS = {
   generateExam: (numberOfQuestions: number, difficulty: string) => `
-  Eres un profesor experto en diseño de preguntas estilo **Pruebas Saber 11 del ICFES (Colombia)**.
+  Eres un profesor experto en diseño de preguntas de evaluación rápida.
   El usuario puede escribir informalmente o con errores; infiere el tema y mantente enfocado.
 
   INSTRUCCIONES CRÍTICAS:
   1. Genera EXACTAMENTE ${numberOfQuestions} preguntas de opción múltiple.
   2. Nivel de dificultad: ${difficulty}.
-
-  ★★★ ESTRUCTURA DE CONTEXTO COMPARTIDO - REGLA FUNDAMENTAL ★★★
-
-  En los exámenes estilo ICFES, un MISMO CONTEXTO puede usarse para responder MÚLTIPLES preguntas.
-  Debes estructurar tu examen siguiendo estas reglas:
-
-  **GRUPOS DE CONTEXTO:**
-  - Divide las preguntas en grupos de contexto cuando sea lógico.
-  - Un grupo de contexto incluye: UN contexto compartido + 2-4 preguntas relacionadas.
-  - También puede haber preguntas INDIVIDUALES (sin contexto compartido, contexto vacío).
-  - Ejemplo: Para 10 preguntas, podrías tener:
-    * Contexto grupo 1 → Preguntas 1, 2, 3 (mismo contexto sobre un tema)
-    * Contexto grupo 2 → Preguntas 4, 5 (otro contexto diferente)
-    * Pregunta 6 → Sin contexto (pregunta directa)
-    * Contexto grupo 3 → Preguntas 7, 8, 9, 10 (contexto largo con datos)
-  - Las preguntas que NO necesitan contexto deben tener "context": "" (vacío).
-  - Las preguntas que COMPARTEN contexto deben tener exactamente el MISMO texto en "context".
-
-  ★★★ REGLA DE DIFICULTAD - DEBES RESPETARLA ESTRICTAMENTE ★★★
-
-  La dificultad afecta DIRECTAMENTE la longitud del contexto y la complejidad de las preguntas:
-
-  **very_easy**:
-    - CONTEXTO: SIN contexto largo. Máximo 2-3 oraciones introductorias DIRECTAS.
-    - PREGUNTAS: Directas, tipo "¿Qué es...?", "¿Cuál de...?", sin escenarios complejos.
-    - Ejemplo: "La fotosíntesis es el proceso por el cual las plantas producen su alimento. ¿Qué gas absorben las plantas durante la fotosíntesis?"
-    - Opciones: 3 distractores obvios, 1 respuesta clara.
-    - NUNCA uses párrafos extensos para una pregunta de nivel very_easy.
-
-  **easy**:
-    - CONTEXTO: CORTO. Máximo 1 párrafo breve (3-5 líneas) o un escenario simple de 2-3 oraciones.
-    - PREGUNTAS: Directas con contexto mínimo. El usuario que pide "easy" QUIERE PREGUNTAS CORTAS Y RÁPIDAS.
-    - Ejemplo: "Un estudiante observa que al calentar agua esta se evapora. Este cambio de estado se llama:"
-    - Si el usuario escribió "easy", NO generes contextos de 3-5 párrafos. Eso es traicionar su solicitud.
-    - Opciones: distractores plausibles pero diferenciados.
-
-  **medium**:
-    - CONTEXTO: Moderado. 1-2 párrafos con algo de detalle.
-    - PREGUNTAS: Requieren análisis básico del contexto.
-    - Puedes incluir una tabla simple o datos comparativos.
-    - Opciones: distractores basados en errores de interpretación comunes.
-
-  **hard**:
-    - CONTEXTO: Extenso. 2-4 párrafos con información detallada.
-    - PREGUNTAS: Requieren análisis profundo, síntesis de múltiples variables.
-    - Incluye tablas, datos experimentales, escenarios complejos.
-    - Opciones: distractores sofisticados que requieren discernimiento fino.
-
-  **very_hard**:
-    - CONTEXTO: Muy extenso. 3-5 párrafos con múltiples capas de información.
-    - PREGUNTAS: Análisis crítico, evaluación de escenarios complejos con múltiples variables.
-    - Contextos con datos contradictorios, información irrelevante que debe filtrarse.
-    - Opciones: distractores muy plausibles que requieren dominio profundo.
-
-  **expert**:
-    - CONTEXTO: Máximo. 4-6 párrafos con información densa y técnica.
-    - PREGUNTAS: Nivel universitario avanzado. Integración de múltiples conceptos.
-    - Escenarios reales complejos, casos de estudio detallados.
-    - Opciones: todas plausibles para quien no domine el tema a nivel experto.
-
-  ★ IMPORTANTE: Si el usuario pidió "easy" o "very_easy", NO generes contextos largos.
-  Eso va en contra de lo que el usuario necesita: quiere aprender sin abrumarse con texto. ★★★
-
+     - **easy**: Preguntas directas sobre conceptos básicos, definiciones, identificación simple. Una sola operación o concepto por pregunta.
+     - **medium**: Preguntas que requieren aplicación de conocimientos, análisis sencillo, relacionar conceptos. Puede incluir datos o escenarios breves.
+     - **hard**: Preguntas de análisis, evaluación o síntesis. Requieren integrar múltiples conceptos, interpretar datos complejos o resolver problemas.
   3. Cada pregunta DEBE tener EXACTAMENTE 4 opciones.
   4. EXACTAMENTE UNA opción por pregunta debe ser correcta.
-  5. **FORMATO DE CÓDIGO - REGLAS ESTRICTAS**:
+  5. **ENUNCIADOS CONCISOS - EXÁMENES RÁPIDOS**:
+     - Los enunciados deben ser **DIRECTOS y SIN TEXTO EXCESIVO** para permitir preguntas rápidas
+     - **PROHIBIDO**: Contextos largos de 3-5 párrafos, escenarios extensos, información base innecesaria
+     - **PERMITIDO**: Enunciados de 1-3 oraciones máximo, pueden incluir tablas pequeñas o datos puntuales
+     - Estructura: **Enunciado directo** + **Pregunta específica** (todo en 1-3 líneas)
+     - Ejemplos válidos:
+       * "¿Cuál es la capital de Francia?"
+       * "Halla la moda de los siguientes valores: 3, 5, 7, 5, 9, 5, 2"
+       * "Según la ley de Ohm, si V=12V y R=4Ω, ¿cuál es la corriente I?"
+       * "En la tabla siguiente con datos de ventas, ¿qué mes tuvo mayor incremento?"
+     - Si necesitas incluir datos, usa tablas compactas o listas breves, NO párrafos extensos
+  6. **FORMATO DE CÓDIGO - REGLAS ESTRICTAS**:
      - **NUNCA uses bloques de código para palabras sueltas o frases cortas**
      - **Regla de oro**: Si el "código" tiene menos de 10 palabras, NO uses bloque
      - Para términos técnicos, comandos, valores, propiedades CSS, keywords: usa \`código en línea\`
@@ -86,27 +37,11 @@ export const AI_PROMPTS = {
        * Múltiples líneas de código (3+ líneas)
        * Estructuras completas (funciones, clases, componentes)
        * Snippets de programación reales de 5+ líneas
-  6. **SÍ puedes usar markdown** dentro de "context", "question", "explanation" y "options.text" cuando sea necesario:
+  7. **SÍ puedes usar markdown** dentro de "question", "explanation" y "options.text" cuando sea necesario:
      - Tablas (para datos, comparaciones, horarios, resultados experimentales)
      - LaTeX (fórmulas químicas, matemáticas, físicas: \\(E = mc^2\\), \\(\\frac{x}{y}\\), etc.)
      - Listas, negritas, citas textuales simuladas
-     - Representaciones ASCII de gráficos simples si aplica (ej. ejes cartesianos, barras)
-  7. **ENUNCIADOS CONTEXTUALIZADOS - ESTILO ICFES (SOLO PARA MEDIUM+)**:
-     - Para dificultades **medium, hard, very_hard, expert**: sigue las reglas de arriba para contexto extenso
-     - Para dificultades **very_easy, easy**: CONTEXTO CORTO, preguntas directas como se especificó
-     - Presenta **contextos, escenarios o situaciones** ANTES de formular la pregunta específica SOLO cuando la dificultad lo amerite
-     - Los enunciados tipo **prueba interpretativa** (con información base extensa) son SOLO para medium+
-     - Incluye elementos según dificultad:
-       * **very_easy/easy**: Pregunta directa con mínimo contexto introductorio
-       * **medium**: Contexto breve + datos simples
-       * **hard+**: Contexto extenso + datos experimentales + múltiples variables
-     - La pregunta específica debe derivarse del análisis del contexto proporcionado (para medium+)
-     - Ejemplo de estructura para **easy**:
-       * **context**: "" (vacío o muy breve)
-       * **question**: "¿Pregunta directa?"
-     - Ejemplo de estructura para **hard**:
-       * **context**: "Presentación del escenario (2-3 párrafos)"
-       * **question**: "Lo que se debe responder basado en el análisis del contexto"
+     - **negritas** para resaltar conceptos clave en el enunciado
   8. **DISTRIBUCIÓN INTELIGENTE DE RESPUESTAS CORRECTAS - ORDEN IMPREDECIBLE**:
      - La posición de la respuesta correcta DEBE ser **totalmente aleatoria** en cada pregunta
      - **NO sigas ningún patrón predecible**: no puede ser siempre la primera, ni seguir secuencias como 1-2-3-4-1-2-3-4
@@ -115,13 +50,9 @@ export const AI_PROMPTS = {
      - Asegúrate de que a lo largo de todo el examen las posiciones correctas estén **balanceadas pero impredecibles**
      - Ejemplo de distribución válida: pregunta 1→opción 3, pregunta 2→opción 1, pregunta 3→opción 4, pregunta 4→opción 2, pregunta 5→opción 4, etc.
   9. Los distractores deben ser **plausibles y basados en errores comunes** de interpretación o cálculo, no obvios.
-     - Para **very_easy**: distractores bastante obvios, fácil de diferenciar
-     - Para **easy**: distractores claramente incorrectos pero relacionados al tema
-     - Para **medium**: distractores basados en errores comunes de interpretación
-     - Para **hard+**: distractores sofisticados que confunden incluso a estudiantes preparados
   10. **RETROALIMENTACIÓN OBLIGATORIA**:
-     - "explanation": Explicación general de por qué la respuesta correcta lo es
-     - "feedback" (en cada opción): Explicación específica de por qué ESA opción es correcta o incorrecta
+     - "explanation": Explicación general de por qué la respuesta correcta lo es (1-2 oraciones)
+     - "feedback" (en cada opción): Explicación específica de por qué ESA opción es correcta o incorrecta (1-2 oraciones)
        * Para la correcta: confirmar por qué es la respuesta adecuada
        * Para las incorrectas: explicar el error común que lleva a elegir esa opción
 
@@ -130,85 +61,152 @@ export const AI_PROMPTS = {
   {
     "questions": [
       {
-        "context": "[Contexto compartido que puede ser igual para varias preguntas, o vacío \"\" si no aplica. Para very_easy/easy: máximo 2-3 oraciones. Para medium+: 1-2 párrafos. Para hard+: 2-4 párrafos. Si varias preguntas usan el mismo contexto, REPITE el MISMO texto exacto en cada una.]",
-        "question": "[La pregunta específica que se responde usando el contexto. Para very_easy/easy: pregunta directa. Para medium+: pregunta que requiere análisis del contexto.]",
-        "explanation": "Explicación general detallada de por qué la respuesta correcta es la adecuada.",
+        "question": "¿Cuál es el resultado de **2 + 3 × 4**?",
+        "explanation": "Según la jerarquía de operaciones, primero se multiplica y luego se suma: 3×4=12, luego 2+12=14.",
         "options": [
-          {"text": "Opción incorrecta pero plausible", "isCorrect": false, "feedback": "Incorrecto. Este error surge cuando se malinterpreta..."},
-          {"text": "Opción correcta (única)", "isCorrect": true, "feedback": "¡Correcto! Esta es la respuesta adecuada porque..."},
-          {"text": "Opción incorrecta (error conceptual)", "isCorrect": false, "feedback": "Incorrecto. Este es un error común donde se asume que..."},
-          {"text": "Opción incorrecta (confunde variables)", "isCorrect": false, "feedback": "Incorrecto. Aquí se comete el error de..."}
+          {"text": "14", "isCorrect": true, "feedback": "¡Correcto! Se aplica la jerarquía: multiplicación antes que suma."},
+          {"text": "20", "isCorrect": false, "feedback": "Incorrecto. Este error surge cuando se suma primero (2+3=5) y luego se multiplica (5×4=20), ignorando la jerarquía de operaciones."},
+          {"text": "24", "isCorrect": false, "feedback": "Incorrecto. Este resultado no corresponde a ninguna operación válida con los datos dados."},
+          {"text": "10", "isCorrect": false, "feedback": "Incorrecto. Parece que se sumó todo linealmente (2+3+4=9) o se hizo un error de cálculo."}
+        ]
+      },
+      {
+        "question": "Halla la **moda** de los valores: 3, 5, 7, 5, 9, 5, 2",
+        "explanation": "La moda es el valor que más se repite. El 5 aparece 3 veces, más que cualquier otro.",
+        "options": [
+          {"text": "5", "isCorrect": true, "feedback": "¡Correcto! El 5 es el valor con mayor frecuencia (3 veces)."},
+          {"text": "7", "isCorrect": false, "feedback": "Incorrecto. El 7 aparece solo una vez, no es el más frecuente."},
+          {"text": "3", "isCorrect": false, "feedback": "Incorrecto. Aunque 3 es la mediana, no es la moda."},
+          {"text": "9", "isCorrect": false, "feedback": "Incorrecto. El 9 aparece solo una vez."}
         ]
       }
     ],
     "metadata": {
-      "title": "Título exigente y específico del examen",
+      "title": "Título conciso y específico del examen",
       "description": "Descripción breve indicando competencias evaluadas",
-      "area": "Área académica (ej. Lectura Crítica, Matemáticas, Ciencias Naturales, Sociales, Cálculo, Sistemas, etc.)",
-      "tema": "Competencia específica o tema evaluado"
+      "area": "Área académica (ej. Matemáticas, Ciencias, Historia)",
+      "tema": "Tema específico evaluado"
     }
   }
-
-  ★★ IMPORTANTE: Si varias preguntas comparten contexto, el texto en "context" debe ser IDÉNTICO en todas ellas. El sistema detectará contextos duplicados y los agrupará visualmente.
   `,
-  generateQuickQuiz: (numberOfQuestions: number, difficulty: string) => `
-  Eres un profesor experto en diseño de preguntas de **QUIZ RÁPIDO**.
-  El usuario quiere preguntas CORTAS y DIRECTAS, tipo formulario, SIN contextos largos.
+
+  generateIcfesExam: (numberOfQuestions: number, difficulty: string) => `
+  Eres un profesor experto en diseño de exámenes tipo **Pruebas Saber 11 (ICFES)**.
+  El usuario puede escribir informalmente o con errores; infiere el tema y mantente enfocado.
 
   INSTRUCCIONES CRÍTICAS:
   1. Genera EXACTAMENTE ${numberOfQuestions} preguntas de opción múltiple.
   2. Nivel de dificultad: ${difficulty}.
-
-  ★★★ REGLAS DE QUIZ RÁPIDO - SIN CONTEXTOS LARGOS ★★★
-  
-  Este módulo es para **quizzes rápidos**: preguntas tipo formulario que se responden en segundos.
-  - **NUNCA** incluyas contextos largos, escenarios complejos, o párrafos extensos.
-  - **CADA PREGUNTA** debe ser de máximo 1-2 oraciones.
-  - **ESTILO**: Preguntas directas, tipo "¿Qué es...?", "¿Cuál es...?", "¿Verdadero o Falso...?"
-  - Ejemplo: "¿Cuál es la capital de Francia? A) Madrid B) París C) Roma D) Berlín"
-  - Ejemplo: "¿El agua hierve a 100°C? A) Verdadero B) Falso"
-  - Ejemplo: "¿Qué gas necesitamos para respirar? A) Nitrógeno B) Oxígeno C) CO₂ D) Hidrógeno"
-
-  Niveles de dificultad para quiz rápido:
-  - **very_easy**: Preguntas extremadamente básicas, casi trivia.
-  - **easy**: Preguntas simples de conocimiento general o conceptos básicos.
-  - **medium**: Preguntas que requieren un poco de estudio previo.
-  - **hard**: Preguntas específicas de un tema técnico.
-  - **very_hard**: Preguntas avanzadas, pero SIEMPRE cortas y directas.
-  - **expert**: Preguntas especializadas, sin contexto largo pero de alto nivel.
-
+     - **very_easy**: Identificación directa de conceptos básicos.
+     - **easy**: Comprensión y aplicación simple de un solo concepto.
+     - **medium**: Análisis de información, relación de conceptos, interpretación de datos.
+     - **hard**: Evaluación, síntesis, integración de múltiples conceptos.
+     - **very_hard**: Pensamiento crítico avanzado, resolución de problemas complejos con múltiples variables.
+     - **expert**: Dominio total, argumentación, transferencia de conocimiento a contextos nuevos.
   3. Cada pregunta DEBE tener EXACTAMENTE 4 opciones.
   4. EXACTAMENTE UNA opción por pregunta debe ser correcta.
-  5. **FORMATO DE CÓDIGO**:
-     - Usa \`código en línea\` para términos técnicos.
-     - NO uses bloques de código triples.
-  6. **DISTRIBUCIÓN ALEATORIA**: La posición de la respuesta correcta debe ser impredecible.
-  7. **RETROALIMENTACIÓN OBLIGATORIA**:
-     - "explanation": Explicación breve de por qué la respuesta correcta lo es (máximo 2 oraciones).
-     - "feedback" (en cada opción): Explicación específica de por qué ESA opción es correcta o incorrecta.
+
+  5. **ESTRUCTURA DE EXAMEN ICFES - CONTEXTOS COMPARTIDOS**:
+     - En un examen ICFES real, hay **contextos** (textos, tablas, gráficos, situaciones) que sirven de base para **2 a 4 preguntas**.
+     - **NO TODAS las preguntas necesitan contexto**. Algunas pueden ser preguntas directas con su enunciado.
+     - **TÚ decides** si incluir contextos compartidos o no, según el tema y la conveniencia pedagógica.
+     - Si incluyes un contexto compartido:
+       * El contexto debe ser un bloque de texto significativo, tabla markdown, o datos relevantes (1-4 párrafos o tabla completa)
+       * El contexto puede ser: un texto de lectura, una tabla de datos, un gráfico descrito en texto, un caso de estudio, una situación problema
+       * Agrupa 2-4 preguntas bajo ese mismo contexto usando el mismo "contextId"
+       * Cada pregunta bajo el contexto debe hacer referencia al contexto en su enunciado
+     - Si NO incluyes contexto: la pregunta tiene su enunciado directo (1-3 oraciones) como cualquier pregunta normal.
+     - **Ejemplo de contexto compartido**:
+       * Un texto sobre "El impacto de la contaminación" → 3 preguntas de comprensión lectora
+       * Una tabla con datos de ventas por mes → 2 preguntas de análisis de datos
+       * Un caso sobre una empresa ficticia → 2 preguntas de administración
+
+  6. **FORMATO DE CÓDIGO - REGLAS ESTRICTAS**:
+     - **NUNCA uses bloques de código para palabras sueltas o frases cortas**
+     - Para términos técnicos, comandos, valores: usa \`código en línea\`
+     - Solo usa bloques de código para: múltiples líneas de código (3+ líneas), estructuras completas
+  7. **MARKDOWN en contextos y preguntas**:
+     - Puedes usar tablas, negritas, listas, LaTeX (\\(E = mc^2\\)), bloques de cita
+     - Los contextos usan markdown completo para presentar información rica
+     - Las preguntas directas usan markdown moderado (negritas, listas cortas)
+
+  8. **DISTRIBUCIÓN DE RESPUESTAS CORRECTAS - IMPREDECIBLE**:
+     - Posición aleatoria y balanceada entre las 4 opciones
+     - No seguir patrones predecibles
+
+  9. Los distractores deben ser **plausibles y basados en errores comunes**.
+
+  10. **RETROALIMENTACIÓN**:
+     - "explanation": Explicación general (1-3 oraciones)
+     - "feedback" (cada opción): Por qué es correcta/incorrecta (1-2 oraciones)
 
   RETORNA SOLO JSON VÁLIDO:
 
   {
     "questions": [
       {
-        "question": "¿Pregunta corta y directa de máximo 1-2 oraciones?",
-        "explanation": "Explicación breve de por qué es correcta.",
+        "contextId": "ctx-1",
+        "contextContent": "## Impacto de la contaminación\\n\\nLa contaminación ambiental es uno de los mayores desafíos del siglo XXI. Según la OMS, más de 7 millones de personas mueren cada año por enfermedades relacionadas con la contaminación del aire.\\n\\n| Tipo de contaminación | Fuente principal | Efecto en salud |\\n|---------------------|------------------|-----------------|\\n| Del aire            | Vehículos        | Asma, cáncer    |\\n| Del agua            | Industria        | Cólera, diarrea |\\n| Del suelo           | Agricultura      | Intoxicación    |",
+        "question": "Según la tabla anterior, ¿cuál es el efecto en salud principal de la contaminación del agua?",
+        "explanation": "La tabla muestra claramente que la contaminación del agua tiene como efecto el cólera y la diarrea.",
         "options": [
-          {"text": "Opción A", "isCorrect": false, "feedback": "Incorrecto porque..."},
-          {"text": "Opción B", "isCorrect": true, "feedback": "Correcto porque..."},
-          {"text": "Opción C", "isCorrect": false, "feedback": "Incorrecto porque..."},
-          {"text": "Opción D", "isCorrect": false, "feedback": "Incorrecto porque..."}
+          {"text": "Asma y cáncer", "isCorrect": false, "feedback": "Incorrecto. Estos son efectos de la contaminación del aire según la tabla."},
+          {"text": "Cólera y diarrea", "isCorrect": true, "feedback": "¡Correcto! La tabla indica estos efectos para la contaminación del agua."},
+          {"text": "Intoxicación", "isCorrect": false, "feedback": "Incorrecto. Este es el efecto de la contaminación del suelo."},
+          {"text": "Muerte súbita", "isCorrect": false, "feedback": "Incorrecto. No aparece en la tabla como efecto directo."}
+        ]
+      },
+      {
+        "contextId": "ctx-1",
+        "contextContent": null,
+        "question": "De acuerdo con el texto, ¿cuántas personas mueren al año por enfermedades relacionadas con la contaminación del aire?",
+        "explanation": "El texto indica que son más de 7 millones de personas.",
+        "options": [
+          {"text": "Más de 7 millones", "isCorrect": true, "feedback": "¡Correcto! El texto lo indica explícitamente."},
+          {"text": "Más de 5 millones", "isCorrect": false, "feedback": "Incorrecto. El texto dice 7 millones, no 5."},
+          {"text": "Más de 10 millones", "isCorrect": false, "feedback": "Incorrecto. Es una cifra mayor a la reportada."},
+          {"text": "Menos de 3 millones", "isCorrect": false, "feedback": "Incorrecto. La cifra real es mucho mayor."}
+        ]
+      },
+      {
+        "contextId": "ctx-1",
+        "contextContent": null,
+        "question": "¿Cuál es la fuente principal de contaminación del suelo según la tabla?",
+        "explanation": "La tabla indica que la agricultura es la fuente principal.",
+        "options": [
+          {"text": "Vehículos", "isCorrect": false, "feedback": "Incorrecto. Los vehículos contaminan el aire."},
+          {"text": "Industria", "isCorrect": false, "feedback": "Incorrecto. La industria contamina el agua."},
+          {"text": "Agricultura", "isCorrect": true, "feedback": "¡Correcto! La tabla lo indica claramente."},
+          {"text": "Hogares", "isCorrect": false, "feedback": "Incorrecto. No aparece como fuente en la tabla."}
+        ]
+      },
+      {
+        "contextId": null,
+        "contextContent": null,
+        "question": "¿Cuál de las siguientes es una energía renovable?",
+        "explanation": "La energía solar se renueva constantemente.",
+        "options": [
+          {"text": "Carbón", "isCorrect": false, "feedback": "Incorrecto. Es un combustible fíl no renovable."},
+          {"text": "Gas natural", "isCorrect": false, "feedback": "Incorrecto. Es no renovable."},
+          {"text": "Energía solar", "isCorrect": true, "feedback": "¡Correcto! Es renovable."},
+          {"text": "Petróleo", "isCorrect": false, "feedback": "Incorrecto. Es no renovable."}
         ]
       }
     ],
     "metadata": {
-      "title": "Título corto del quiz",
-      "description": "Descripción breve del quiz",
-      "area": "Área del conocimiento",
+      "title": "Título del examen ICFES",
+      "description": "Descripción breve de competencias evaluadas",
+      "area": "Área académica",
       "tema": "Tema específico"
     }
   }
+
+  IMPORTANTE:
+  - Usa "contextId" para agrupar preguntas que comparten contexto (ej: "ctx-1", "ctx-2")
+  - El "contextContent" solo va en la PRIMERA pregunta de cada grupo. Las demás preguntas del mismo grupo lo ponen como null.
+  - Preguntas sin contexto: contextId = null, contextContent = null
+  - Cada grupo de contexto debe tener entre 2 y 4 preguntas.
+  - La IA decide cuántos contextos poner y si poner o no contextos.
   `,
   generateNote: (numberOfNotes: number, levelOfDetail: string) => `
   Eres un asistente experto en crear material de estudio técnico, profundo y autocontenido.

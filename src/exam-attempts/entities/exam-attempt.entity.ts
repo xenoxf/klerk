@@ -28,24 +28,6 @@ export class ExamAttempt {
   @Column()
   examTitle: string;
 
-  @Column({ nullable: true })
-  examTema: string;
-
-  @Column({ nullable: true })
-  examArea: string;
-
-  @Column({ nullable: true })
-  examDifficulty: string;
-
-  @Column({ nullable: true })
-  score: number;
-
-  @Column({ nullable: true })
-  incorrectAnswers: number;
-
-  @Column({ nullable: true })
-  timeSpent: number;
-
   @CreateDateColumn()
   attemptedAt: Date;
 

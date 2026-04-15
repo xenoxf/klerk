@@ -138,10 +138,7 @@ export class AuthService {
     const refreshToken = this.generateRefreshToken();
     const hashedRefreshToken = this.hashRefreshToken(refreshToken);
     const refreshTokenExpiresAt = this.getRefreshTokenExpiry();
-    await this.usersService.update(user.id, {
-      refreshToken: hashedRefreshToken,
-      refreshTokenExpiresAt,
-    });
+    await this.usersService.update(user.id, { refreshToken: hashedRefreshToken, refreshTokenExpiresAt });
 
     return {
       token: accessToken,
@@ -169,10 +166,7 @@ export class AuthService {
     const refreshToken = this.generateRefreshToken();
     const hashedRefreshToken = this.hashRefreshToken(refreshToken);
     const refreshTokenExpiresAt = this.getRefreshTokenExpiry();
-    await this.usersService.update(user.id, {
-      refreshToken: hashedRefreshToken,
-      refreshTokenExpiresAt,
-    });
+    await this.usersService.update(user.id, { refreshToken: hashedRefreshToken, refreshTokenExpiresAt });
 
     return {
       token: accessToken,
@@ -214,10 +208,7 @@ export class AuthService {
     const refreshToken = this.generateRefreshToken();
     const hashedRefreshToken = this.hashRefreshToken(refreshToken);
     const refreshTokenExpiresAt = this.getRefreshTokenExpiry();
-    await this.usersService.update(user.id, {
-      refreshToken: hashedRefreshToken,
-      refreshTokenExpiresAt,
-    });
+    await this.usersService.update(user.id, { refreshToken: hashedRefreshToken, refreshTokenExpiresAt });
 
     return {
       token: accessToken,
@@ -250,10 +241,7 @@ export class AuthService {
     const refreshToken = this.generateRefreshToken();
     const hashedRefreshToken = this.hashRefreshToken(refreshToken);
     const refreshTokenExpiresAt = this.getRefreshTokenExpiry();
-    await this.usersService.update(user.id, {
-      refreshToken: hashedRefreshToken,
-      refreshTokenExpiresAt,
-    });
+    await this.usersService.update(user.id, { refreshToken: hashedRefreshToken, refreshTokenExpiresAt });
 
     return { token: accessToken, refreshToken, user };
   }
@@ -279,10 +267,7 @@ export class AuthService {
       const refreshToken = this.generateRefreshToken();
       const hashedRefreshToken = this.hashRefreshToken(refreshToken);
       const refreshTokenExpiresAt = this.getRefreshTokenExpiry();
-      await this.usersService.update(user.id, {
-        refreshToken: hashedRefreshToken,
-        refreshTokenExpiresAt,
-      });
+      await this.usersService.update(user.id, { refreshToken: hashedRefreshToken, refreshTokenExpiresAt });
 
       return {
         token: accessToken,
@@ -505,13 +490,8 @@ export class AuthService {
     // Verificar que el refresh token no haya expirado
     if (user.refreshTokenExpiresAt && new Date() > user.refreshTokenExpiresAt) {
       // Token expirado - limpiar refresh token del usuario
-      await this.usersService.update(user.id, {
-        refreshToken: null,
-        refreshTokenExpiresAt: null,
-      });
-      throw new UnauthorizedException(
-        'Sesión expirada. Por favor, inicia sesión nuevamente.',
-      );
+      await this.usersService.update(user.id, { refreshToken: null, refreshTokenExpiresAt: null });
+      throw new UnauthorizedException('Sesión expirada. Por favor, inicia sesión nuevamente.');
     }
 
     // Generar nuevo par de tokens
@@ -545,10 +525,7 @@ export class AuthService {
       return { message: 'Sesión de invitado cerrada' };
     }
 
-    await this.usersService.update(Number(userId), {
-      refreshToken: null,
-      refreshTokenExpiresAt: null,
-    });
+    await this.usersService.update(Number(userId), { refreshToken: null, refreshTokenExpiresAt: null });
     return { message: 'Sesión cerrada correctamente' };
   }
 }

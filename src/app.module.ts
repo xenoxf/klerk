@@ -13,7 +13,6 @@ import { GlobalChatModule } from './global-chat/global-chat.module';
 import { CreditsModule } from './credits/credits.module';
 import { LikesModule } from './likes/likes.module';
 import { ExamAttemptsModule } from './exam-attempts/exam-attempts.module';
-import { QuickQuizzesModule } from './quick-quizzes/quick-quizzes.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
 
@@ -65,7 +64,6 @@ import { ThrottlerModule } from '@nestjs/throttler';
     CreditsModule,
     LikesModule,
     ExamAttemptsModule,
-    QuickQuizzesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -13,6 +13,11 @@ enum Acceso {
   PRIVATE = 'private',
 }
 
+enum ExamType {
+  QUIZ = 'quiz',
+  ICFES = 'icfes',
+}
+
 export class GenerateExamDto {
   @IsNotEmpty({ message: 'Este campo debe ser obligatorio' })
   @IsString({ message: 'La referencia debe ser un texto' })
@@ -20,7 +25,7 @@ export class GenerateExamDto {
   reference: string;
 
   @Min(1, { message: 'La cantidad debe ser al menos 1' })
-  @Max(15, { message: 'La cantidad no puede exceder 15' })
+  @Max(50, { message: 'La cantidad no puede exceder 50' })
   numberOfQuestions: number;
 
   @MinLength(2, { message: 'La dificultad debe tener al manos 2 letras' })
@@ -29,4 +34,8 @@ export class GenerateExamDto {
   @IsOptional()
   @IsEnum(Acceso, { message: 'El acceso debe ser "public" o "private"' })
   acceso: Acceso;
+
+  @IsOptional()
+  @IsEnum(ExamType, { message: 'El tipo debe ser "quiz" o "icfes"' })
+  type: ExamType;
 }

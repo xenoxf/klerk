@@ -7,15 +7,11 @@ import {
 } from 'typeorm';
 import { ExamOption } from './exam-option.entity';
 import { Exam } from './exam.entity';
-import { ExamContext } from './exam-context.entity';
 
 @Entity('exam_questions')
 export class ExamQuestion {
   @PrimaryGeneratedColumn()
   id: number;
-
-  @Column({ type: 'text', nullable: true })
-  context?: string;
 
   @Column({ type: 'text' })
   question: string;
@@ -23,11 +19,13 @@ export class ExamQuestion {
   @Column({ type: 'text', nullable: true })
   explanation?: string;
 
+  /** For ICFES exams: groups questions that share the same context */
   @Column({ nullable: true })
-  contextGroupId?: number;
+  contextId?: string;
 
-  @ManyToOne(() => ExamContext, { onDelete: 'SET NULL', nullable: true })
-  contextGroup: ExamContext;
+  /** For ICFES exams: the shared context content (markdown) for this question's group */
+  @Column({ type: 'text', nullable: true })
+  contextContent?: string;
 
   @ManyToOne(() => Exam, (exam) => exam.questions, { onDelete: 'CASCADE' })
   exam: Exam;

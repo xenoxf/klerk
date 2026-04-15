@@ -198,14 +198,12 @@ export class GeminiService {
     return parsed;
   }
 
-  // ==================== QUICK QUIZ ====================
-
-  async generateQuickQuiz(
+  async generateIcfesExam(
     topic: string,
     numberOfQuestions: number,
     difficulty: string,
   ) {
-    const prompt = AI_PROMPTS.generateQuickQuiz(numberOfQuestions, difficulty);
+    const prompt = AI_PROMPTS.generateIcfesExam(numberOfQuestions, difficulty);
     const { text: raw } = await this.generateTextWithFallback(
       `${prompt}\n\nTema: ${topic}`,
     );
@@ -217,11 +215,11 @@ export class GeminiService {
       parsed.questions.length === 0
     ) {
       throw new Error(
-        'No se generaron preguntas válidas para el quick quiz. Intenta con otro tema.',
+        'No se generaron preguntas válidas. Intenta con otro tema.',
       );
     }
     if (!parsed.metadata || typeof parsed.metadata !== 'object') {
-      throw new Error('Faltan metadatos en la respuesta del quick quiz.');
+      throw new Error('Faltan metadatos en la respuesta del examen.');
     }
     for (const q of parsed.questions) {
       if (!q.question || !q.options || !Array.isArray(q.options)) {

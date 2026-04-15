@@ -9,7 +9,6 @@ import {
 } from 'typeorm';
 
 import { ExamQuestion } from './examQuestion.entity';
-import { ExamContext } from './exam-context.entity';
 import { User } from '../../users/entities/user.entity';
 
 @Entity('exams')
@@ -41,6 +40,10 @@ export class Exam {
   @Column({ nullable: true })
   difficulty?: string;
 
+  /** Exam type: 'quiz' = quick questions without context, 'icfes' = Saber 11 style with shared contexts */
+  @Column({ default: 'quiz' })
+  type: 'quiz' | 'icfes';
+
   @Column({ nullable: true })
   score?: number;
 
@@ -53,9 +56,6 @@ export class Exam {
 
   @ManyToOne(() => User, (user) => user.exams)
   user: User;
-
-  @OneToMany(() => ExamContext, (ctx) => ctx.exam, { cascade: true })
-  contexts: ExamContext[];
 
   @OneToMany(() => ExamQuestion, (eq) => eq.exam)
   questions: ExamQuestion[];

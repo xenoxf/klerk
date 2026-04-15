@@ -19,12 +19,12 @@ export const CREDIT_CONFIG = {
   MULTIPLIERS: {
     EXAM_PER_QUESTION: 0.5, // +0.5 créditos por pregunta
     EXAM_DIFFICULTY: {
-      very_easy: 0.7,
+      very_easy: 0.8,
       easy: 1.0,
       medium: 1.3,
       hard: 1.7,
       very_hard: 2.2,
-      expert: 2.8,
+      expert: 3.0,
     },
     NOTE_DETAIL: {
       breve: 1.0,

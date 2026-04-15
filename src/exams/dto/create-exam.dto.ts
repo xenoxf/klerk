@@ -8,12 +8,9 @@ import {
 } from 'class-validator';
 
 enum Dificultad {
-  VERY_EASY = 'very_easy',
   EASY = 'easy',
   MEDIUM = 'medium',
   HARD = 'hard',
-  VERY_HARD = 'very_hard',
-  EXPERT = 'expert',
 }
 
 export class CreateExamDto {
@@ -34,10 +31,7 @@ export class CreateExamDto {
   area?: string;
 
   @IsOptional()
-  @IsEnum(Dificultad, {
-    message:
-      'La dificultad debe ser "very_easy", "easy", "medium", "hard", "very_hard" o "expert"',
-  })
+  @IsEnum(Dificultad, { message: 'La dificultad debe ser "easy", "medium" o "hard"' })
   difficulty?: Dificultad;
 
   @IsOptional()

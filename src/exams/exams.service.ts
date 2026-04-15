@@ -9,7 +9,6 @@ import { Repository, In } from 'typeorm';
 import { Exam } from './entities/exam.entity';
 import { ExamQuestion } from './entities/examQuestion.entity';
 import { ExamOption } from './entities/exam-option.entity';
-import { ExamContext } from './entities/exam-context.entity';
 import { GenerateExamDto } from './dto/generate-exam.dto';
 import { GeminiService } from '../gemini/gemini.service';
 import { CreditsService, calculateExamCost } from '../credits/credits.service';
@@ -28,8 +27,6 @@ export class ExamsService {
     @InjectRepository(ExamQuestion)
     private questionRepo: Repository<ExamQuestion>,
     @InjectRepository(ExamOption) private optionRepo: Repository<ExamOption>,
-    @InjectRepository(ExamContext)
-    private contextRepo: Repository<ExamContext>,
     private readonly geminiService: GeminiService,
     private readonly creditsService: CreditsService,
     private readonly likesService: LikesService,
@@ -38,6 +35,8 @@ export class ExamsService {
   // ==================== GENERATE EXAM FROM TOPIC ====================
 
   async generateExam(input: GenerateExamDto, userId: number) {
+    const examType = input.type || 'quiz';
+
     const dynamicCost = calculateExamCost(
       input.numberOfQuestions,
       input.difficulty,
@@ -50,11 +49,20 @@ export class ExamsService {
       dynamicCost,
     );
 
-    const response = await this.geminiService.generateExam(
-      input.reference,
-      input.numberOfQuestions,
-      input.difficulty,
-    );
+    let response;
+    if (examType === 'icfes') {
+      response = await this.geminiService.generateIcfesExam(
+        input.reference,
+        input.numberOfQuestions,
+        input.difficulty,
+      );
+    } else {
+      response = await this.geminiService.generateExam(
+        input.reference,
+        input.numberOfQuestions,
+        input.difficulty,
+      );
+    }
 
     const { questions, metadata } = response;
     const { title, description, tema, area } = metadata;
@@ -65,6 +73,7 @@ export class ExamsService {
       title,
       description,
       difficulty: input.difficulty,
+      type: examType,
       userId,
       totalQuestions: input.numberOfQuestions,
       acceso: normalizeAccess(input.acceso),
@@ -73,66 +82,39 @@ export class ExamsService {
 
     const savedExam = await this.examRepo.save(exam);
 
-    // Group questions by context to create ExamContext entities
-    const contextMap = new Map<string, ExamContext>();
-    const questionsWithNoContext: typeof questions = [];
+    // Track context for ICFES exams
+    const contextMap = new Map<string, string>();
 
     for (const q of questions) {
-      const contextText = (q.context || '').trim();
-
-      if (contextText) {
-        // Check if we already have this context
-        let ctx = contextMap.get(contextText);
-        if (!ctx) {
-          ctx = this.contextRepo.create({
-            text: contextText,
-            exam: savedExam,
-          });
-          ctx = await this.contextRepo.save(ctx);
-          contextMap.set(contextText, ctx);
-        }
-      } else {
-        questionsWithNoContext.push(q);
-      }
-    }
-
-    // Now create questions with their context groups
-    for (const q of questions) {
-      const contextText = (q.context || '').trim();
-      const contextGroup = contextText ? contextMap.get(contextText) : null;
-
       const question = this.questionRepo.create({
-        context: contextText || null,
         question: q.question,
         explanation: q.explanation || '',
-        contextGroup: contextGroup || null,
+        contextId: q.contextId || null,
+        contextContent: null, // Will be set below for first question in each context
         exam: savedExam,
       });
 
       const savedQuestion = await this.questionRepo.save(question);
 
+      // For ICFES: store contextContent only on first question of each context group
+      if (examType === 'icfes' && q.contextId && q.contextContent) {
+        if (!contextMap.has(q.contextId)) {
+          contextMap.set(q.contextId, q.contextContent);
+          await this.questionRepo.update(savedQuestion.id, {
+            contextContent: q.contextContent,
+          });
+        }
+      }
+
       for (const opt of q.options) {
         const option = this.optionRepo.create({
           text: opt.text,
           isCorrect: opt.isCorrect,
-          feedback: opt.feedback || null,
           question: savedQuestion,
         });
         await this.optionRepo.save(option);
       }
     }
-
-    // Fetch the full exam with questions and options to return
-    const fullExam = await this.examRepo.findOne({
-      where: { id: savedExam.id },
-      relations: ['questions', 'questions.options', 'user'],
-    });
-
-    if (!fullExam) {
-      throw new Error('Exam not found after creation');
-    }
-
-    const examData = await this.examRefactor(fullExam, userId, true);
 
     return {
       message: 'Examen generado exitosamente',
@@ -140,7 +122,6 @@ export class ExamsService {
       totalQuestions: savedExam.totalQuestions,
       creditsRemaining: creditStatus.remaining,
       creditsTotal: creditStatus.total,
-      exam: examData,
     };
   }
 
@@ -301,7 +282,10 @@ export class ExamsService {
       area: exam.area,
       tema: exam.tema,
       difficulty: exam.difficulty,
+      type: exam.type,
       totalQuestions: exam.totalQuestions,
+      code: exam.code,
+      createdAt: exam.createdAt,
       creatorName: exam.user?.name || 'Anónimo',
       likesCount: likesData?.counts?.get(exam.id) || 0,
       userLiked: likesData?.userLiked?.has(exam.id) || false,
@@ -317,10 +301,10 @@ export class ExamsService {
         ...base,
         questions: exam.questions.map((q) => ({
           id: q.id,
-          context: q.context || '',
           question: q.question,
           explanation: q.explanation || '',
-          contextGroupId: q.contextGroupId,
+          contextId: q.contextId,
+          contextContent: q.contextContent,
           options:
             q.options && q.options.length > 0
               ? q.options.map((opt) => ({
