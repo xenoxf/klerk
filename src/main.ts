@@ -21,6 +21,7 @@ async function bootstrap() {
       'https://learnyos.vercel.app',
       'https://klerk.onrender.com',
       'https://learnyos-love.vercel.app',
+      'http://localhost:2300',
     ],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
@@ -143,6 +144,7 @@ async function bootstrap() {
           connectSrc: [
             "'self'",
             'https://klerk.onrender.com',
+            'http://localhost:2300',
             'http://localhost:4000',
           ],
           frameSrc: ["'none'"],
@@ -277,7 +279,7 @@ async function bootstrap() {
   // ============================================
   // INICIALIZACIÓN DEL SERVIDOR
   // ============================================
-  const port = process.env.PORT ?? 3500;
+  const port = process.env.PORT ?? 2300;
 
   await app.listen(port, '0.0.0.0');
   const maskedApiKey = process.env.API_KEY
