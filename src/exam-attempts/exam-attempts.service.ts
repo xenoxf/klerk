@@ -16,6 +16,7 @@ export class ExamAttemptsService {
     correctAnswers: number,
     totalQuestions: number,
     examTitle: string,
+    userAnswers?: any,
   ): Promise<ExamAttempt> {
     const attempt = this.attemptsRepo.create({
       userId,
@@ -23,6 +24,7 @@ export class ExamAttemptsService {
       correctAnswers,
       totalQuestions,
       examTitle,
+      userAnswers,
     });
     return this.attemptsRepo.save(attempt);
   }

@@ -28,6 +28,9 @@ export class ExamAttempt {
   @Column()
   examTitle: string;
 
+  @Column({ type: 'jsonb', nullable: true })
+  userAnswers: any; // Store array of {questionId: number, selectedOptionId: number, isCorrect: boolean}
+
   @CreateDateColumn()
   attemptedAt: Date;
 

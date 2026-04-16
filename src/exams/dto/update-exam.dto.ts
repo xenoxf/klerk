@@ -39,4 +39,7 @@ export class UpdateExamDto {
   @IsInt({ message: 'El puntaje debe ser un número entero' })
   @Min(0, { message: 'El puntaje debe ser mayor o igual a 0' })
   score?: number;
+
+  @IsOptional()
+  userAnswers?: any;
 }

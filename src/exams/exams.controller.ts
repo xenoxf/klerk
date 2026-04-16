@@ -116,6 +116,7 @@ export class ExamsController {
           correctAnswers,
           (exam as any).totalQuestions,
           (exam as any).title || 'Unknown Exam',
+          query.userAnswers,
         );
       }
     }
