@@ -2,6 +2,9 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ExamAttempt } from './entities/exam-attempt.entity';
+import { StatsAttemptsTypes } from './types/exam-attempts.type';
+import { ExamAttemptFormatter } from './formatters/exam.formatter';
+import { ExamDeckFormatter } from './formatters/deck.formatter';
 
 @Injectable()
 export class ExamAttemptsService {
@@ -29,33 +32,30 @@ export class ExamAttemptsService {
     return this.attemptsRepo.save(attempt);
   }
 
-  async getUserAttempts(
-    userId: number,
-    limit: number = 50,
-  ): Promise<any[]> {
-    const attempts = await this.attemptsRepo.find({
+  async getUserAttempts(userId: number, limit: number = 50): Promise<any[]> {
+    const attempts: ExamAttempt[] = await this.attemptsRepo.find({
       where: { userId },
       relations: ['exam', 'exam.user'],
       order: { attemptedAt: 'DESC' },
       take: limit,
     });
 
-    return attempts.map((att) => ({
-      ...att,
-      examCode: att.exam?.code,
-      examArea: att.exam?.area,
-      examTema: att.exam?.tema,
-      examDifficulty: att.exam?.difficulty,
-      examCreatorName: att.exam?.user?.name || 'Anónimo',
-    }));
+    return ExamAttemptFormatter.formatAttempts(attempts);
   }
 
-  async getUserStats(userId: number): Promise<{
-    totalAttempts: number;
-    avgCorrect: number;
-    bestScore: number;
-    totalQuestions: number;
-  }> {
+  async deckFormater(examAttempt: ExamAttempt | ExamAttempt[]) {
+    if (Array.isArray(examAttempt)) {
+      return ExamAttemptFormatter.formatAttempts(examAttempt);
+    }
+    return ExamAttemptFormatter.formatAttempt(examAttempt);
+  }
+
+  async getUserAttemptsDeck(userId: number) {
+    const attempts = await this.getUserAttempts(userId);
+    return attempts;
+  }
+
+  async getUserStats(userId: number): Promise<StatsAttemptsTypes> {
     const attempts = await this.getUserAttempts(userId, 1000);
     if (attempts.length === 0) {
       return {
