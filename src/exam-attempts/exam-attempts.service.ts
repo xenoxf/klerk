@@ -32,12 +32,22 @@ export class ExamAttemptsService {
   async getUserAttempts(
     userId: number,
     limit: number = 50,
-  ): Promise<ExamAttempt[]> {
-    return this.attemptsRepo.find({
+  ): Promise<any[]> {
+    const attempts = await this.attemptsRepo.find({
       where: { userId },
+      relations: ['exam', 'exam.user'],
       order: { attemptedAt: 'DESC' },
       take: limit,
     });
+
+    return attempts.map((att) => ({
+      ...att,
+      examCode: att.exam?.code,
+      examArea: att.exam?.area,
+      examTema: att.exam?.tema,
+      examDifficulty: att.exam?.difficulty,
+      examCreatorName: att.exam?.user?.name || 'Anónimo',
+    }));
   }
 
   async getUserStats(userId: number): Promise<{
