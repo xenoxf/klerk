@@ -5,34 +5,34 @@ import { DailyCredits } from './entities/daily-credits.entity';
 
 // Configuración de créditos
 export const CREDIT_CONFIG = {
-  DAILY_CREDITS: 30,
+  DAILY_CREDITS: 50, // Más generoso: de 30 a 50
 
-  // Costos base por acción
+  // Costos base por acción (Reducidos)
   BASE_COSTS: {
-    EXAM_GENERATION: 3,
-    NOTE_GENERATION: 2,
-    FLASHCARD_GENERATION: 2,
+    EXAM_GENERATION: 2, // De 3 a 2
+    NOTE_GENERATION: 1, // De 2 a 1
+    FLASHCARD_GENERATION: 1, // De 2 a 1 (Flashcards son muy ligeras)
     CHAT_MESSAGE: 1,
   },
 
-  // Multiplicadores para cálculo dinámico
+  // Multiplicadores para cálculo dinámico (Suavizados)
   MULTIPLIERS: {
-    EXAM_PER_QUESTION: 0.5, // +0.5 créditos por pregunta
+    EXAM_PER_QUESTION: 0.2, // De 0.5 a 0.2 (Mejor escala para exámenes largos)
     EXAM_DIFFICULTY: {
-      very_easy: 0.8,
-      easy: 1.0,
-      medium: 1.3,
-      hard: 1.7,
-      very_hard: 2.2,
-      expert: 3.0,
+      very_easy: 0.7,
+      easy: 0.9,
+      medium: 1.1,
+      hard: 1.4,
+      very_hard: 1.8,
+      expert: 2.2, // De 3.0 a 2.2
     },
     NOTE_DETAIL: {
-      breve: 1.0,
-      medio: 1.4,
-      detallado: 1.9,
+      breve: 0.8,
+      medio: 1.1,
+      detallado: 1.5,
     },
-    FLASHCARD_PER_CARD: 0.4, // +0.4 créditos por tarjeta
-    TOPIC_LENGTH_THRESHOLD: 100, // Si el topic supera esto, +1 crédito extra
+    FLASHCARD_PER_CARD: 0.1, // De 0.4 a 0.1 (Las flashcards casi no gastan tokens)
+    TOPIC_LENGTH_THRESHOLD: 300, // De 100 a 300 (Más tolerancia para temas largos)
   },
 };
 
