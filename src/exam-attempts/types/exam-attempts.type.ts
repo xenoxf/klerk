@@ -3,5 +3,4 @@ export type StatsAttemptsTypes = {
   avgCorrect: number;
   bestScore: number;
   totalQuestions: number;
-
-}
+};

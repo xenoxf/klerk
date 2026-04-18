@@ -3,6 +3,7 @@ import {
   BadRequestException,
   NotFoundException,
   UnauthorizedException,
+  Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
@@ -34,7 +35,12 @@ export class ExamsService {
 
   // ==================== GENERATE EXAM FROM TOPIC ====================
 
+  private readonly logger = new Logger(ExamsService.name);
+
   async generateExam(input: GenerateExamDto, userId: number) {
+    this.logger.log(
+      `Starting generateExam for user ${userId} with topic: ${input.reference}`,
+    );
     const examType = input.type || 'quiz';
 
     const dynamicCost = calculateExamCost(
@@ -81,6 +87,7 @@ export class ExamsService {
     });
 
     const savedExam = await this.examRepo.save(exam);
+    this.logger.log(`Exam saved with ID: ${savedExam.id} for user: ${userId}`);
 
     // Track context for ICFES exams
     const contextMap = new Map<string, string>();

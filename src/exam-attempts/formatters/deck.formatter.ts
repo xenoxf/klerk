@@ -8,7 +8,11 @@ export class ExamDeckFormatter {
   /**
    * Formatea un exam o array de exams de la misma manera que ExamsService lo hace
    */
-  static formatExam(exam: Exam, userId?: number, includeQuestionsAndOptions: boolean = false): any {
+  static formatExam(
+    exam: Exam,
+    userId?: number,
+    includeQuestionsAndOptions: boolean = false,
+  ): any {
     const base = {
       id: exam.id,
       title: exam.title,
@@ -58,10 +62,10 @@ export class ExamDeckFormatter {
   static formatExams(
     exams: Exam[],
     userId?: number,
-    includeQuestionsAndOptions: boolean = false
+    includeQuestionsAndOptions: boolean = false,
   ): any[] {
     return exams.map((exam) =>
-      this.formatExam(exam, userId, includeQuestionsAndOptions)
+      this.formatExam(exam, userId, includeQuestionsAndOptions),
     );
   }
 }

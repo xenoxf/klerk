@@ -20,14 +20,40 @@ interface RetryableError extends Error {
 @Injectable()
 export class GeminiService {
   private genAI: GoogleGenerativeAI;
-  private logger = new Logger(GeminiService.name);
+  private readonly logger = new Logger(GeminiService.name);
+  private readonly apiKeys: string[];
+  private currentKeyIndex = 0;
 
   constructor() {
-    this.genAI = new GoogleGenerativeAI(String(process.env.GEMINI_API_KEY));
+    this.apiKeys = [
+      process.env.GEMINI_API_KEY,
+      process.env.GEMINI_API_KEY_2,
+    ].filter((key): key is string => !!key && key !== 'undefined');
+
+    if (this.apiKeys.length === 0) {
+      throw new Error('No GEMINI_API_KEY found in environment variables');
+    }
+
+    this.genAI = new GoogleGenerativeAI(this.apiKeys[0]);
+    this.logger.log(
+      `GeminiService initialized with ${this.apiKeys.length} API keys`,
+    );
   }
 
   /**
-   * Get a model instance by name
+   * Rotate to the next available API key
+   */
+  private rotateKey(): boolean {
+    if (this.apiKeys.length <= 1) return false;
+
+    this.currentKeyIndex = (this.currentKeyIndex + 1) % this.apiKeys.length;
+    this.genAI = new GoogleGenerativeAI(this.apiKeys[this.currentKeyIndex]);
+    this.logger.warn(`Rotated to API Key #${this.currentKeyIndex + 1}`);
+    return true;
+  }
+
+  /**
+   * Get a model instance by name using current genAI instance
    */
   private getModel(name: ModelName = MODELS[0]): GenerativeModel {
     return this.genAI.getGenerativeModel({ model: name });
@@ -38,16 +64,22 @@ export class GeminiService {
    */
   private isRetryableError(error: unknown): boolean {
     const err = error as RetryableError;
-    // Rate limit (429), server errors (500-599), or network issues
     const code = err.code ?? err.status ?? 0;
-    if (code === 429 || (code >= 500 && code < 600)) return true;
+
+    // Rate limit (429) - always retryable if we have more keys or models
+    if (code === 429) return true;
+
+    // Server errors (500-599) or network issues
+    if (code >= 500 && code < 600) return true;
+
     // Also retry on generic "no content" errors that might be temporary
     if (err.message?.includes('no generó contenido')) return true;
+
     return false;
   }
 
   /**
-   * Generate text with automatic model fallback on retryable errors
+   * Generate text with automatic model and key fallback
    */
   private async generateTextWithFallback(
     prompt: string,
@@ -56,40 +88,60 @@ export class GeminiService {
     const startModel = modelName ?? MODELS[0];
     const startIndex = MODELS.indexOf(startModel);
 
+    // Track keys tried for each model to avoid infinite loops
     for (let i = startIndex; i < MODELS.length; i++) {
-      const modelName = MODELS[i];
-      const model = this.getModel(modelName);
+      const currentModelName = MODELS[i];
+      let keysTriedForCurrentModel = 0;
 
-      try {
-        const result = await model.generateContent(prompt);
-        const text = result.response.text();
+      while (keysTriedForCurrentModel < this.apiKeys.length) {
+        const model = this.getModel(currentModelName);
+        keysTriedForCurrentModel++;
 
-        if (!text || text.trim().length === 0) {
-          throw new Error('La IA no generó contenido. Intenta de nuevo.');
+        try {
+          this.logger.log(
+            `Attempting generation with model ${currentModelName} (Key #${this.currentKeyIndex + 1})`,
+          );
+          const result = await model.generateContent(prompt);
+          const text = result.response.text();
+
+          if (!text || text.trim().length === 0) {
+            throw new Error('La IA no generó contenido. Intenta de nuevo.');
+          }
+
+          return { text: text.trim(), modelName: currentModelName };
+        } catch (error) {
+          const err = error as RetryableError;
+          const code = err.code ?? err.status ?? 0;
+
+          this.logger.warn(
+            `Model ${currentModelName} (Key #${this.currentKeyIndex + 1}) failed: ${err.message} (code: ${code})`,
+          );
+
+          // If rate limited and we have more keys, rotate and retry SAME model
+          if (code === 429 && keysTriedForCurrentModel < this.apiKeys.length) {
+            this.rotateKey();
+            continue; // Retry while loop with same model but new key
+          }
+
+          // If retryable (not just 429) and we have more models, try next model
+          if (this.isRetryableError(error) && i < MODELS.length - 1) {
+            this.logger.log(`Moving to fallback model: ${MODELS[i + 1]}`);
+            break; // Exit while loop to move to next model in for loop
+          }
+
+          // Non-retryable error or last model/key failed
+          throw error;
         }
-
-        return { text: text.trim(), modelName };
-      } catch (error) {
-        const err = error as RetryableError;
-        this.logger.warn(
-          `Model ${modelName} failed: ${err.message} (code: ${err.code ?? err.status})`,
-        );
-
-        if (this.isRetryableError(error) && i < MODELS.length - 1) {
-          this.logger.log(`Trying fallback model: ${MODELS[i + 1]}`);
-          continue; // Try next model
-        }
-
-        // Non-retryable error or last model failed
-        throw error;
       }
     }
 
-    throw new Error('Todos los proveedores de IA fallaron. Intenta más tarde.');
+    throw new Error(
+      'Todos los proveedores de IA y claves fallaron. Intenta más tarde.',
+    );
   }
 
   /**
-   * Generate text stream with automatic model fallback
+   * Generate text stream with automatic model and key fallback
    */
   private async *generateTextStreamWithFallback(
     prompt: string,
@@ -99,35 +151,53 @@ export class GeminiService {
     const startIndex = MODELS.indexOf(startModel);
 
     for (let i = startIndex; i < MODELS.length; i++) {
-      const modelName = MODELS[i];
-      const model = this.getModel(modelName);
+      const currentModelName = MODELS[i];
+      let keysTriedForCurrentModel = 0;
 
-      try {
-        const result = await model.generateContentStream(prompt);
+      while (keysTriedForCurrentModel < this.apiKeys.length) {
+        const model = this.getModel(currentModelName);
+        keysTriedForCurrentModel++;
 
-        for await (const chunk of result.stream) {
-          const text = chunk.text();
-          if (text) yield text;
+        try {
+          this.logger.log(
+            `Attempting stream with model ${currentModelName} (Key #${this.currentKeyIndex + 1})`,
+          );
+          const result = await model.generateContentStream(prompt);
+
+          for await (const chunk of result.stream) {
+            const text = chunk.text();
+            if (text) yield text;
+          }
+
+          return; // Success, exit generator
+        } catch (error) {
+          const err = error as RetryableError;
+          const code = err.code ?? err.status ?? 0;
+
+          this.logger.warn(
+            `Stream model ${currentModelName} (Key #${this.currentKeyIndex + 1}) failed: ${err.message} (code: ${code})`,
+          );
+
+          if (code === 429 && keysTriedForCurrentModel < this.apiKeys.length) {
+            this.rotateKey();
+            continue;
+          }
+
+          if (this.isRetryableError(error) && i < MODELS.length - 1) {
+            this.logger.log(
+              `Moving to fallback model for stream: ${MODELS[i + 1]}`,
+            );
+            break;
+          }
+
+          throw error;
         }
-
-        return; // Success, exit generator
-      } catch (error) {
-        const err = error as RetryableError;
-        this.logger.warn(
-          `Stream model ${modelName} failed: ${err.message} (code: ${err.code ?? err.status})`,
-        );
-
-        if (this.isRetryableError(error) && i < MODELS.length - 1) {
-          this.logger.log(`Trying fallback model for stream: ${MODELS[i + 1]}`);
-          continue; // Try next model
-        }
-
-        // Non-retryable error or last model failed
-        throw error;
       }
     }
 
-    throw new Error('Todos los proveedores de IA fallaron. Intenta más tarde.');
+    throw new Error(
+      'Todos los proveedores de IA y claves fallaron. Intenta más tarde.',
+    );
   }
 
   // ==================== HELPER ====================
@@ -338,28 +408,49 @@ export class GeminiService {
   // ==================== CHAT TITLE ====================
 
   async generateChatTitleFromMessage(firstMessage: string): Promise<string> {
-    const model = this.getModel(MODELS[0]);
-    const raw = await model.generateContent({
-      contents: [
-        {
-          role: 'user',
-          parts: [{ text: AI_PROMPTS.CHAT_TITLE_SYSTEM_PROMPT }],
-        },
-        {
-          role: 'model',
-          parts: [{ text: 'Entendido. Solo devolveré el título.' }],
-        },
-        {
-          role: 'user',
-          parts: [{ text: firstMessage.substring(0, 100).trim() }],
-        },
-      ],
-      generationConfig: { temperature: 0.3, maxOutputTokens: 30 },
-    });
-    return raw.response
-      .text()
-      .trim()
-      .replace(/^["']|["']$/g, '')
-      .replace(/\.$/g, '');
+    let keysTried = 0;
+
+    while (keysTried < this.apiKeys.length) {
+      const model = this.getModel(MODELS[0]);
+      keysTried++;
+
+      try {
+        const raw = await model.generateContent({
+          contents: [
+            {
+              role: 'user',
+              parts: [{ text: AI_PROMPTS.CHAT_TITLE_SYSTEM_PROMPT }],
+            },
+            {
+              role: 'model',
+              parts: [{ text: 'Entendido. Solo devolveré el título.' }],
+            },
+            {
+              role: 'user',
+              parts: [{ text: firstMessage.substring(0, 100).trim() }],
+            },
+          ],
+          generationConfig: { temperature: 0.3, maxOutputTokens: 30 },
+        });
+
+        return raw.response
+          .text()
+          .trim()
+          .replace(/^["']|["']$/g, '')
+          .replace(/\.$/g, '');
+      } catch (error) {
+        const err = error as RetryableError;
+        const code = err.code ?? err.status ?? 0;
+
+        if (code === 429 && keysTried < this.apiKeys.length) {
+          this.rotateKey();
+          continue;
+        }
+
+        throw error;
+      }
+    }
+
+    throw new Error('Falló la generación del título del chat.');
   }
 }

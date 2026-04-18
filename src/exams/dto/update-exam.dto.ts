@@ -28,7 +28,9 @@ export class UpdateExamDto {
   area?: string;
 
   @IsOptional()
-  @IsEnum(Dificultad, { message: 'La dificultad debe ser "easy", "medium" o "hard"' })
+  @IsEnum(Dificultad, {
+    message: 'La dificultad debe ser "easy", "medium" o "hard"',
+  })
   difficulty?: Dificultad;
 
   @IsOptional()

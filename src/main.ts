@@ -50,7 +50,11 @@ async function bootstrap() {
       legacyHeaders: false,
       skip: (req) => {
         // Skip rate limiting para health checks y hello
-        return req.path === '/health' || req.path === '/ping' || req.path === '/hello';
+        return (
+          req.path === '/health' ||
+          req.path === '/ping' ||
+          req.path === '/hello'
+        );
       },
     }),
   );

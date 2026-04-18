@@ -15,9 +15,10 @@ export class ExamAttemptFormatter {
       totalQuestions: attempt.totalQuestions,
       examTitle: attempt.examTitle,
       attemptedAt: attempt.attemptedAt,
-      percentage: attempt.totalQuestions > 0 
-        ? Math.round((attempt.correctAnswers / attempt.totalQuestions) * 100)
-        : 0,
+      percentage:
+        attempt.totalQuestions > 0
+          ? Math.round((attempt.correctAnswers / attempt.totalQuestions) * 100)
+          : 0,
       userAnswers: attempt.userAnswers || null,
       // Información del exam
       examCode: attempt.exam?.code || 'N/A',

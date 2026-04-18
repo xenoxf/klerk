@@ -94,10 +94,7 @@ export class ExamsController {
 
   @Get('score')
   @UseGuards(JwtGuard, RequireAuthGuard)
-  async updateExamScore(
-    @Query() query: UpdateExamDto,
-    @Req() req: any,
-  ) {
+  async updateExamScore(@Query() query: UpdateExamDto, @Req() req: any) {
     const userId = getNumericUserId(req);
     const decks = await this.examsService.updateExamScore(query, userId);
 

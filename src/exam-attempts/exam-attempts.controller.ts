@@ -8,7 +8,7 @@ import { RecordAttemptDto } from './dto/record-attempt.dto';
 @UseGuards(JwtGuard, RequireAuthGuard)
 @Controller('exam-attempts')
 export class ExamAttemptsController {
-  constructor(private readonly service: ExamAttemptsService) { }
+  constructor(private readonly service: ExamAttemptsService) {}
 
   @Post()
   async recordAttempt(

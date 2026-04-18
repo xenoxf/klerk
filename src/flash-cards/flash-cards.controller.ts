@@ -98,7 +98,11 @@ export class FlashCardsController {
 
   @Patch(':id')
   @UseGuards(JwtGuard, RequireAuthGuard)
-  update(@Param('id') id: string, @Body() body: UpdateFlashCardDto, @Req() req: any) {
+  update(
+    @Param('id') id: string,
+    @Body() body: UpdateFlashCardDto,
+    @Req() req: any,
+  ) {
     return this.flashCardsService.update(+id, body, getNumericUserId(req));
   }
 

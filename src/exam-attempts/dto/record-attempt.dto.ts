@@ -1,4 +1,4 @@
-import { IsInt, IsString } from "class-validator";
+import { IsInt, IsString } from 'class-validator';
 
 export class RecordAttemptDto {
   @IsInt()
@@ -12,5 +12,4 @@ export class RecordAttemptDto {
 
   @IsString()
   examTitle: string;
-
 }
