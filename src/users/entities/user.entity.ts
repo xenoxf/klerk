@@ -10,7 +10,6 @@ export class User {
   @PrimaryGeneratedColumn()
   id: number;
 
-  // 👉 CAMBIO CLAVE AQUÍ (para evitar tu error)
   @Column({ nullable: true, unique: true })
   email: string | null;
 
@@ -23,13 +22,6 @@ export class User {
   @Column({ type: 'text', nullable: true })
   avatar?: string;
 
-  @Column({ type: 'text', nullable: true })
-  refreshToken?: string;
-
-  @Column({ type: 'timestamptz', nullable: true })
-  refreshTokenExpiresAt?: Date;
-
-  // 👉 provider por defecto
   @Column({ default: 'local' })
   provider: string;
 

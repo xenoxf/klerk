@@ -179,7 +179,7 @@ export class AuthController {
       if (!body?.refreshToken?.trim()) {
         throw new UnauthorizedException('Refresh token requerido');
       }
-      return await this.authService.refreshToken(body.refreshToken);
+      return { message: 'Sesión cerrada correctamente' };
     } catch (error) {
       this.logger.error('Refresh token error:', error);
       throw new UnauthorizedException(
