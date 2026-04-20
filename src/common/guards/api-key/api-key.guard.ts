@@ -1,26 +1,14 @@
-import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
+import {
+  CanActivate,
+  ExecutionContext,
+  Injectable,
+  ForbiddenException,
+} from '@nestjs/common';
 
-// Endpoints públicos que no requieren API key
-// NOTA: endpoints con su propio guard (JWT, RequireAuth) se agregan aquí
-// porque ya tienen su propia protección. El API key es una capa EXTRA.
 const PUBLIC_PATHS = new Set([
-  // Auth endpoints - already protected by their own logic
-  '/auth/login',
-  '/auth/register',
-  '/auth/google',
-  '/auth/google/callback',
-  '/auth/google/url',
-  '/auth/guest',
-  '/auth/verify_token',
-  '/auth/me',
-  '/auth/refresh',
-  // All auth sub-paths
-  '/auth/logout',
-  // Public endpoints
   '/hello',
   '/health',
   '/ping',
-  '/credits/costs',
 ]);
 
 @Injectable()
@@ -28,36 +16,29 @@ export class ApiKeyGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest();
     const path = request.path;
-    const cleanPath = path.split('?')[0];
 
-    // Skip public paths
-    if (PUBLIC_PATHS.has(cleanPath)) {
+    // ✅ Permitir rutas públicas
+    if (PUBLIC_PATHS.has(path)) {
       return true;
     }
 
-    // Skip static assets
-    const accept = request.headers['accept'] || '';
-    const isStaticAsset =
-      /\.(png|jpe?g|gif|svg|ico|css|js|woff2?|ttf|eot|webp|map)(\?.*)?$/.test(
-        cleanPath,
-      );
-    const isBrowserRequest = accept.includes('text/html') || isStaticAsset;
-
-    if (isBrowserRequest && !cleanPath.startsWith('/api/')) {
+    // ✅ Si ya hay usuario autenticado (JWT), NO joder
+    if (request.user) {
       return true;
     }
 
-    // Check API key
-    const apiKey = request.headers['x-api-key'];
-    if (apiKey === process.env.API_KEY) {
-      return true;
-    }
+    const apiKey: string = request.headers['x-api-key'];
 
-    // If no API key configured on server, allow all (dev mode fallback)
+    // ✅ Si no hay API key configurada → modo dev
     if (!process.env.API_KEY) {
       return true;
     }
 
-    return false;
+    // ❌ Si la API key es inválida → error explícito
+    if (apiKey != String(process.env.API_KEY)) {
+      throw new ForbiddenException('API Key inválida o faltante. escribiste');
+    }
+
+    return true;
   }
 }

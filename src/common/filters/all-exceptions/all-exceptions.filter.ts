@@ -2,11 +2,8 @@ import {
   ExceptionFilter,
   Catch,
   ArgumentsHost,
+  HttpException,
   Logger,
-  BadRequestException,
-  NotFoundException,
-  UnauthorizedException,
-  ForbiddenException,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 
@@ -22,67 +19,49 @@ export class AllExceptionsFilter implements ExceptionFilter {
     let status = 500;
     let message = 'Error interno del servidor';
     let error = 'Internal Server Error';
-    let details = null;
     let errorCode = 'INTERNAL_ERROR';
-    let aiResponse = null;
+    let details: any = null;
+    let aiResponse: any = null;
 
-    // Manejar excepciones HTTP de NestJS
-    if (exception instanceof BadRequestException) {
-      status = 400;
-      error = 'Bad Request';
-      const response = exception.getResponse() as any;
+    if (exception instanceof HttpException) {
+      status = exception.getStatus();
 
-      if (typeof response === 'object' && response.message) {
-        message = response.message;
-        details = response.details || null;
-        errorCode = response.errorCode || 'BAD_REQUEST';
-        aiResponse = response.aiResponse || null;
-      } else if (typeof response === 'string') {
+      const response = exception.getResponse();
+
+      if (typeof response === 'string') {
         message = response;
-      } else if (Array.isArray(response?.message)) {
-        message = response.message[0];
+      } else if (typeof response === 'object' && response !== null) {
+        const r = response as any;
+
+        message = r.message || message;
+        errorCode = r.errorCode || errorCode;
+        details = r.details || null;
+        aiResponse = r.aiResponse || null;
+        error = r.error || error;
       }
-    } else if (exception instanceof NotFoundException) {
-      status = 404;
-      error = 'Not Found';
-      const response = exception.getResponse() as any;
-      message = typeof response === 'object' ? response.message : response;
-    } else if (exception instanceof UnauthorizedException) {
-      status = 401;
-      error = 'Unauthorized';
-      const response = exception.getResponse() as any;
-      message = typeof response === 'object' ? response.message : response;
-    } else if (exception instanceof ForbiddenException) {
-      status = 403;
-      error = 'Forbidden';
-      const response = exception.getResponse() as any;
-      message = typeof response === 'object' ? response.message : response;
     } else if (exception instanceof Error) {
       message = exception.message;
       error = exception.name;
     }
 
-    const errorResponse: any = {
+    const errorResponse: Record<string, any> = {
       status,
-      path: req.path,
+      path: req.url,
+      method: req.method,
       timestamp: new Date().toISOString(),
       message,
       error,
+      errorCode,
     };
 
-    if (details) {
-      errorResponse.details = details;
-    }
+    if (details) errorResponse.details = details;
+    if (aiResponse) errorResponse.aiResponse = aiResponse;
 
-    if (errorCode) {
-      errorResponse.errorCode = errorCode;
-    }
+    this.logger.error(
+      `${status} ${req.method} ${req.url} - ${message}`,
+      exception instanceof Error ? exception.stack : undefined,
+    );
 
-    if (aiResponse) {
-      errorResponse.aiResponse = aiResponse;
-    }
-
-    this.logger.error(`${status} - ${req.method} ${req.path} - ${message}`);
     res.status(status).json(errorResponse);
   }
 }

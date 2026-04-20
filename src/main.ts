@@ -286,9 +286,7 @@ async function bootstrap() {
   const port = process.env.PORT ?? 2300;
 
   await app.listen(port, '0.0.0.0');
-  const maskedApiKey = process.env.API_KEY
-    ? process.env.API_KEY.substring(0, 4) + '••••'
-    : 'not-set';
+  const maskedApiKey = process.env.API_KEY;
   console.log(`
   🚀  ==========================================
   ✅  SERVIDOR INICIADO CORRECTAMENTE
