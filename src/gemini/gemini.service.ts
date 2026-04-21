@@ -225,16 +225,36 @@ export class GeminiService {
   }
 
   private parseJson<T>(raw: string): T {
-    const cleaned = this.cleanJson(raw);
     try {
+      const cleaned = this.extractJson(raw);
       return JSON.parse(cleaned);
-    } catch {
+    } catch (err) {
       throw new Error(
-        `Formato JSON inválido. Respuesta: ${raw}`,
+        `Formato JSON inválido.\n\nRaw:\n${raw}\n\nError:\n${(err as Error).message}`
       );
     }
   }
 
+  private extractJson(raw: string): string {
+    if (!raw) throw new Error("Respuesta vacía");
+
+    let text = raw.trim();
+
+    text = text.replace(/```json\s*/gi, "").replace(/```/g, "");
+
+    const firstBrace = text.indexOf("{");
+    const lastBrace = text.lastIndexOf("}");
+
+    if (firstBrace === -1 || lastBrace === -1) {
+      throw new Error("No se encontró un objeto JSON válido");
+    }
+
+    text = text.slice(firstBrace, lastBrace + 1);
+
+    text = text.replace(/[\u0000-\u001F\u007F]/g, "");
+
+    return text;
+  }
   // ==================== EXAM ====================
 
   async generateExam(
