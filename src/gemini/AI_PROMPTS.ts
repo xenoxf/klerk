@@ -56,7 +56,7 @@ export const AI_PROMPTS = {
        * Para la correcta: confirmar por qué es la respuesta adecuada
        * Para las incorrectas: explicar el error común que lleva a elegir esa opción
 
-  RETORNA SOLO JSON VÁLIDO (escapando saltos de línea y comillas dobles si es necesario):
+  RETORNA SOLO JSON VÁLIDO :
 
   {
     "questions": [
@@ -88,6 +88,18 @@ export const AI_PROMPTS = {
       "tema": "Tema específico evaluado"
     }
   }
+
+
+AUTO-VERIFICACIÓN:
+Antes de responder, verifica:
+- ¿Empieza con { y termina con }?
+- ¿No hay comillas de codigo fuera del JSON?
+- ¿Es JSON válido?
+Si algo falla, corrígelo antes de responder.
+
+RESPUESTA FINAL:
+Devuelve SOLO el JSON.
+
   `,
 
   generateIcfesExam: (numberOfQuestions: number, difficulty: string) => `
@@ -207,6 +219,16 @@ export const AI_PROMPTS = {
   - Preguntas sin contexto: contextId = null, contextContent = null
   - Cada grupo de contexto debe tener entre 2 y 4 preguntas.
   - La IA decide cuántos contextos poner y si poner o no contextos.
+
+AUTO-VERIFICACIÓN:
+Antes de responder, verifica:
+- ¿Empieza con { y termina con }?
+- ¿No hay comillas de codigo fuera del JSON?
+- ¿Es JSON válido?
+Si algo falla, corrígelo antes de responder.
+
+RESPUESTA FINAL:
+Devuelve SOLO el JSON.
   `,
   generateNote: (numberOfNotes: number, levelOfDetail: string) => `
   Eres un asistente experto en crear material de estudio técnico, profundo y autocontenido.
@@ -370,9 +392,22 @@ IMPORTANTE:
 - Usa lenguaje educativo apropiado para estudiantes
 - USA markdown estratégicamente para mejorar la legibilidad
 - NO incluyas texto fuera del JSON
+ARESTRICCIONES:
+- NO uses saltos de línea reales dentro de strings
+- Usa \\n si necesitas nuevas líneas
+- Escapa correctamente caracteres especiales
 
-¡DEVUELVE SOLO EL JSON!
-`,
+AUTO-VERIFICACIÓN:
+Antes de responder, verifica:
+- ¿Empieza con { y termina con }?
+- ¿No hay comillas de codigo fuera del JSON?
+- ¿Es JSON válido?
+- ¿Tiene exactamente ${numberOfCards} cards?
+
+Si algo falla, corrígelo antes de responder.
+
+RESPUESTA FINAL:
+Devuelve SOLO el JSON.`,
   // ==================== EDUCATIONAL CHAT ====================
   SYSTEM_PROMPT: (
     chatContext: {
@@ -392,11 +427,10 @@ IMPORTANTE:
 
     return `
 Eres Junior, un profesor IA experto y apasionado por la enseñanza.
-${
-  chatContext?.previousTopics && chatContext.previousTopics.length > 0
-    ? `\n\n## CONTEXTO DEL CHAT ACTUAL\n- **Tema principal**: ${chatContext.title || 'Conversación educativa'}\n- **Temas tratados**: ${chatContext.previousTopics.join(', ')}\n- **Mensajes previos**: ${chatContext.messageCount || 0}\n- Usa este contexto para mantener coherencia.`
-    : ''
-}
+${chatContext?.previousTopics && chatContext.previousTopics.length > 0
+        ? `\n\n## CONTEXTO DEL CHAT ACTUAL\n- **Tema principal**: ${chatContext.title || 'Conversación educativa'}\n- **Temas tratados**: ${chatContext.previousTopics.join(', ')}\n- **Mensajes previos**: ${chatContext.messageCount || 0}\n- Usa este contexto para mantener coherencia.`
+        : ''
+      }
 
 ## TU ROL PRINCIPAL: ENSEÑAR
 - Tu objetivo es **ENSEÑAR** al usuario, puedes conversar si el usuario asi quiere.
