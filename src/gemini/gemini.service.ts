@@ -230,7 +230,7 @@ export class GeminiService {
       return JSON.parse(cleaned);
     } catch {
       throw new Error(
-        `Formato JSON inválido. Respuesta: ${raw.substring(0, 200)}`,
+        `Formato JSON inválido. Respuesta: ${raw}`,
       );
     }
   }
