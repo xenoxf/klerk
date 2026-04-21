@@ -208,54 +208,78 @@ export class GeminiService {
   }
 
   private cleanJson(raw: string): string {
-    let cleaned = raw
-      .replace(/```json\n?/g, '')
-      .replace(/```\n?/g, '')
-      .trim();
-    if (!cleaned.startsWith('{') && !cleaned.startsWith('[')) {
-      const start = Math.min(
-        cleaned.indexOf('{') === -1 ? Infinity : cleaned.indexOf('{'),
-        cleaned.indexOf('[') === -1 ? Infinity : cleaned.indexOf('['),
-      );
-      if (start !== Infinity) cleaned = cleaned.substring(start);
-    }
-    const end = Math.max(cleaned.lastIndexOf('}'), cleaned.lastIndexOf(']'));
-    if (end !== -1) cleaned = cleaned.substring(0, end + 1);
-    return cleaned;
-  }
-
-  private parseJson<T>(raw: string): T {
-    try {
-      const cleaned = this.extractJson(raw);
-      return JSON.parse(cleaned);
-    } catch (err) {
-      throw new Error(
-        `Formato JSON inválido.\n\nRaw:\n${raw}\n\nError:\n${(err as Error).message}`
-      );
-    }
-  }
-
-  private extractJson(raw: string): string {
     if (!raw) throw new Error("Respuesta vacía");
 
     let text = raw.trim();
 
-    text = text.replace(/```json\s*/gi, "").replace(/```/g, "");
+    // 1. Quitar markdown fences
+    text = text
+      .replace(/```json\s*/gi, "")
+      .replace(/```/g, "");
 
-    const firstBrace = text.indexOf("{");
-    const lastBrace = text.lastIndexOf("}");
+    // 2. Extraer bloque JSON más probable
+    const firstBrace = text.search(/[\{\[]/);
+    const lastBrace = Math.max(text.lastIndexOf("}"), text.lastIndexOf("]"));
 
     if (firstBrace === -1 || lastBrace === -1) {
-      throw new Error("No se encontró un objeto JSON válido");
+      throw new Error("No se encontró JSON en la respuesta");
     }
 
     text = text.slice(firstBrace, lastBrace + 1);
 
+    // 3. Eliminar caracteres de control invisibles
     text = text.replace(/[\u0000-\u001F\u007F]/g, "");
+
+    // 4. Eliminar escapes inválidos (clave)
+    text = text.replace(/\\(?!["\\/bfnrtu])/g, "");
+
+    // 5. Eliminar comas colgantes
+    text = text.replace(/,\s*([}\]])/g, "$1");
+
+    // 6. Normalizar saltos de línea dentro de strings
+    text = text.replace(/\r/g, "");
 
     return text;
   }
-  // ==================== EXAM ====================
+  private parseJson<T>(raw: string): T {
+    const cleaned = this.cleanJson(raw);
+
+    try {
+      return JSON.parse(cleaned);
+    } catch (err1) {
+      try {
+        // 🔥 intento agresivo: escapar saltos dentro de strings
+        const repaired = this.repairJson(cleaned);
+        return JSON.parse(repaired);
+      } catch (err2) {
+        throw new Error(
+          `JSON inválido incluso tras reparación.\n\n` +
+          `Error original: ${(err1 as Error).message}\n` +
+          `Error reparando: ${(err2 as Error).message}\n\n` +
+          `Preview:\n${cleaned.slice(0, 1000)}`
+        );
+      }
+    }
+  } private repairJson(text: string): string {
+    let fixed = text;
+
+    // 1. Escapar saltos de línea dentro de strings
+    fixed = fixed.replace(
+      /"([^"\\]*(\\.[^"\\]*)*)"/gs,
+      (match) => match.replace(/\n/g, "\\n")
+    );
+
+    // 2. Asegurar comillas válidas
+    fixed = fixed.replace(/([{,]\s*)([a-zA-Z0-9_]+)(\s*:)/g, '$1"$2"$3');
+
+    // 3. Convertir comillas simples a dobles (caso raro)
+    fixed = fixed.replace(/'/g, '"');
+
+    // 4. Eliminar trailing commas otra vez (por seguridad)
+    fixed = fixed.replace(/,\s*([}\]])/g, "$1");
+
+    return fixed;
+  }  // ==================== EXAM ====================
 
   async generateExam(
     topic: string,
