@@ -279,7 +279,12 @@ export class GeminiService {
     fixed = fixed.replace(/,\s*([}\]])/g, "$1");
 
     return fixed;
-  }  // ==================== EXAM ====================
+  }  private encodeBase64(text: string): string {
+    if (!text) return "";
+    return Buffer.from(text).toString('base64');
+  }
+
+  // ==================== EXAM ====================
 
   async generateExam(
     topic: string,
@@ -301,13 +306,21 @@ export class GeminiService {
         'No se generaron preguntas válidas. Intenta con otro tema.',
       );
     }
+
+    // Codificar campos a Base64
+    parsed.questions = parsed.questions.map(q => ({
+      ...q,
+      question: this.encodeBase64(q.question),
+      explanation: this.encodeBase64(q.explanation),
+      options: q.options.map(o => ({
+        ...o,
+        text: this.encodeBase64(o.text),
+        feedback: this.encodeBase64(o.feedback)
+      }))
+    }));
+
     if (!parsed.metadata || typeof parsed.metadata !== 'object') {
       throw new Error('Faltan metadatos en la respuesta del examen.');
-    }
-    for (const q of parsed.questions) {
-      if (!q.question || !q.options || !Array.isArray(q.options)) {
-        throw new Error('Las preguntas generadas tienen formato inválido.');
-      }
     }
     return parsed;
   }
@@ -332,13 +345,22 @@ export class GeminiService {
         'No se generaron preguntas válidas. Intenta con otro tema.',
       );
     }
+
+    // Codificar campos a Base64
+    parsed.questions = parsed.questions.map(q => ({
+      ...q,
+      question: this.encodeBase64(q.question),
+      explanation: this.encodeBase64(q.explanation),
+      contextContent: this.encodeBase64(q.contextContent),
+      options: q.options.map(o => ({
+        ...o,
+        text: this.encodeBase64(o.text),
+        feedback: this.encodeBase64(o.feedback)
+      }))
+    }));
+
     if (!parsed.metadata || typeof parsed.metadata !== 'object') {
       throw new Error('Faltan metadatos en la respuesta del examen.');
-    }
-    for (const q of parsed.questions) {
-      if (!q.question || !q.options || !Array.isArray(q.options)) {
-        throw new Error('Las preguntas generadas tienen formato inválido.');
-      }
     }
     return parsed;
   }
@@ -363,6 +385,15 @@ export class GeminiService {
     ) {
       throw new Error('No se generaron notas válidas. Intenta con otro tema.');
     }
+
+    // Codificar campos a Base64
+    parsed.notes = parsed.notes.map(n => ({
+      ...n,
+      title: this.encodeBase64(n.title),
+      content: this.encodeBase64(n.content),
+      topic: this.encodeBase64(n.topic)
+    }));
+
     if (!parsed.metadata || typeof parsed.metadata !== 'object') {
       throw new Error('Faltan metadatos en la respuesta de notas.');
     }
@@ -387,6 +418,15 @@ export class GeminiService {
         'No se generaron flashcards válidas. Intenta con otro tema.',
       );
     }
+
+    // Codificar campos a Base64
+    parsed.cards = parsed.cards.map(c => ({
+      ...c,
+      front: this.encodeBase64(c.front),
+      back: this.encodeBase64(c.back),
+      hint: this.encodeBase64(c.hint)
+    }));
+
     if (!parsed.metadata || typeof parsed.metadata !== 'object') {
       throw new Error('Faltan metadatos en la respuesta de flashcards.');
     }
