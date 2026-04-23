@@ -1,36 +1,35 @@
 import {
   Injectable,
-  BadRequestException,
   NotFoundException,
   UnauthorizedException,
+  BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
-import { GeminiService } from '../gemini/gemini.service';
-import { CreditsService, calculateNoteCost } from '../credits/credits.service';
-import { LikesService } from '../likes/likes.service';
-//import { AI_PROMPTS } from '../groq/AI_PROMPTS';
-import {
-  shuffleArray,
-  isPublicAccess,
-  normalizeAccess,
-} from '../common/utils/shared.utils';
 import { Note } from './entities/note.entity';
 import { NoteContent } from './entities/note-content.entity';
-import { GenerateNoteDto } from './dto/create-note.dto';
+import { CreditsService, calculateNoteCost } from '../credits/credits.service';
+import { GeminiService, NoteResponse } from '../gemini/gemini.service';
+import { LikesService } from '../likes/likes.service';
+import {
+  isPublicAccess,
+  normalizeAccess,
+  shuffleArray,
+} from '../common/utils/shared.utils';
 
 @Injectable()
 export class NotesService {
   constructor(
-    private readonly geminiService: GeminiService,
-    private readonly creditsService: CreditsService,
-    private readonly likesService: LikesService,
-    @InjectRepository(Note) private readonly noteRepo: Repository<Note>,
+    @InjectRepository(Note)
+    private noteRepo: Repository<Note>,
     @InjectRepository(NoteContent)
-    private readonly noteContentRepo: Repository<NoteContent>,
+    private noteContentRepo: Repository<NoteContent>,
+    private creditsService: CreditsService,
+    private geminiService: GeminiService,
+    private likesService: LikesService,
   ) {}
 
-  private async generateCode(): Promise<string> {
+  async generateCode() {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     let code = '';
     for (let i = 0; i < 5; i++) {
@@ -41,68 +40,32 @@ export class NotesService {
     return code;
   }
 
-  private resolveNotePrompt(input: GenerateNoteDto): string {
-    const parts = [input.reference, input.referenceText, input.topic]
-      .filter((s): s is string => typeof s === 'string' && s.trim().length > 0)
-      .map((s) => s.trim());
-    const ref = parts[0];
-    if (!ref) {
-      throw new BadRequestException(
-        'Debe enviar reference, referenceText o topic para generar notas.',
-      );
-    }
-    return ref;
-  }
-
-  /** Normaliza lo que devuelve la IA: strings markdown o bloques { title, contents[] }. */
-  private normalizeAiNoteItems(rawNotes: unknown): Array<{
+  private normalizeAiNoteItems(rawNotes: any[]): Array<{
+    title: string;
     markdown: string;
-    sectionTitle?: string;
+    topic: string;
   }> {
     if (!Array.isArray(rawNotes)) return [];
-    const out: Array<{ markdown: string; sectionTitle?: string }> = [];
-    for (const item of rawNotes) {
-      if (typeof item === 'string') {
-        out.push({ markdown: item });
-        continue;
-      }
-      if (item && typeof item === 'object') {
-        const o = item as Record<string, unknown>;
-        if (Array.isArray(o.contents)) {
-          const title = typeof o.title === 'string' ? o.title : undefined;
-          const chunks: string[] = [];
-          for (const block of o.contents) {
-            if (!block || typeof block !== 'object') continue;
-            const b = block as Record<string, unknown>;
-            const type = typeof b.type === 'string' ? b.type : 'text';
-            const c = b.content;
-            const text = Array.isArray(c)
-              ? c.map((x) => String(x)).join('\n')
-              : String(c ?? '');
-            chunks.push(`**${type}**\n\n${text}`);
-          }
-          out.push({
-            markdown: chunks.join('\n\n'),
-            sectionTitle: title,
-          });
-        } else if (typeof o.markdown === 'string') {
-          out.push({
-            markdown: o.markdown,
-            sectionTitle: typeof o.title === 'string' ? o.title : undefined,
-          });
-        } else {
-          out.push({ markdown: JSON.stringify(item, null, 2) });
-        }
-      }
-    }
-    return out;
+    return rawNotes.map((item) => ({
+      title: item.title || 'Sección',
+      markdown: item.content || item.markdown || '',
+      topic: item.topic || 'General',
+    }));
   }
 
-  // ==================== GENERATE NOTE FROM TOPIC / REFERENCE ====================
-  async generateNote(input: GenerateNoteDto, userId: number) {
-    const promptText = this.resolveNotePrompt(input);
+  async generate(
+    input: {
+      reference?: string;
+      topic?: string;
+      numberOfNotes?: number;
+      levelOfDetail?: string;
+      acceso?: string;
+    },
+    userId: number,
+  ) {
+    const promptText = input.reference || input.topic || 'Tema general';
     const dynamicCost = calculateNoteCost(
-      input.levelOfDetail ?? 'medio',
+      input.levelOfDetail || 'medio',
       promptText,
     );
 
@@ -116,19 +79,19 @@ export class NotesService {
     const level = input.levelOfDetail ?? 'medio';
     const acceso = normalizeAccess(input.acceso);
 
-    const response = await this.geminiService.generateNote(
+    const response: NoteResponse = await this.geminiService.generateNote(
       promptText,
       numberOfNotes,
       level,
     );
 
-    const meta = (response.metadata || {}) as Record<string, unknown>;
-    const title = meta.title as string;
-    const description = (meta.description as string) || '';
-    const area = meta.area as string | undefined;
-    const tema = meta.tema as string | undefined;
+    const meta = response.metadata || { title: '', description: '' };
+    const title = meta.title;
+    const description = meta.description || '';
+    const area = meta.area;
+    const tema = meta.tema;
 
-    const rawNotes = response.notes;
+    const rawNotes = response.notes || [];
     const normalizedNotes = this.normalizeAiNoteItems(rawNotes);
 
     const note = this.noteRepo.create({
@@ -162,6 +125,7 @@ export class NotesService {
       creditsTotal: creditStatus.total,
     };
   }
+
   // ==================== BASIC CRUD ====================
   async findAll(userId: number) {
     const notes = await this.noteRepo.find({
@@ -231,29 +195,11 @@ export class NotesService {
     return shuffleArray(result);
   }
 
-  /**
-   * Refactor de Note para frontend - solo devuelve datos necesarios para mostrar
-   * Excluye: code, userId, levelOfDetail (datos sensibles/internos)
-   */
   noteRefactor(
     note: Note,
     userId?: number,
     likesData?: { counts: Map<number, number>; userLiked: Set<number> },
-  ): {
-    id: number;
-    title: string;
-    description: string;
-    area?: string;
-    tema?: string;
-    acceso: string;
-    createdAt: Date;
-    noteContents: Array<{ id: number; content: string }>;
-    canDelete: boolean;
-    contentsCount: number;
-    creatorName: string;
-    likesCount: number;
-    userLiked: boolean;
-  } {
+  ) {
     return {
       id: note.id,
       title: note.title,
@@ -304,17 +250,12 @@ export class NotesService {
     return this.noteRefactor(note, userId);
   }
 
-  /**
-   * Get note in locked format - ONLY for owner
-   */
   async getLockedNote(id: number, userId: number) {
     const note = await this.noteRepo.findOne({
       where: { id },
       relations: ['noteContents', 'user'],
     });
     if (!note) throw new NotFoundException('Note not found');
-
-    // ONLY the owner can access locked format
     if (note.userId !== userId) {
       throw new UnauthorizedException('No tienes permiso para ver esta nota');
     }
@@ -408,15 +349,6 @@ export class NotesService {
     return { message: 'Eliminado' };
   }
 
-  // ==================== INTELLIGENT SEARCH ====================
-
-  /**
-   * Búsqueda inteligente de notas con soporte para:
-   * - Búsqueda por texto en título, descripción, tema y área
-   * - Búsqueda por código exacto
-   * - Búsqueda en contenido de las notas
-   * - Paginación con offset y limit (20 items por página)
-   */
   async searchNotes(
     query: string,
     userId?: number,
