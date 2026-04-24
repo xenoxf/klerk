@@ -14,7 +14,6 @@ import { MessagesService } from './messages.service';
 import { JwtGuard } from '../auth/jwt/jwt.guard';
 import { RequireAuthGuard } from '../common/guards/require-auth/require-auth.guard';
 import { getNumericUserId } from '../common/utils/shared.utils';
-import { AuthenticatedRequest } from '../common/types/request.type';
 
 @UseGuards(JwtGuard, RequireAuthGuard)
 @Controller('messages')
@@ -24,7 +23,7 @@ export class MessagesController {
   @Post('send')
   sendWithAIResponse(
     @Body() input: { prompt: string; chatId?: number },
-    @Req() req: AuthenticatedRequest,
+    @Req() req,
   ) {
     return this.messagesService.sendMessageWithAIResponse(
       input,
@@ -35,7 +34,7 @@ export class MessagesController {
   @Post('send/stream')
   async sendStream(
     @Body() input: { prompt: string; chatId?: number },
-    @Req() req: AuthenticatedRequest,
+    @Req() req,
     @Res() res: Response,
   ) {
     res.setHeader('Content-Type', 'text/event-stream');
@@ -52,16 +51,16 @@ export class MessagesController {
       for await (const chunk of stream) {
         res.write(chunk);
       }
-    } catch (error: unknown) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Error en el stream';
+    } catch (error: any) {
       if (!res.headersSent) {
-        res.status(500).json({ message: errorMessage });
+        res
+          .status(500)
+          .json({ message: error.message || 'Error en el stream' });
       } else {
         res.write(
           JSON.stringify({
             type: 'error',
-            content: errorMessage,
+            content: error.message || 'Error en el stream',
           }),
         );
       }
@@ -71,31 +70,22 @@ export class MessagesController {
   }
 
   @Post('chats')
-  createChat(
-    @Body() input: { title?: string },
-    @Req() req: AuthenticatedRequest,
-  ) {
+  createChat(@Body() input: { title?: string }, @Req() req: any) {
     return this.messagesService.createChat(getNumericUserId(req), input.title);
   }
 
   @Get('chats')
-  getUserChats(@Req() req: AuthenticatedRequest) {
+  getUserChats(@Req() req: any) {
     return this.messagesService.getUserChats(getNumericUserId(req));
   }
 
   @Get('chat/:chatId')
-  getChatMessages(
-    @Param('chatId') chatId: string,
-    @Req() req: AuthenticatedRequest,
-  ) {
+  getChatMessages(@Param('chatId') chatId: string, @Req() req: any) {
     return this.messagesService.getChatMessages(+chatId, getNumericUserId(req));
   }
 
   @Delete('chat/:chatId')
-  deleteChat(
-    @Param('chatId') chatId: string,
-    @Req() req: AuthenticatedRequest,
-  ) {
+  deleteChat(@Param('chatId') chatId: string, @Req() req: any) {
     return this.messagesService.deleteChat(+chatId, getNumericUserId(req));
   }
 }

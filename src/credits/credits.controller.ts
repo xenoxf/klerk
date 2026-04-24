@@ -3,7 +3,6 @@ import { CreditsService, CREDIT_CONFIG } from './credits.service';
 import { JwtGuard } from '../auth/jwt/jwt.guard';
 import { RequireAuthGuard } from '../common/guards/require-auth/require-auth.guard';
 import { getNumericUserId } from '../common/utils/shared.utils';
-import { AuthenticatedRequest } from '../common/types/request.type';
 
 @Controller('credits')
 export class CreditsController {
@@ -14,7 +13,7 @@ export class CreditsController {
    */
   @Get('/status')
   @UseGuards(JwtGuard, RequireAuthGuard)
-  async getCreditsStatus(@Req() req: AuthenticatedRequest) {
+  async getCreditsStatus(@Req() req: any) {
     return this.creditsService.getCreditsStatus(getNumericUserId(req));
   }
 

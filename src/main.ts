@@ -218,21 +218,19 @@ async function bootstrap() {
   // CUSTOM SANITIZATION MIDDLEWARE (XSS Protection)
   // ============================================
   app.use((req, res, next) => {
-    // Sanitiza strings en el body para prevenir XSS básico
-    // Se ha relajado para permitir contenido técnico y Markdown rico
+    // Sanitiza strings en el body para prevenir XSS
     if (req.body && typeof req.body === 'object') {
       const sanitize = (obj: any) => {
         for (const key in obj) {
           if (typeof obj[key] === 'string') {
             let sanitized = obj[key];
-            // Remueve solo bloques de script explícitos para seguridad
+            // Remueve scripts
             sanitized = sanitized.replace(
               /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,
               '',
             );
-            // NOTA: Se ha eliminado la eliminación de todos los tags HTML <[^>]*>
-            // para permitir libertad total en el contenido educativo y Markdown.
-
+            // Remueve tags HTML
+            sanitized = sanitized.replace(/<[^>]*>/g, '');
             // Remueve eventos onclick, onerror, etc.
             sanitized = sanitized.replace(/on\w+="[^"]*"/gi, '');
             obj[key] = sanitized;

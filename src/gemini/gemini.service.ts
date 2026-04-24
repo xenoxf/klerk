@@ -1,79 +1,20 @@
 import { Injectable, Logger } from '@nestjs/common';
-import {
-  GoogleGenerativeAI,
-  GenerativeModel,
-  SchemaType,
-  Content,
-  GenerationConfig,
-  ResponseSchema,
-} from '@google/generative-ai';
+import { GoogleGenerativeAI, GenerativeModel } from '@google/generative-ai';
 import { AI_PROMPTS } from './AI_PROMPTS';
 
+// Available Gemini models for fallback chain
 const MODELS = [
-  'gemini-2.5-flash-lite',
-  'gemini-2.5-flash',
-  'gemini-2.0-flash',
-  'gemini-1.5-flash',
+  'gemini-2.5-flash-lite', // Primary: fast, cheap
+  'gemini-2.5-flash', // Fallback 1: more capable
+  'gemini-2.0-flash', // Fallback 2: older but reliable
+  'gemini-1.5-flash', // Fallback 3: stable fallback
 ] as const;
 
 type ModelName = (typeof MODELS)[number];
 
-export interface AiMetadata {
-  title: string;
-  description: string;
-  area?: string;
-  tema?: string;
-}
-
-export interface ExamResponse {
-  questions: Array<{
-    question: string;
-    explanation: string;
-    contextId?: string;
-    contextContent?: string;
-    options: Array<{
-      text: string;
-      isCorrect: boolean;
-      feedback: string;
-    }>;
-  }>;
-  metadata: AiMetadata;
-}
-
-export interface NoteResponse {
-  notes: Array<{
-    title: string;
-    content: string;
-    topic?: string;
-  }>;
-  metadata: AiMetadata;
-}
-
-export interface CardResponse {
-  cards: Array<{
-    front: string;
-    back: string;
-    hint?: string;
-  }>;
-  metadata: AiMetadata;
-}
-
-/**
- * El extractor ahora es mínimo. Solo encuentra los límites del objeto.
- * NO limpia ni modifica el contenido interno (Markdown manda).
- */
-class JsonExtractor {
-  static extract(raw: string): string {
-    if (!raw) return '';
-    let text = raw.trim();
-    text = text.replace(/```json\s*/gi, '').replace(/```/g, '');
-    const start = text.indexOf('{');
-    const end = text.lastIndexOf('}');
-    if (start !== -1 && end !== -1 && end > start) {
-      return text.substring(start, end + 1);
-    }
-    return text;
-  }
+interface RetryableError extends Error {
+  code?: number;
+  status?: number;
 }
 
 @Injectable()
@@ -89,275 +30,427 @@ export class GeminiService {
       process.env.GEMINI_API_KEY_2,
     ].filter((key): key is string => !!key && key !== 'undefined');
 
-    if (this.apiKeys.length === 0) throw new Error('No API Keys');
+    if (this.apiKeys.length === 0) {
+      throw new Error('No GEMINI_API_KEY found in environment variables');
+    }
+
     this.genAI = new GoogleGenerativeAI(this.apiKeys[0]);
+    this.logger.log(
+      `GeminiService initialized with ${this.apiKeys.length} API keys`,
+    );
   }
 
-  private rotateKey(): void {
-    if (this.apiKeys.length > 1) {
-      this.currentKeyIndex = (this.currentKeyIndex + 1) % this.apiKeys.length;
-      this.genAI = new GoogleGenerativeAI(this.apiKeys[this.currentKeyIndex]);
-    }
+  /**
+   * Rotate to the next available API key
+   */
+  private rotateKey(): boolean {
+    if (this.apiKeys.length <= 1) return false;
+
+    this.currentKeyIndex = (this.currentKeyIndex + 1) % this.apiKeys.length;
+    this.genAI = new GoogleGenerativeAI(this.apiKeys[this.currentKeyIndex]);
+    this.logger.warn(`Rotated to API Key #${this.currentKeyIndex + 1}`);
+    return true;
   }
 
-  private getModel(
-    name: ModelName = MODELS[0],
-    schema?: ResponseSchema,
-  ): GenerativeModel {
-    const config: {
-      model: ModelName;
-      generationConfig?: GenerationConfig;
-    } = { model: name };
-
-    if (schema) {
-      config.generationConfig = {
-        responseMimeType: 'application/json',
-        responseSchema: schema,
-      };
-    }
-    return this.genAI.getGenerativeModel(config);
+  /**
+   * Get a model instance by name using current genAI instance
+   */
+  private getModel(name: ModelName = MODELS[0]): GenerativeModel {
+    return this.genAI.getGenerativeModel({ model: name });
   }
 
-  private async generateWithSchema(
+  /**
+   * Check if an error is retryable (rate limit, server error, etc.)
+   */
+  private isRetryableError(error: unknown): boolean {
+    const err = error as RetryableError;
+    const code = err.code ?? err.status ?? 0;
+
+    // Rate limit (429) - always retryable if we have more keys or models
+    if (code === 429) return true;
+
+    // Server errors (500-599) or network issues
+    if (code >= 500 && code < 600) return true;
+
+    // Also retry on generic "no content" errors that might be temporary
+    if (err.message?.includes('no generó contenido')) return true;
+
+    return false;
+  }
+
+  /**
+   * Generate text with automatic model and key fallback
+   */
+  private async generateTextWithFallback(
     prompt: string,
-    schema: ResponseSchema,
-  ): Promise<string> {
-    for (const modelName of MODELS) {
-      let keysTried = 0;
-      while (keysTried < this.apiKeys.length) {
+    modelName?: ModelName,
+  ): Promise<{ text: string; modelName: string }> {
+    const startModel = modelName ?? MODELS[0];
+    const startIndex = MODELS.indexOf(startModel);
+
+    // Track keys tried for each model to avoid infinite loops
+    for (let i = startIndex; i < MODELS.length; i++) {
+      const currentModelName = MODELS[i];
+      let keysTriedForCurrentModel = 0;
+
+      while (keysTriedForCurrentModel < this.apiKeys.length) {
+        const model = this.getModel(currentModelName);
+        keysTriedForCurrentModel++;
+
         try {
-          const model = this.getModel(modelName, schema);
+          this.logger.log(
+            `Attempting generation with model ${currentModelName} (Key #${this.currentKeyIndex + 1})`,
+          );
           const result = await model.generateContent(prompt);
           const text = result.response.text();
-          if (text) return text.trim();
-          throw new Error('Empty');
-        } catch (error: unknown) {
-          const err = error as { status?: number; code?: number | string };
-          const code = err.status || err.code;
-          if (code === 429 && keysTried < this.apiKeys.length - 1) {
-            this.rotateKey();
-            keysTried++;
-            continue;
+
+          if (!text || text.trim().length === 0) {
+            throw new Error('La IA no generó contenido. Intenta de nuevo.');
           }
+
+          return { text: text.trim(), modelName: currentModelName };
+        } catch (error) {
+          const err = error as RetryableError;
+          const code = err.code ?? err.status ?? 0;
+
           this.logger.warn(
-            `Model ${modelName} error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            `Model ${currentModelName} (Key #${this.currentKeyIndex + 1}) failed: ${err.message} (code: ${code})`,
           );
-          break;
+
+          // If rate limited and we have more keys, rotate and retry SAME model
+          if (code === 429 && keysTriedForCurrentModel < this.apiKeys.length) {
+            this.rotateKey();
+            continue; // Retry while loop with same model but new key
+          }
+
+          // If retryable (not just 429) and we have more models, try next model
+          if (this.isRetryableError(error) && i < MODELS.length - 1) {
+            this.logger.log(`Moving to fallback model: ${MODELS[i + 1]}`);
+            break; // Exit while loop to move to next model in for loop
+          }
+
+          // Non-retryable error or last model/key failed
+          throw error;
         }
       }
     }
-    throw new Error('All models failed');
+
+    throw new Error(
+      'Todos los proveedores de IA y claves fallaron. Intenta más tarde.',
+    );
   }
 
-  // ==================== SCHEMAS ====================
+  /**
+   * Generate text stream with automatic model and key fallback
+   */
+  private async *generateTextStreamWithFallback(
+    prompt: string,
+    modelName?: ModelName,
+  ): AsyncIterable<string> {
+    const startModel = modelName ?? MODELS[0];
+    const startIndex = MODELS.indexOf(startModel);
 
-  private EXAM_SCHEMA: ResponseSchema = {
-    type: SchemaType.OBJECT,
-    properties: {
-      questions: {
-        type: SchemaType.ARRAY,
-        items: {
-          type: SchemaType.OBJECT,
-          properties: {
-            question: { type: SchemaType.STRING },
-            explanation: { type: SchemaType.STRING },
-            contextId: { type: SchemaType.STRING },
-            contextContent: { type: SchemaType.STRING },
-            options: {
-              type: SchemaType.ARRAY,
-              items: {
-                type: SchemaType.OBJECT,
-                properties: {
-                  text: { type: SchemaType.STRING },
-                  isCorrect: { type: SchemaType.BOOLEAN },
-                  feedback: { type: SchemaType.STRING },
-                },
-                required: ['text', 'isCorrect'],
-              },
-            },
-          },
-          required: ['question', 'explanation', 'options'],
-        },
-      },
-      metadata: {
-        type: SchemaType.OBJECT,
-        properties: {
-          title: { type: SchemaType.STRING },
-          description: { type: SchemaType.STRING },
-          area: { type: SchemaType.STRING },
-          tema: { type: SchemaType.STRING },
-        },
-        required: ['title'],
-      },
-    },
-    required: ['questions', 'metadata'],
-  };
+    for (let i = startIndex; i < MODELS.length; i++) {
+      const currentModelName = MODELS[i];
+      let keysTriedForCurrentModel = 0;
 
-  private NOTE_SCHEMA: ResponseSchema = {
-    type: SchemaType.OBJECT,
-    properties: {
-      notes: {
-        type: SchemaType.ARRAY,
-        items: {
-          type: SchemaType.OBJECT,
-          properties: {
-            title: { type: SchemaType.STRING },
-            content: { type: SchemaType.STRING },
-            topic: { type: SchemaType.STRING },
-          },
-          required: ['title', 'content'],
-        },
-      },
-      metadata: {
-        type: SchemaType.OBJECT,
-        properties: {
-          title: { type: SchemaType.STRING },
-          description: { type: SchemaType.STRING },
-          area: { type: SchemaType.STRING },
-          tema: { type: SchemaType.STRING },
-        },
-        required: ['title'],
-      },
-    },
-    required: ['notes', 'metadata'],
-  };
+      while (keysTriedForCurrentModel < this.apiKeys.length) {
+        const model = this.getModel(currentModelName);
+        keysTriedForCurrentModel++;
 
-  private CARD_SCHEMA: ResponseSchema = {
-    type: SchemaType.OBJECT,
-    properties: {
-      cards: {
-        type: SchemaType.ARRAY,
-        items: {
-          type: SchemaType.OBJECT,
-          properties: {
-            front: { type: SchemaType.STRING },
-            back: { type: SchemaType.STRING },
-            hint: { type: SchemaType.STRING },
-          },
-          required: ['front', 'back'],
-        },
-      },
-      metadata: {
-        type: SchemaType.OBJECT,
-        properties: {
-          title: { type: SchemaType.STRING },
-          description: { type: SchemaType.STRING },
-          area: { type: SchemaType.STRING },
-          tema: { type: SchemaType.STRING },
-        },
-        required: ['title'],
-      },
-    },
-    required: ['cards', 'metadata'],
-  };
+        try {
+          this.logger.log(
+            `Attempting stream with model ${currentModelName} (Key #${this.currentKeyIndex + 1})`,
+          );
+          const result = await model.generateContentStream(prompt);
 
-  // ==================== FEATURES ====================
+          for await (const chunk of result.stream) {
+            const text = chunk.text();
+            if (text) yield text;
+          }
+
+          return; // Success, exit generator
+        } catch (error) {
+          const err = error as RetryableError;
+          const code = err.code ?? err.status ?? 0;
+
+          this.logger.warn(
+            `Stream model ${currentModelName} (Key #${this.currentKeyIndex + 1}) failed: ${err.message} (code: ${code})`,
+          );
+
+          if (code === 429 && keysTriedForCurrentModel < this.apiKeys.length) {
+            this.rotateKey();
+            continue;
+          }
+
+          if (this.isRetryableError(error) && i < MODELS.length - 1) {
+            this.logger.log(
+              `Moving to fallback model for stream: ${MODELS[i + 1]}`,
+            );
+            break;
+          }
+
+          throw error;
+        }
+      }
+    }
+
+    throw new Error(
+      'Todos los proveedores de IA y claves fallaron. Intenta más tarde.',
+    );
+  }
+
+  // ==================== HELPER ====================
+
+  private async generateText(prompt: string): Promise<string> {
+    const { text } = await this.generateTextWithFallback(prompt);
+    return text;
+  }
+
+  private cleanJson(raw: string): string {
+    let cleaned = raw
+      .replace(/```json\n?/g, '')
+      .replace(/```\n?/g, '')
+      .trim();
+    if (!cleaned.startsWith('{') && !cleaned.startsWith('[')) {
+      const start = Math.min(
+        cleaned.indexOf('{') === -1 ? Infinity : cleaned.indexOf('{'),
+        cleaned.indexOf('[') === -1 ? Infinity : cleaned.indexOf('['),
+      );
+      if (start !== Infinity) cleaned = cleaned.substring(start);
+    }
+    const end = Math.max(cleaned.lastIndexOf('}'), cleaned.lastIndexOf(']'));
+    if (end !== -1) cleaned = cleaned.substring(0, end + 1);
+    return cleaned;
+  }
+
+  private parseJson<T>(raw: string): T {
+    const cleaned = this.cleanJson(raw);
+    try {
+      return JSON.parse(cleaned);
+    } catch {
+      throw new Error(
+        `Formato JSON inválido. Respuesta: ${raw}`,
+      );
+    }
+  }
+
+  // ==================== EXAM ====================
 
   async generateExam(
     topic: string,
-    num: number,
-    diff: string,
-  ): Promise<ExamResponse> {
-    const raw = await this.generateWithSchema(
-      `${AI_PROMPTS.generateExam(num, diff)}\n\nTema: ${topic}`,
-      this.EXAM_SCHEMA,
+    numberOfQuestions: number,
+    difficulty: string,
+  ) {
+    const prompt = AI_PROMPTS.generateExam(numberOfQuestions, difficulty);
+    const { text: raw } = await this.generateTextWithFallback(
+      `${prompt}\n\nTema: ${topic}`,
     );
-    return JSON.parse(JsonExtractor.extract(raw));
+    const parsed = this.parseJson<any>(raw);
+
+    if (
+      !parsed.questions ||
+      !Array.isArray(parsed.questions) ||
+      parsed.questions.length === 0
+    ) {
+      throw new Error(
+        'No se generaron preguntas válidas. Intenta con otro tema.',
+      );
+    }
+    if (!parsed.metadata || typeof parsed.metadata !== 'object') {
+      throw new Error('Faltan metadatos en la respuesta del examen.');
+    }
+    for (const q of parsed.questions) {
+      if (!q.question || !q.options || !Array.isArray(q.options)) {
+        throw new Error('Las preguntas generadas tienen formato inválido.');
+      }
+    }
+    return parsed;
   }
 
   async generateIcfesExam(
     topic: string,
-    num: number,
-    diff: string,
-  ): Promise<ExamResponse> {
-    const raw = await this.generateWithSchema(
-      `${AI_PROMPTS.generateIcfesExam(num, diff)}\n\nTema: ${topic}`,
-      this.EXAM_SCHEMA,
+    numberOfQuestions: number,
+    difficulty: string,
+  ) {
+    const prompt = AI_PROMPTS.generateIcfesExam(numberOfQuestions, difficulty);
+    const { text: raw } = await this.generateTextWithFallback(
+      `${prompt}\n\nTema: ${topic}`,
     );
-    return JSON.parse(JsonExtractor.extract(raw));
+    const parsed = this.parseJson<any>(raw);
+
+    if (
+      !parsed.questions ||
+      !Array.isArray(parsed.questions) ||
+      parsed.questions.length === 0
+    ) {
+      throw new Error(
+        'No se generaron preguntas válidas. Intenta con otro tema.',
+      );
+    }
+    if (!parsed.metadata || typeof parsed.metadata !== 'object') {
+      throw new Error('Faltan metadatos en la respuesta del examen.');
+    }
+    for (const q of parsed.questions) {
+      if (!q.question || !q.options || !Array.isArray(q.options)) {
+        throw new Error('Las preguntas generadas tienen formato inválido.');
+      }
+    }
+    return parsed;
   }
+
+  // ==================== NOTE ====================
 
   async generateNote(
     topic: string,
-    num: number,
-    detail: string,
-  ): Promise<NoteResponse> {
-    const raw = await this.generateWithSchema(
-      `${AI_PROMPTS.generateNote(num, detail)}\n\nTema: ${topic}`,
-      this.NOTE_SCHEMA,
+    numberOfNotes: number,
+    levelOfDetail: string,
+  ) {
+    const prompt = AI_PROMPTS.generateNote(numberOfNotes, levelOfDetail);
+    const { text: raw } = await this.generateTextWithFallback(
+      `${prompt}\n\nTema: ${topic}`,
     );
-    return JSON.parse(JsonExtractor.extract(raw));
+    const parsed = this.parseJson<any>(raw);
+
+    if (
+      !parsed.notes ||
+      !Array.isArray(parsed.notes) ||
+      parsed.notes.length === 0
+    ) {
+      throw new Error('No se generaron notas válidas. Intenta con otro tema.');
+    }
+    if (!parsed.metadata || typeof parsed.metadata !== 'object') {
+      throw new Error('Faltan metadatos en la respuesta de notas.');
+    }
+    return parsed;
   }
 
-  async generateFlashcards(topic: string, num: number): Promise<CardResponse> {
-    const raw = await this.generateWithSchema(
-      `${AI_PROMPTS.generateFlashcards(num)}\n\nTema: ${topic}`,
-      this.CARD_SCHEMA,
+  // ==================== FLASHCARDS ====================
+
+  async generateFlashcards(topic: string, numberOfCards: number) {
+    const prompt = AI_PROMPTS.generateFlashcards(numberOfCards);
+    const { text: raw } = await this.generateTextWithFallback(
+      `${prompt}\n\nTema: ${topic}`,
     );
-    return JSON.parse(JsonExtractor.extract(raw));
+    const parsed = this.parseJson<any>(raw);
+
+    if (
+      !parsed.cards ||
+      !Array.isArray(parsed.cards) ||
+      parsed.cards.length === 0
+    ) {
+      throw new Error(
+        'No se generaron flashcards válidas. Intenta con otro tema.',
+      );
+    }
+    if (!parsed.metadata || typeof parsed.metadata !== 'object') {
+      throw new Error('Faltan metadatos en la respuesta de flashcards.');
+    }
+    return parsed;
   }
+
+  // ==================== CHAT (with streaming) ====================
 
   async generateEducationalChatResponse(
-    msg: string,
-    ctx?: string,
-    history?: Content[],
+    userMessage: string,
+    _conversationContext?: string,
+    conversationHistory?: Array<{
+      prompt: string;
+      response: string;
+      createdAt: string;
+    }>,
   ) {
     let historyText = '';
-    if (history && history.length > 0) {
-      historyText = history
-        .map((h) => {
-          const role = h.role === 'user' ? 'User' : 'Assistant';
-          const text = h.parts.map((p) => p.text).join(' ');
-          return `${role}: ${text}`;
-        })
-        .join('\n');
+    if (conversationHistory && conversationHistory.length > 0) {
+      const recent = conversationHistory.slice(-5);
+      historyText = recent
+        .map((m) => `Usuario: ${m.prompt}\nJunior: ${m.response}`)
+        .join('\n\n---\n\n');
     }
 
     const systemPrompt = AI_PROMPTS.SYSTEM_PROMPT({
       previousTopics: [],
-      messageCount: history?.length || 0,
+      messageCount: conversationHistory?.length || 0,
     });
-    const prompt = `${systemPrompt}\n\n${historyText}\nUser: ${msg}`;
 
-    const result = await this.getModel(MODELS[0]).generateContent(prompt);
-    return { response: result.response.text().trim() };
+    const fullPrompt = `${systemPrompt}\n\n${historyText ? `Historial reciente:\n${historyText}\n\n---\n\n` : ''}Usuario: ${userMessage}`;
+
+    const { text: raw } = await this.generateTextWithFallback(fullPrompt);
+    return { response: raw };
   }
 
   async *generateEducationalChatResponseStream(
-    msg: string,
-    history?: Content[],
-  ) {
+    userMessage: string,
+    conversationHistory?: Array<{
+      prompt: string;
+      response: string;
+      createdAt: string;
+    }>,
+  ): AsyncIterable<string> {
     let historyText = '';
-    if (history && history.length > 0) {
-      historyText = history
-        .map((h) => {
-          const role = h.role === 'user' ? 'User' : 'Assistant';
-          const text = h.parts.map((p) => p.text).join(' ');
-          return `${role}: ${text}`;
-        })
-        .join('\n');
+    if (conversationHistory && conversationHistory.length > 0) {
+      const recent = conversationHistory.slice(-5);
+      historyText = recent
+        .map((m) => `Usuario: ${m.prompt}\nJunior: ${m.response}`)
+        .join('\n\n---\n\n');
     }
 
     const systemPrompt = AI_PROMPTS.SYSTEM_PROMPT({
       previousTopics: [],
-      messageCount: history?.length || 0,
+      messageCount: conversationHistory?.length || 0,
     });
-    const prompt = `${systemPrompt}\n\n${historyText}\nUser: ${msg}`;
 
-    const result = await this.getModel(MODELS[0]).generateContentStream(prompt);
-    for await (const chunk of result.stream) {
-      const text = chunk.text();
-      if (text) yield text;
-    }
+    const fullPrompt = `${systemPrompt}\n\n${historyText ? `Historial reciente:\n${historyText}\n\n---\n\n` : ''}Usuario: ${userMessage}`;
+
+    yield* this.generateTextStreamWithFallback(fullPrompt);
   }
 
-  async generateChatTitleFromMessage(msg: string): Promise<string> {
-    const result = await this.getModel(MODELS[0]).generateContent(
-      AI_PROMPTS.CHAT_TITLE_SYSTEM_PROMPT + '\n\n' + msg.substring(0, 100),
-    );
-    return result.response
-      .text()
-      .trim()
-      .replace(/^["']|["']$/g, '');
+  // ==================== CHAT TITLE ====================
+
+  async generateChatTitleFromMessage(firstMessage: string): Promise<string> {
+    let keysTried = 0;
+
+    while (keysTried < this.apiKeys.length) {
+      const model = this.getModel(MODELS[0]);
+      keysTried++;
+
+      try {
+        const raw = await model.generateContent({
+          contents: [
+            {
+              role: 'user',
+              parts: [{ text: AI_PROMPTS.CHAT_TITLE_SYSTEM_PROMPT }],
+            },
+            {
+              role: 'model',
+              parts: [{ text: 'Entendido. Solo devolveré el título.' }],
+            },
+            {
+              role: 'user',
+              parts: [{ text: firstMessage.substring(0, 100).trim() }],
+            },
+          ],
+          generationConfig: { temperature: 0.3, maxOutputTokens: 30 },
+        });
+
+        return raw.response
+          .text()
+          .trim()
+          .replace(/^["']|["']$/g, '')
+          .replace(/\.$/g, '');
+      } catch (error) {
+        const err = error as RetryableError;
+        const code = err.code ?? err.status ?? 0;
+
+        if (code === 429 && keysTried < this.apiKeys.length) {
+          this.rotateKey();
+          continue;
+        }
+
+        throw error;
+      }
+    }
+
+    throw new Error('Falló la generación del título del chat.');
   }
 }

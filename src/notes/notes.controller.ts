@@ -1,125 +1,113 @@
 import {
   Controller,
-  Post,
-  Body,
-  Req,
   Get,
-  Param,
+  Post,
   Patch,
   Delete,
+  Body,
+  Param,
+  UseGuards,
+  Query,
+  ParseIntPipe,
+  Req,
 } from '@nestjs/common';
 import { NotesService } from './notes.service';
+import { JwtGuard } from '../auth/jwt/jwt.guard';
 import { GenerateNoteDto } from './dto/create-note.dto';
 import { CreateNoteDto } from './dto/create-note-body.dto';
 import { UpdateNoteDto } from './dto/update-note.dto';
+import { RequireAuthGuard } from '../common/guards/require-auth/require-auth.guard';
 import { getNumericUserId } from '../common/utils/shared.utils';
-import { RequireAuth } from '../common/decorators/require-auth.decorator';
-import { AuthenticatedRequest } from '../common/types/request.type';
 
+@UseGuards(JwtGuard)
 @Controller('notes')
 export class NotesController {
-  constructor(private readonly notesService: NotesService) {}
+  constructor(private notesService: NotesService) {}
 
+  // ==================== AI GENERATION ====================
   @Post('generate/topic_or_reference')
-  @RequireAuth()
-  async generate(
-    @Body() input: GenerateNoteDto,
-    @Req() req: AuthenticatedRequest,
-  ) {
-    return this.notesService.generate(input, getNumericUserId(req));
+  @UseGuards(JwtGuard, RequireAuthGuard)
+  generate(@Body() input: GenerateNoteDto, @Req() req: any) {
+    return this.notesService.generateNote(input, getNumericUserId(req));
   }
 
   @Get()
-  async findAll(@Req() req: AuthenticatedRequest) {
-    const userId = getNumericUserId(req);
-    return this.notesService.findAll(userId);
+  async getAll(@Req() req: any) {
+    return this.notesService.findAll(getNumericUserId(req));
   }
 
   @Get('public')
-  async findPublic(@Req() req: AuthenticatedRequest) {
-    const userId = getNumericUserId(req);
-    return this.notesService.findPublic(userId);
+  async getPublic(@Req() req: any) {
+    return this.notesService.findPublic(req?.user?.id);
   }
 
   @Get('private')
-  @RequireAuth()
-  async findPrivate(@Req() req: AuthenticatedRequest) {
-    const userId = getNumericUserId(req);
-    return this.notesService.findPrivate(userId);
+  @UseGuards(JwtGuard, RequireAuthGuard)
+  async getPrivate(@Req() req: any) {
+    return this.notesService.findPrivate(getNumericUserId(req));
   }
 
   @Get('search')
-  async search(
-    @Req() req: AuthenticatedRequest,
-    @Param('q') q: string,
-    @Param('limit') limit: number,
-    @Param('offset') offset: number,
-    @Param('searchInContent') searchInContent: boolean,
+  searchNotes(
+    @Query('q') query: string,
+    @Query('limit', ParseIntPipe) limit: number = 20,
+    @Query('offset', ParseIntPipe) offset: number = 0,
+    @Query('searchInContent') searchInContent: string = 'true',
+    @Req() req: any,
   ) {
-    const userId = getNumericUserId(req);
     return this.notesService.searchNotes(
-      q,
-      userId,
+      query,
+      req?.user?.id,
       limit,
       offset,
-      searchInContent,
+      searchInContent === 'true',
     );
   }
 
   @Post()
-  @RequireAuth()
-  async create(
-    @Body() payload: CreateNoteDto,
-    @Req() req: AuthenticatedRequest,
-  ) {
-    const userId = getNumericUserId(req);
-    return this.notesService.create(payload, userId);
+  @UseGuards(JwtGuard, RequireAuthGuard)
+  async create(@Body() body: CreateNoteDto, @Req() req: any) {
+    return this.notesService.create(body, getNumericUserId(req));
   }
 
   @Get('code/:code')
-  async getByCode(
-    @Param('code') code: string,
-    @Req() req: AuthenticatedRequest,
-  ) {
-    const userId = getNumericUserId(req);
-    return this.notesService.findOneByCode(code, userId);
-  }
-
-  @Get('locked/:id')
-  @RequireAuth()
-  async getLocked(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
-    const userId = getNumericUserId(req);
-    return this.notesService.getLockedNote(+id, userId);
-  }
-
-  @Get(':id')
-  async findOne(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
-    const userId = getNumericUserId(req);
-    return this.notesService.findOneByAccess(+id, userId);
+  async getByCode(@Param('code') code: string, @Req() req: any) {
+    return this.notesService.findOneByCode(code, req?.user?.id);
   }
 
   @Patch(':id')
-  @RequireAuth()
+  @UseGuards(JwtGuard, RequireAuthGuard)
   async update(
-    @Param('id') id: string,
-    @Body() payload: UpdateNoteDto,
-    @Req() req: AuthenticatedRequest,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: UpdateNoteDto,
+    @Req() req: any,
   ) {
-    const userId = getNumericUserId(req);
-    return this.notesService.update(+id, payload, userId);
+    return this.notesService.update(id, body, getNumericUserId(req));
   }
 
-  @Delete('all')
-  @RequireAuth()
-  async deleteAll(@Req() req: AuthenticatedRequest) {
-    const userId = getNumericUserId(req);
-    return this.notesService.deleteAll(userId);
+  @Get(':id')
+  async getById(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+    return this.notesService.findOneByAccess(id, req?.user?.id);
+  }
+
+  /**
+   * Get note in locked format - ONLY for owner
+   */
+  @Get('locked/:id')
+  @UseGuards(JwtGuard, RequireAuthGuard)
+  async getLocked(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+    return this.notesService.getLockedNote(id, getNumericUserId(req));
   }
 
   @Delete(':id')
-  @RequireAuth()
-  async remove(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
-    const userId = getNumericUserId(req);
-    return this.notesService.remove(+id, userId);
+  @UseGuards(JwtGuard, RequireAuthGuard)
+  async delete(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+    return this.notesService.remove(id, getNumericUserId(req));
+  }
+
+  @Delete('all')
+  @UseGuards(JwtGuard, RequireAuthGuard)
+  async deleteAll(@Req() req: any) {
+    return this.notesService.deleteAll(getNumericUserId(req));
   }
 }

@@ -11,17 +11,6 @@ import { CreateAuthDto } from './dto/create-auth.dto';
 import { LoginAuthDto } from './dto/login-auth.dto';
 import * as bcrypt from 'bcryptjs';
 import * as crypto from 'crypto';
-import { User } from '../users/entities/user.entity';
-
-export interface GoogleUser {
-  email: string;
-  name: string;
-  picture?: string;
-  providerId?: string;
-  googleId?: string;
-  sub?: string;
-  provider?: string;
-}
 
 @Injectable()
 export class AuthService {
@@ -30,14 +19,10 @@ export class AuthService {
   constructor(
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
-  ) {}
+  ) { }
 
   /** 🔐 Generar JWT access token (duración de 24h para buena UX) */
-  private generateAccessToken(
-    user:
-      | User
-      | { id: string | number; email: string | null; provider: string },
-  ) {
+  private generateAccessToken(user: any) {
     return this.jwtService.sign(
       {
         sub: user.id,
@@ -57,6 +42,7 @@ export class AuthService {
   private hashRefreshToken(token: string) {
     return crypto.createHash('sha256').update(token).digest('hex');
   }
+
 
   /** Validar email único (soporta email nullable) */
   private async validateUniqueEmail(email: string | null): Promise<void> {
@@ -217,7 +203,7 @@ export class AuthService {
   }
 
   /** 6️⃣ Login con Google (callback simple) */
-  async loginWithGoogle(googleUser: GoogleUser) {
+  async loginWithGoogle(googleUser: any) {
     let user = await this.usersService.findByEmail(googleUser.email);
 
     if (!user) {
@@ -226,7 +212,7 @@ export class AuthService {
         name: googleUser.name,
         picture: googleUser.picture,
         providerId:
-          googleUser.providerId || googleUser.googleId || googleUser.sub || '',
+          googleUser.providerId || googleUser.googleId || googleUser.sub,
         provider: 'google',
       });
     }
@@ -236,10 +222,9 @@ export class AuthService {
   }
 
   /** 7️⃣ Flujo Google centralizado */
-  async googleAuth(profile: GoogleUser) {
+  async googleAuth(profile: any) {
     try {
-      const providerId =
-        profile.providerId || profile.googleId || profile.sub || '';
+      const providerId = profile.providerId || profile.googleId || profile.sub;
 
       let user = await this.usersService.findByProviderId(providerId);
 
@@ -319,7 +304,6 @@ export class AuthService {
         email: string;
         name?: string;
         picture?: string;
-        aud?: string;
       };
 
       if (idToken) {
@@ -448,6 +432,7 @@ export class AuthService {
       { expiresIn: '60d' },
     );
 
+
     return {
       token,
       user: {
@@ -458,6 +443,7 @@ export class AuthService {
       },
     };
   }
+
 
   /** 1️⃣4️⃣ Logout - Invalidar refresh token */
   async logout(userId: number | string) {
@@ -472,3 +458,4 @@ export class AuthService {
 // Nota: El campo 'provider' ha sido reemplazado por 'providerId'
 // googleAuth() está correctamente implementado en auth.service.ts
 // googleAuthWithCode() maneja el intercambio de código
+

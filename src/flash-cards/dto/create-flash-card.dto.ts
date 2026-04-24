@@ -7,6 +7,11 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
+enum Acceso {
+  PUBLIC = 'public',
+  PRIVATE = 'private',
+}
+
 export class FlashcardItemDto {
   @IsString({ message: 'El frente debe ser un texto' })
   @IsNotEmpty({ message: 'El frente es requerido' })

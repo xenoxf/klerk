@@ -35,19 +35,14 @@ export class UsersService {
 
   /** Buscar usuario por refresh token */
 
+
   /** Alias para compatibilidad con código antiguo: buscar por Google ID */
   async findByGoogleId(googleId: string) {
     return this.findByProviderId(googleId);
   }
 
   /** Crear un nuevo usuario con autenticación local */
-  async createLocal(data: {
-    email: string;
-    password?: string;
-    name?: string;
-    providerId?: string;
-    picture?: string;
-  }) {
+  async createLocal(data: any) {
     const hashedPassword = data.password
       ? await bcrypt.hash(data.password, 10)
       : null;
@@ -55,29 +50,23 @@ export class UsersService {
     const user = this.userRepo.create({
       email: data.email,
       name: data.name ?? data.email,
-      password: hashedPassword || undefined,
+      password: hashedPassword,
       provider: 'local',
-      providerId: data.providerId ?? undefined,
-      picture: data.picture ?? undefined,
+      providerId: data.providerId ?? null,
+      picture: data.picture ?? null,
     });
 
     return this.userRepo.save(user);
   }
 
   /** Crear un nuevo usuario o vincular uno existente con Google */
-  async createGoogle(data: {
-    email?: string | null;
-    name?: string | null;
-    provider?: string;
-    providerId?: string | null;
-    picture?: string | null;
-  }) {
+  async createGoogle(data: any) {
     const user = this.userRepo.create({
       email: data.email ?? null,
       name: data.name ?? null,
-      password: undefined,
+      password: null,
       provider: data.provider ?? 'google',
-      providerId: data.providerId ?? undefined,
+      providerId: data.providerId ?? null,
       picture: data.picture ?? null,
     });
 

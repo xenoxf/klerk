@@ -1,4 +1,5 @@
 import { Exam } from '../../exams/entities/exam.entity';
+import { ExamAttempt } from '../entities/exam-attempt.entity';
 
 /**
  * Formatter para Exams - similiar al usado en ExamsService

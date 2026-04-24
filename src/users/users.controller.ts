@@ -16,7 +16,6 @@ import { JwtGuard } from '../auth/jwt/jwt.guard';
 import { RequireAuthGuard } from '../common/guards/require-auth/require-auth.guard';
 import { getNumericUserId } from '../common/utils/shared.utils';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { AuthenticatedRequest } from '../common/types/request.type';
 
 @UseGuards(ApiKeyGuard)
 @UseGuards(JwtGuard, RequireAuthGuard)
@@ -25,7 +24,7 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Get()
-  async findAll(@Req() req: AuthenticatedRequest) {
+  async findAll(@Req() req: any) {
     // Only allow authenticated users to see their own data
     const userId = getNumericUserId(req);
     return this.usersService.findOne(userId);
@@ -37,10 +36,7 @@ export class UsersController {
   }
 
   @Put('/name')
-  async putName(
-    @Req() req: AuthenticatedRequest,
-    @Body() body: { name: string },
-  ) {
+  async putName(@Req() req: any, @Body() body: { name: string }) {
     return this.usersService.updateName(getNumericUserId(req), body.name);
   }
 

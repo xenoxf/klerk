@@ -5,7 +5,11 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 
-const PUBLIC_PATHS = new Set(['/hello', '/health', '/ping']);
+const PUBLIC_PATHS = new Set([
+  '/hello',
+  '/health',
+  '/ping',
+]);
 
 @Injectable()
 export class ApiKeyGuard implements CanActivate {

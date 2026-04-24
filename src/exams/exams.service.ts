@@ -11,7 +11,7 @@ import { Exam } from './entities/exam.entity';
 import { ExamQuestion } from './entities/examQuestion.entity';
 import { ExamOption } from './entities/exam-option.entity';
 import { GenerateExamDto } from './dto/generate-exam.dto';
-import { GeminiService, ExamResponse } from '../gemini/gemini.service';
+import { GeminiService } from '../gemini/gemini.service';
 import { CreditsService, calculateExamCost } from '../credits/credits.service';
 import { LikesService } from '../likes/likes.service';
 import { UpdateExamDto } from './dto/update-exam.dto';
@@ -55,7 +55,7 @@ export class ExamsService {
       dynamicCost,
     );
 
-    let response: ExamResponse;
+    let response;
     if (examType === 'icfes') {
       response = await this.geminiService.generateIcfesExam(
         input.reference,
@@ -89,36 +89,39 @@ export class ExamsService {
     const savedExam = await this.examRepo.save(exam);
     this.logger.log(`Exam saved with ID: ${savedExam.id} for user: ${userId}`);
 
-    // Parallelize question saving
-    await Promise.all(
-      questions.map(async (q) => {
-        const question = this.questionRepo.create({
-          question: q.question,
-          explanation: q.explanation || '',
-          contextId: q.contextId || null,
-          contextContent:
-            examType === 'icfes' && q.contextId ? q.contextContent : null,
-          exam: savedExam,
-        });
+    // Track context for ICFES exams
+    const contextMap = new Map<string, string>();
 
-        const savedQuestion = await this.questionRepo.save(question);
+    for (const q of questions) {
+      const question = this.questionRepo.create({
+        question: q.question,
+        explanation: q.explanation || '',
+        contextId: q.contextId || null,
+        contextContent: null, // Will be set below for first question in each context
+        exam: savedExam,
+      });
 
-        // Parallelize options saving for each question
-        if (q.options && q.options.length > 0) {
-          await Promise.all(
-            q.options.map((opt) => {
-              const option = this.optionRepo.create({
-                text: opt.text,
-                isCorrect: opt.isCorrect,
-                feedback: opt.feedback || '',
-                question: savedQuestion,
-              });
-              return this.optionRepo.save(option);
-            }),
-          );
+      const savedQuestion = await this.questionRepo.save(question);
+
+      // For ICFES: store contextContent only on first question of each context group
+      if (examType === 'icfes' && q.contextId && q.contextContent) {
+        if (!contextMap.has(q.contextId)) {
+          contextMap.set(q.contextId, q.contextContent);
+          await this.questionRepo.update(savedQuestion.id, {
+            contextContent: q.contextContent,
+          });
         }
-      }),
-    );
+      }
+
+      for (const opt of q.options) {
+        const option = this.optionRepo.create({
+          text: opt.text,
+          isCorrect: opt.isCorrect,
+          question: savedQuestion,
+        });
+        await this.optionRepo.save(option);
+      }
+    }
 
     return {
       message: 'Examen generado exitosamente',
@@ -256,7 +259,7 @@ export class ExamsService {
     likesData?: { counts: Map<number, number>; userLiked: Set<number> },
   ) {
     if (Array.isArray(exams)) {
-      return (exams as Exam[]).map((exam) =>
+      return exams.map((exam) =>
         this._examRefactorSingle(
           exam,
           userId,
@@ -266,7 +269,7 @@ export class ExamsService {
       );
     }
     return this._examRefactorSingle(
-      exams as Exam,
+      exams,
       userId,
       includeQuestionsAndOptions,
       likesData,
@@ -380,6 +383,8 @@ export class ExamsService {
     }
     return this.examRefactor(exam, userId, true);
   }
+
+  // ==================== INTELLIGENT SEARCH ====================
 
   async searchExams(
     query: string,
