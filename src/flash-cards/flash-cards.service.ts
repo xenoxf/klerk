@@ -8,7 +8,10 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Card } from './entities/card.entity';
 import { FlashCard } from './entities/flash-card.entity';
-import { CreditsService, calculateFlashcardCost } from '../credits/credits.service';
+import {
+  CreditsService,
+  calculateFlashcardCost,
+} from '../credits/credits.service';
 import { GeminiService, CardResponse } from '../gemini/gemini.service';
 import { LikesService } from '../likes/likes.service';
 import {
@@ -37,10 +40,7 @@ export class FlashCardsService {
     },
     userId: number,
   ) {
-    const dynamicCost = calculateFlashcardCost(
-      input.quantity,
-      input.reference,
-    );
+    const dynamicCost = calculateFlashcardCost(input.quantity, input.reference);
 
     const creditStatus = await this.creditsService.consumeCredits(
       userId,
@@ -70,23 +70,24 @@ export class FlashCardsService {
     });
     const savedCard = await this.cardRepo.save(card);
 
-    const createdFlashCards = [];
     const cards = response.cards || [];
-    for (const flashCard of cards) {
-      if (!flashCard.front || !flashCard.back) {
-        throw new Error('Flashcard generada sin frente o reverso.');
-      }
+    const createdFlashCards = await Promise.all(
+      cards.map((flashCard) => {
+        if (!flashCard.front || !flashCard.back) {
+          throw new Error('Flashcard generada sin frente o reverso.');
+        }
 
-      const fc = this.flashCardRepo.create({
-        front: flashCard.front,
-        back: flashCard.back,
-        hint: flashCard.hint || null,
-        card: savedCard,
-        userId,
-      });
-      await this.flashCardRepo.save(fc);
-      createdFlashCards.push(fc);
-    }
+        const fc = this.flashCardRepo.create({
+          front: flashCard.front,
+          back: flashCard.back,
+          hint: flashCard.hint || null,
+          card: savedCard,
+          userId,
+        });
+        return this.flashCardRepo.save(fc);
+      }),
+    );
+
     return {
       message: 'Flashcards creadas exitosamente',
       cardId: savedCard.id,
@@ -298,17 +299,19 @@ export class FlashCardsService {
     );
 
     if (Array.isArray(payload.flashcards) && payload.flashcards.length > 0) {
-      for (const flash of payload.flashcards) {
-        await this.flashCardRepo.save(
-          this.flashCardRepo.create({
-            front: flash.front,
-            back: flash.back,
-            hint: flash.hint ?? null,
-            card,
-            userId,
-          }),
-        );
-      }
+      await Promise.all(
+        payload.flashcards.map((flash) => {
+          return this.flashCardRepo.save(
+            this.flashCardRepo.create({
+              front: flash.front,
+              back: flash.back,
+              hint: flash.hint ?? null,
+              card,
+              userId,
+            }),
+          );
+        }),
+      );
     }
 
     return this.getCardById(card.id, userId);

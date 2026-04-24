@@ -89,37 +89,36 @@ export class ExamsService {
     const savedExam = await this.examRepo.save(exam);
     this.logger.log(`Exam saved with ID: ${savedExam.id} for user: ${userId}`);
 
-    const contextMap = new Map<string, string>();
-
-    for (const q of questions) {
-      const question = this.questionRepo.create({
-        question: q.question,
-        explanation: q.explanation || '',
-        contextId: q.contextId || null,
-        contextContent: null,
-        exam: savedExam,
-      });
-
-      const savedQuestion = await this.questionRepo.save(question);
-
-      if (examType === 'icfes' && q.contextId && q.contextContent) {
-        if (!contextMap.has(q.contextId)) {
-          contextMap.set(q.contextId, q.contextContent);
-          await this.questionRepo.update(savedQuestion.id, {
-            contextContent: q.contextContent,
-          });
-        }
-      }
-
-      for (const opt of q.options) {
-        const option = this.optionRepo.create({
-          text: opt.text,
-          isCorrect: opt.isCorrect,
-          question: savedQuestion,
+    // Parallelize question saving
+    await Promise.all(
+      questions.map(async (q) => {
+        const question = this.questionRepo.create({
+          question: q.question,
+          explanation: q.explanation || '',
+          contextId: q.contextId || null,
+          contextContent:
+            examType === 'icfes' && q.contextId ? q.contextContent : null,
+          exam: savedExam,
         });
-        await this.optionRepo.save(option);
-      }
-    }
+
+        const savedQuestion = await this.questionRepo.save(question);
+
+        // Parallelize options saving for each question
+        if (q.options && q.options.length > 0) {
+          await Promise.all(
+            q.options.map((opt) => {
+              const option = this.optionRepo.create({
+                text: opt.text,
+                isCorrect: opt.isCorrect,
+                feedback: opt.feedback || '',
+                question: savedQuestion,
+              });
+              return this.optionRepo.save(option);
+            }),
+          );
+        }
+      }),
+    );
 
     return {
       message: 'Examen generado exitosamente',

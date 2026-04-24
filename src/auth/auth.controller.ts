@@ -4,7 +4,7 @@ import {
   Get,
   Body,
   UseGuards,
-  Request,
+  Req,
   Res,
   BadRequestException,
   InternalServerErrorException,
@@ -16,7 +16,7 @@ import { Response } from 'express';
 import { AuthService } from './auth.service';
 import { CreateAuthDto } from './dto/create-auth.dto';
 import { LoginAuthDto } from './dto/login-auth.dto';
-import { getNumericUserId } from '../common/utils/shared.utils';
+import { AuthenticatedRequest } from '../common/types/request.type';
 
 @Controller('auth')
 export class AuthController {
@@ -85,7 +85,10 @@ export class AuthController {
   }
 
   @Get('google/callback')
-  async googleCallbackGet(@Request() req: any, @Res() res: Response) {
+  async googleCallbackGet(
+    @Req() req: AuthenticatedRequest,
+    @Res() res: Response,
+  ) {
     try {
       const code = req.query.code;
 
@@ -159,9 +162,9 @@ export class AuthController {
   }
 
   @Post('logout')
-  async logout(@Request() req: any) {
+  async logout(@Req() req: AuthenticatedRequest) {
     try {
-      const userId = req.user?.id || req.user?.sub;
+      const userId = req.user.id || req.user.sub;
       if (!userId) {
         // Si no hay usuario autenticado, solo retornar éxito
         return { message: 'Sesión cerrada correctamente' };
@@ -190,13 +193,13 @@ export class AuthController {
 
   @Get('me')
   @UseGuards(AuthGuard('jwt'))
-  getProfile(@Request() req: any) {
+  getProfile(@Req() req: AuthenticatedRequest) {
     return req.user;
   }
 
   @Get('verify_token')
   @UseGuards(AuthGuard('jwt'))
-  verifyToken(@Request() req: any) {
+  verifyToken(@Req() req: AuthenticatedRequest) {
     return {
       valid: true,
       user: req.user,

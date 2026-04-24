@@ -10,8 +10,11 @@ import {
 } from '@nestjs/common';
 import { NotesService } from './notes.service';
 import { GenerateNoteDto } from './dto/create-note.dto';
+import { CreateNoteDto } from './dto/create-note-body.dto';
+import { UpdateNoteDto } from './dto/update-note.dto';
 import { getNumericUserId } from '../common/utils/shared.utils';
 import { RequireAuth } from '../common/decorators/require-auth.decorator';
+import { AuthenticatedRequest } from '../common/types/request.type';
 
 @Controller('notes')
 export class NotesController {
@@ -19,32 +22,35 @@ export class NotesController {
 
   @Post('generate/topic_or_reference')
   @RequireAuth()
-  async generate(@Body() input: GenerateNoteDto, @Req() req: any) {
+  async generate(
+    @Body() input: GenerateNoteDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
     return this.notesService.generate(input, getNumericUserId(req));
   }
 
   @Get()
-  async findAll(@Req() req: any) {
+  async findAll(@Req() req: AuthenticatedRequest) {
     const userId = getNumericUserId(req);
     return this.notesService.findAll(userId);
   }
 
   @Get('public')
-  async findPublic(@Req() req: any) {
+  async findPublic(@Req() req: AuthenticatedRequest) {
     const userId = getNumericUserId(req);
     return this.notesService.findPublic(userId);
   }
 
   @Get('private')
   @RequireAuth()
-  async findPrivate(@Req() req: any) {
+  async findPrivate(@Req() req: AuthenticatedRequest) {
     const userId = getNumericUserId(req);
     return this.notesService.findPrivate(userId);
   }
 
   @Get('search')
   async search(
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
     @Param('q') q: string,
     @Param('limit') limit: number,
     @Param('offset') offset: number,
@@ -62,26 +68,32 @@ export class NotesController {
 
   @Post()
   @RequireAuth()
-  async create(@Body() payload: any, @Req() req: any) {
+  async create(
+    @Body() payload: CreateNoteDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
     const userId = getNumericUserId(req);
     return this.notesService.create(payload, userId);
   }
 
   @Get('code/:code')
-  async getByCode(@Param('code') code: string, @Req() req: any) {
+  async getByCode(
+    @Param('code') code: string,
+    @Req() req: AuthenticatedRequest,
+  ) {
     const userId = getNumericUserId(req);
     return this.notesService.findOneByCode(code, userId);
   }
 
   @Get('locked/:id')
   @RequireAuth()
-  async getLocked(@Param('id') id: string, @Req() req: any) {
+  async getLocked(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     const userId = getNumericUserId(req);
     return this.notesService.getLockedNote(+id, userId);
   }
 
   @Get(':id')
-  async findOne(@Param('id') id: string, @Req() req: any) {
+  async findOne(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     const userId = getNumericUserId(req);
     return this.notesService.findOneByAccess(+id, userId);
   }
@@ -90,8 +102,8 @@ export class NotesController {
   @RequireAuth()
   async update(
     @Param('id') id: string,
-    @Body() payload: any,
-    @Req() req: any,
+    @Body() payload: UpdateNoteDto,
+    @Req() req: AuthenticatedRequest,
   ) {
     const userId = getNumericUserId(req);
     return this.notesService.update(+id, payload, userId);
@@ -99,14 +111,14 @@ export class NotesController {
 
   @Delete('all')
   @RequireAuth()
-  async deleteAll(@Req() req: any) {
+  async deleteAll(@Req() req: AuthenticatedRequest) {
     const userId = getNumericUserId(req);
     return this.notesService.deleteAll(userId);
   }
 
   @Delete(':id')
   @RequireAuth()
-  async remove(@Param('id') id: string, @Req() req: any) {
+  async remove(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     const userId = getNumericUserId(req);
     return this.notesService.remove(+id, userId);
   }

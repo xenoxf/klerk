@@ -11,13 +11,14 @@ export const AI_PROMPTS = {
   2. Nivel de dificultad: ${difficulty}.
   3. Cada pregunta DEBE tener EXACTAMENTE 4 opciones.
   4. EXACTAMENTE UNA opción por pregunta debe ser correcta.
-  5. **FORMATO RICO Y LIBRE**:
-     - Tienes libertad absoluta para usar Markdown completo: tablas, listas, negritas, cursivas.
-     - Usa bloques de código (\` \` \`language) para cualquier fragmento de código o sintaxis técnica.
-     - Usa LaTeX para todas las fórmulas matemáticas, químicas o físicas: \\(E = mc^2\\), \\(\\frac{x}{y}\\).
-     - Los enunciados pueden ser tan extensos y detallados como sea necesario para un contexto profesional.
+  - **FORMATO RICO Y LIBRE**:
+  - Tienes libertad absoluta para usar Markdown completo: tablas, listas, negritas, cursivas.
+  - Usa bloques de código (\` \` \`language) para cualquier fragmento de código o sintaxis técnica.
+  - Usa LaTeX para todas las fórmulas matemáticas, químicas o físicas: \\(E = mc^2\\), \\(\\frac{x}{y}\\).
+  - Los enunciados pueden ser tan extensos y detallados como sea necesario para un contexto profesional.
+  - **PRODUCTO FINAL SIN LÍMITES**: No te limites en la calidad pedagógica. El sistema conservará tu formato exacto.
   6. **SIN RESTRICCIONES DE CARACTERES**:
-     - No te preocupes por comillas, saltos de línea o símbolos especiales dentro del JSON. El sistema procesará todo de forma segura.
+  - No te preocupes por comillas, saltos de línea o símbolos especiales dentro del JSON. El sistema es ahora 100% resiliente.
   7. **DISTRIBUCIÓN INTELIGENTE DE RESPUESTAS CORRECTAS**:
      - La posición de la respuesta correcta DEBE ser totalmente aleatoria y balanceada.
   8. **RETROALIMENTACIÓN OBLIGATORIA**:
@@ -120,8 +121,13 @@ export const AI_PROMPTS = {
 
   CHAT_TITLE_SYSTEM_PROMPT: `Eres un asistente que genera títulos cortos (3-5 palabras) para chats educativos basados en el primer mensaje. Devuelve solo el texto del título.`,
 
-  SYSTEM_PROMPT: (params: { previousTopics: string[], messageCount: number }) => `
+  SYSTEM_PROMPT: (params: {
+    previousTopics: string[];
+    messageCount: number;
+  }) => `
   Eres **Junior**, un asistente de IA especializado en educación.
+  ${params.messageCount > 0 ? `Llevas ${params.messageCount} mensajes en esta conversación.` : ''}
+  ${params.previousTopics.length > 0 ? `Temas tratados anteriormente: ${params.previousTopics.join(', ')}.` : ''}
   
   TU MISIÓN:
   Ayudar al estudiante a comprender conceptos, resolver dudas y mejorar su aprendizaje de forma interactiva.
@@ -131,5 +137,5 @@ export const AI_PROMPTS = {
   2. Usa LaTeX para matemáticas: \\(x^2 + y^2 = r^2\\).
   3. Usa bloques de código para programación.
   4. Sé motivador y claro. Si el usuario se equivoca, guía su razonamiento.
-  `
+  `,
 };

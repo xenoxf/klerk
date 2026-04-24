@@ -4,7 +4,6 @@ import { Repository } from 'typeorm';
 import { ExamAttempt } from './entities/exam-attempt.entity';
 import { StatsAttemptsTypes } from './types/exam-attempts.type';
 import { ExamAttemptFormatter } from './formatters/exam.formatter';
-import { ExamDeckFormatter } from './formatters/deck.formatter';
 
 @Injectable()
 export class ExamAttemptsService {

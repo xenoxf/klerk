@@ -5,6 +5,7 @@ import { Message } from './entities/message.entity';
 import { Chat } from './entities/chat.entity';
 import { GeminiService } from '../gemini/gemini.service';
 import { CreditsService } from '../credits/credits.service';
+import { Content } from '@google/generative-ai';
 
 @Injectable()
 export class MessagesService {
@@ -77,11 +78,11 @@ export class MessagesService {
     }
 
     // Get conversation context from the ACTUAL chat being used
-    let recentMessages: any[] = [];
+    let recentMessages: Message[] = [];
     if (chat) {
       recentMessages = await this.messageRepo
         .createQueryBuilder('message')
-        .select(['message.prompt', 'message.response'])
+        .select(['message.prompt', 'message.response', 'message.createdAt'])
         .where('message.chatId = :chatId', { chatId: chat.id })
         .orderBy('message.createdAt', 'DESC')
         .limit(5)
@@ -89,11 +90,17 @@ export class MessagesService {
       recentMessages = recentMessages.reverse();
     }
 
-    const conversationHistory = recentMessages.map((msg) => ({
-      prompt: msg.prompt,
-      response: msg.response,
-      createdAt: msg.createdAt,
-    }));
+    const conversationHistory: Content[] = [];
+    recentMessages.forEach((msg) => {
+      conversationHistory.push({
+        role: 'user',
+        parts: [{ text: msg.prompt }],
+      });
+      conversationHistory.push({
+        role: 'model',
+        parts: [{ text: msg.response }],
+      });
+    });
 
     // Yield credits info first
     yield `data: ${JSON.stringify({ type: 'credits', remaining: creditStatus.remaining, total: creditStatus.total })}\n\n`;
@@ -199,11 +206,11 @@ export class MessagesService {
     }
 
     // Obtener solo últimos 5 mensajes para contexto (no todo el historial)
-    let recentMessages: any[] = [];
+    let recentMessages: Message[] = [];
     if (chat) {
       recentMessages = await this.messageRepo
         .createQueryBuilder('message')
-        .select(['message.prompt', 'message.response'])
+        .select(['message.prompt', 'message.response', 'message.createdAt'])
         .where('message.chatId = :chatId', { chatId: chat.id })
         .orderBy('message.createdAt', 'DESC')
         .limit(5)
@@ -212,11 +219,17 @@ export class MessagesService {
       recentMessages = recentMessages.reverse();
     }
 
-    const conversationHistory = recentMessages.map((msg) => ({
-      prompt: msg.prompt,
-      response: msg.response,
-      createdAt: msg.createdAt,
-    }));
+    const conversationHistory: Content[] = [];
+    recentMessages.forEach((msg) => {
+      conversationHistory.push({
+        role: 'user',
+        parts: [{ text: msg.prompt }],
+      });
+      conversationHistory.push({
+        role: 'model',
+        parts: [{ text: msg.response }],
+      });
+    });
 
     let aiResponse = '';
 

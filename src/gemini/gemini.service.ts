@@ -1,8 +1,14 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { GoogleGenerativeAI, GenerativeModel } from '@google/generative-ai';
+import {
+  GoogleGenerativeAI,
+  GenerativeModel,
+  SchemaType,
+  Content,
+  GenerationConfig,
+  ResponseSchema,
+} from '@google/generative-ai';
 import { AI_PROMPTS } from './AI_PROMPTS';
 
-// Available Gemini models for fallback chain
 const MODELS = [
   'gemini-2.5-flash-lite',
   'gemini-2.5-flash',
@@ -11,11 +17,6 @@ const MODELS = [
 ] as const;
 
 type ModelName = (typeof MODELS)[number];
-
-interface RetryableError extends Error {
-  code?: number;
-  status?: number;
-}
 
 export interface AiMetadata {
   title: string;
@@ -58,73 +59,20 @@ export interface CardResponse {
 }
 
 /**
- * Advanced State-Machine Parser to sanitize raw AI output.
- * It identifies all string values in a JSON-like structure and base64-encodes them 
- * BEFORE the native JSON.parse() is called, ensuring 100% resilience against unescaped chars.
+ * El extractor ahora es mínimo. Solo encuentra los límites del objeto.
+ * NO limpia ni modifica el contenido interno (Markdown manda).
  */
-class Base64JsonTransformer {
-  static transform(raw: string): string {
-    if (!raw) return "";
-    
+class JsonExtractor {
+  static extract(raw: string): string {
+    if (!raw) return '';
     let text = raw.trim();
-    // Remove markdown fences
-    text = text.replace(/```json\s*/gi, "").replace(/```/g, "");
-    
-    let result = "";
-    let i = 0;
-    let inString = false;
-    let currentString = "";
-    let stringStartChar = '';
-    let isKey = true; // Heuristic to identify if we are in a key or a value
-
-    while (i < text.length) {
-      const char = text[i];
-
-      if (char === '"' || char === "'") {
-        if (!inString) {
-          // Starting a string
-          inString = true;
-          stringStartChar = char;
-          result += char;
-        } else if (stringStartChar === char) {
-          // Potential end of string
-          let lookAhead = i + 1;
-          while (lookAhead < text.length && /\s/.test(text[lookAhead])) lookAhead++;
-          
-          const nextChar = text[lookAhead];
-          const isActuallyEnd = nextChar === ':' || nextChar === ',' || nextChar === '}' || nextChar === ']' || lookAhead >= text.length;
-
-          if (isActuallyEnd) {
-            if (isKey) {
-              result += currentString + char;
-              if (nextChar === ':') isKey = false;
-            } else {
-              // IT'S A VALUE! Base64 encode it
-              const encoded = Buffer.from(currentString, 'utf-8').toString('base64');
-              result += encoded + char;
-              isKey = true; 
-            }
-            inString = false;
-            currentString = "";
-          } else {
-            // It was an unescaped quote inside the string!
-            currentString += char;
-          }
-        } else {
-          currentString += char;
-        }
-      } else {
-        if (inString) {
-          currentString += char;
-        } else {
-          result += char;
-          if (char === ',' || char === '[' || char === '{') isKey = true;
-        }
-      }
-      i++;
+    text = text.replace(/```json\s*/gi, '').replace(/```/g, '');
+    const start = text.indexOf('{');
+    const end = text.lastIndexOf('}');
+    if (start !== -1 && end !== -1 && end > start) {
+      return text.substring(start, end + 1);
     }
-
-    return result;
+    return text;
   }
 }
 
@@ -152,74 +100,250 @@ export class GeminiService {
     }
   }
 
-  private getModel(name: ModelName = MODELS[0]): GenerativeModel {
-    return this.genAI.getGenerativeModel({ model: name });
+  private getModel(
+    name: ModelName = MODELS[0],
+    schema?: ResponseSchema,
+  ): GenerativeModel {
+    const config: {
+      model: ModelName;
+      generationConfig?: GenerationConfig;
+    } = { model: name };
+
+    if (schema) {
+      config.generationConfig = {
+        responseMimeType: 'application/json',
+        responseSchema: schema,
+      };
+    }
+    return this.genAI.getGenerativeModel(config);
   }
 
-  private async generateText(prompt: string): Promise<string> {
+  private async generateWithSchema(
+    prompt: string,
+    schema: ResponseSchema,
+  ): Promise<string> {
     for (const modelName of MODELS) {
       let keysTried = 0;
       while (keysTried < this.apiKeys.length) {
         try {
-          const model = this.getModel(modelName);
+          const model = this.getModel(modelName, schema);
           const result = await model.generateContent(prompt);
           const text = result.response.text();
           if (text) return text.trim();
           throw new Error('Empty');
-        } catch (error) {
-          const code = (error as any).status || (error as any).code;
+        } catch (error: unknown) {
+          const err = error as { status?: number; code?: number | string };
+          const code = err.status || err.code;
           if (code === 429 && keysTried < this.apiKeys.length - 1) {
             this.rotateKey();
             keysTried++;
             continue;
           }
-          break; // Try next model
+          this.logger.warn(
+            `Model ${modelName} error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          );
+          break;
         }
       }
     }
     throw new Error('All models failed');
   }
 
-  private parseSafeJson<T>(raw: string): T {
-    const transformed = Base64JsonTransformer.transform(raw);
-    try {
-      return JSON.parse(transformed);
-    } catch (e) {
-      this.logger.error(`Parsing failed. Transformed: ${transformed.substring(0, 100)}...`);
-      throw e;
-    }
-  }
+  // ==================== SCHEMAS ====================
+
+  private EXAM_SCHEMA: ResponseSchema = {
+    type: SchemaType.OBJECT,
+    properties: {
+      questions: {
+        type: SchemaType.ARRAY,
+        items: {
+          type: SchemaType.OBJECT,
+          properties: {
+            question: { type: SchemaType.STRING },
+            explanation: { type: SchemaType.STRING },
+            contextId: { type: SchemaType.STRING },
+            contextContent: { type: SchemaType.STRING },
+            options: {
+              type: SchemaType.ARRAY,
+              items: {
+                type: SchemaType.OBJECT,
+                properties: {
+                  text: { type: SchemaType.STRING },
+                  isCorrect: { type: SchemaType.BOOLEAN },
+                  feedback: { type: SchemaType.STRING },
+                },
+                required: ['text', 'isCorrect'],
+              },
+            },
+          },
+          required: ['question', 'explanation', 'options'],
+        },
+      },
+      metadata: {
+        type: SchemaType.OBJECT,
+        properties: {
+          title: { type: SchemaType.STRING },
+          description: { type: SchemaType.STRING },
+          area: { type: SchemaType.STRING },
+          tema: { type: SchemaType.STRING },
+        },
+        required: ['title'],
+      },
+    },
+    required: ['questions', 'metadata'],
+  };
+
+  private NOTE_SCHEMA: ResponseSchema = {
+    type: SchemaType.OBJECT,
+    properties: {
+      notes: {
+        type: SchemaType.ARRAY,
+        items: {
+          type: SchemaType.OBJECT,
+          properties: {
+            title: { type: SchemaType.STRING },
+            content: { type: SchemaType.STRING },
+            topic: { type: SchemaType.STRING },
+          },
+          required: ['title', 'content'],
+        },
+      },
+      metadata: {
+        type: SchemaType.OBJECT,
+        properties: {
+          title: { type: SchemaType.STRING },
+          description: { type: SchemaType.STRING },
+          area: { type: SchemaType.STRING },
+          tema: { type: SchemaType.STRING },
+        },
+        required: ['title'],
+      },
+    },
+    required: ['notes', 'metadata'],
+  };
+
+  private CARD_SCHEMA: ResponseSchema = {
+    type: SchemaType.OBJECT,
+    properties: {
+      cards: {
+        type: SchemaType.ARRAY,
+        items: {
+          type: SchemaType.OBJECT,
+          properties: {
+            front: { type: SchemaType.STRING },
+            back: { type: SchemaType.STRING },
+            hint: { type: SchemaType.STRING },
+          },
+          required: ['front', 'back'],
+        },
+      },
+      metadata: {
+        type: SchemaType.OBJECT,
+        properties: {
+          title: { type: SchemaType.STRING },
+          description: { type: SchemaType.STRING },
+          area: { type: SchemaType.STRING },
+          tema: { type: SchemaType.STRING },
+        },
+        required: ['title'],
+      },
+    },
+    required: ['cards', 'metadata'],
+  };
 
   // ==================== FEATURES ====================
 
-  async generateExam(topic: string, num: number, diff: string): Promise<ExamResponse> {
-    const raw = await this.generateText(`${AI_PROMPTS.generateExam(num, diff)}\n\nTema: ${topic}`);
-    return this.parseSafeJson<ExamResponse>(raw);
+  async generateExam(
+    topic: string,
+    num: number,
+    diff: string,
+  ): Promise<ExamResponse> {
+    const raw = await this.generateWithSchema(
+      `${AI_PROMPTS.generateExam(num, diff)}\n\nTema: ${topic}`,
+      this.EXAM_SCHEMA,
+    );
+    return JSON.parse(JsonExtractor.extract(raw));
   }
 
-  async generateIcfesExam(topic: string, num: number, diff: string): Promise<ExamResponse> {
-    const raw = await this.generateText(`${AI_PROMPTS.generateIcfesExam(num, diff)}\n\nTema: ${topic}`);
-    return this.parseSafeJson<ExamResponse>(raw);
+  async generateIcfesExam(
+    topic: string,
+    num: number,
+    diff: string,
+  ): Promise<ExamResponse> {
+    const raw = await this.generateWithSchema(
+      `${AI_PROMPTS.generateIcfesExam(num, diff)}\n\nTema: ${topic}`,
+      this.EXAM_SCHEMA,
+    );
+    return JSON.parse(JsonExtractor.extract(raw));
   }
 
-  async generateNote(topic: string, num: number, detail: string): Promise<NoteResponse> {
-    const raw = await this.generateText(`${AI_PROMPTS.generateNote(num, detail)}\n\nTema: ${topic}`);
-    return this.parseSafeJson<NoteResponse>(raw);
+  async generateNote(
+    topic: string,
+    num: number,
+    detail: string,
+  ): Promise<NoteResponse> {
+    const raw = await this.generateWithSchema(
+      `${AI_PROMPTS.generateNote(num, detail)}\n\nTema: ${topic}`,
+      this.NOTE_SCHEMA,
+    );
+    return JSON.parse(JsonExtractor.extract(raw));
   }
 
   async generateFlashcards(topic: string, num: number): Promise<CardResponse> {
-    const raw = await this.generateText(`${AI_PROMPTS.generateFlashcards(num)}\n\nTema: ${topic}`);
-    return this.parseSafeJson<CardResponse>(raw);
+    const raw = await this.generateWithSchema(
+      `${AI_PROMPTS.generateFlashcards(num)}\n\nTema: ${topic}`,
+      this.CARD_SCHEMA,
+    );
+    return JSON.parse(JsonExtractor.extract(raw));
   }
 
-  async generateEducationalChatResponse(msg: string, ctx?: string, history?: any[]) {
-    const prompt = `${AI_PROMPTS.SYSTEM_PROMPT({ previousTopics: [], messageCount: history?.length || 0 })}\n\nUser: ${msg}`;
-    const response = await this.generateText(prompt);
-    return { response };
+  async generateEducationalChatResponse(
+    msg: string,
+    ctx?: string,
+    history?: Content[],
+  ) {
+    let historyText = '';
+    if (history && history.length > 0) {
+      historyText = history
+        .map((h) => {
+          const role = h.role === 'user' ? 'User' : 'Assistant';
+          const text = h.parts.map((p) => p.text).join(' ');
+          return `${role}: ${text}`;
+        })
+        .join('\n');
+    }
+
+    const systemPrompt = AI_PROMPTS.SYSTEM_PROMPT({
+      previousTopics: [],
+      messageCount: history?.length || 0,
+    });
+    const prompt = `${systemPrompt}\n\n${historyText}\nUser: ${msg}`;
+
+    const result = await this.getModel(MODELS[0]).generateContent(prompt);
+    return { response: result.response.text().trim() };
   }
 
-  async *generateEducationalChatResponseStream(msg: string, history?: any[]) {
-    const prompt = `${AI_PROMPTS.SYSTEM_PROMPT({ previousTopics: [], messageCount: history?.length || 0 })}\n\nUser: ${msg}`;
+  async *generateEducationalChatResponseStream(
+    msg: string,
+    history?: Content[],
+  ) {
+    let historyText = '';
+    if (history && history.length > 0) {
+      historyText = history
+        .map((h) => {
+          const role = h.role === 'user' ? 'User' : 'Assistant';
+          const text = h.parts.map((p) => p.text).join(' ');
+          return `${role}: ${text}`;
+        })
+        .join('\n');
+    }
+
+    const systemPrompt = AI_PROMPTS.SYSTEM_PROMPT({
+      previousTopics: [],
+      messageCount: history?.length || 0,
+    });
+    const prompt = `${systemPrompt}\n\n${historyText}\nUser: ${msg}`;
+
     const result = await this.getModel(MODELS[0]).generateContentStream(prompt);
     for await (const chunk of result.stream) {
       const text = chunk.text();
@@ -228,7 +352,12 @@ export class GeminiService {
   }
 
   async generateChatTitleFromMessage(msg: string): Promise<string> {
-    const raw = await this.getModel(MODELS[0]).generateContent(AI_PROMPTS.CHAT_TITLE_SYSTEM_PROMPT + "\n\n" + msg.substring(0, 100));
-    return raw.response.text().trim().replace(/^["']|["']$/g, '');
+    const result = await this.getModel(MODELS[0]).generateContent(
+      AI_PROMPTS.CHAT_TITLE_SYSTEM_PROMPT + '\n\n' + msg.substring(0, 100),
+    );
+    return result.response
+      .text()
+      .trim()
+      .replace(/^["']|["']$/g, '');
   }
 }

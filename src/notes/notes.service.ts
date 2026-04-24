@@ -107,15 +107,16 @@ export class NotesService {
 
     const savedNote = await this.noteRepo.save(note);
 
-    for (let i = 0; i < normalizedNotes.length; i++) {
-      const item = normalizedNotes[i];
-      const noteContent = this.noteContentRepo.create({
-        content: item.markdown,
-        noteId: savedNote.id,
-        userId,
-      });
-      await this.noteContentRepo.save(noteContent);
-    }
+    await Promise.all(
+      normalizedNotes.map((item) => {
+        const noteContent = this.noteContentRepo.create({
+          content: item.markdown,
+          noteId: savedNote.id,
+          userId,
+        });
+        return this.noteContentRepo.save(noteContent);
+      }),
+    );
 
     return {
       message: 'Notas creadas correctamente',
