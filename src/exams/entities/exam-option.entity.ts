@@ -15,6 +15,6 @@ export class ExamOption {
   @Column({ type: 'text', nullable: true })
   feedback?: string;
 
-  @ManyToOne(() => ExamQuestion, (q) => q.options)
+  @ManyToOne(() => ExamQuestion, (q) => q.options, { onDelete: 'CASCADE' })
   question: ExamQuestion;
 }

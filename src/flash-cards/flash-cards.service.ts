@@ -1,40 +1,45 @@
 import {
   Injectable,
-  BadRequestException,
   NotFoundException,
   UnauthorizedException,
+  BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { GeminiService } from '../gemini/gemini.service';
+import { Card } from './entities/card.entity';
+import { FlashCard } from './entities/flash-card.entity';
 import {
   CreditsService,
   calculateFlashcardCost,
 } from '../credits/credits.service';
+import { GeminiService, CardResponse } from '../gemini/gemini.service';
 import { LikesService } from '../likes/likes.service';
-import { FlashCard } from './entities/flash-card.entity';
-import { Card } from './entities/card.entity';
-import { GenerateFlashCardsDto } from './dto/generate-flash-cards.dto';
-import { CardResponse } from './types';
 import {
-  shuffleArray,
   isPublicAccess,
   normalizeAccess,
+  shuffleArray,
 } from '../common/utils/shared.utils';
 
 @Injectable()
 export class FlashCardsService {
   constructor(
-    private readonly geminiService: GeminiService,
-    private readonly creditsService: CreditsService,
-    private readonly likesService: LikesService,
-    @InjectRepository(FlashCard)
-    private readonly flashCardRepo: Repository<FlashCard>,
     @InjectRepository(Card)
-    private readonly cardRepo: Repository<Card>,
+    private cardRepo: Repository<Card>,
+    @InjectRepository(FlashCard)
+    private flashCardRepo: Repository<FlashCard>,
+    private creditsService: CreditsService,
+    private geminiService: GeminiService,
+    private likesService: LikesService,
   ) {}
 
-  async generateFrom(input: GenerateFlashCardsDto, userId: number) {
+  async generate(
+    input: {
+      reference: string;
+      quantity: number;
+      acceso?: string;
+    },
+    userId: number,
+  ) {
     const dynamicCost = calculateFlashcardCost(input.quantity, input.reference);
 
     const creditStatus = await this.creditsService.consumeCredits(
@@ -48,7 +53,11 @@ export class FlashCardsService {
       input.quantity,
     );
 
-    const { title, description, area, tema } = response.metadata;
+    const metadata = response.metadata || { title: 'Mazo', description: '' };
+    const title = metadata.title || 'Mazo de Flashcards';
+    const description = metadata.description || '';
+    const area = metadata.area || '';
+    const tema = metadata.tema || '';
 
     const card = this.cardRepo.create({
       area,
@@ -61,22 +70,24 @@ export class FlashCardsService {
     });
     const savedCard = await this.cardRepo.save(card);
 
-    const createdFlashCards = [];
-    for (const flashCard of response.cards) {
-      if (!flashCard.front || !flashCard.back) {
-        throw new Error('Flashcard generada sin frente o reverso.');
-      }
+    const cards = response.cards || [];
+    const createdFlashCards = await Promise.all(
+      cards.map((flashCard) => {
+        if (!flashCard.front || !flashCard.back) {
+          throw new Error('Flashcard generada sin frente o reverso.');
+        }
 
-      const fc = this.flashCardRepo.create({
-        front: flashCard.front,
-        back: flashCard.back,
-        hint: flashCard.hint || null,
-        card: savedCard,
-        userId,
-      });
-      await this.flashCardRepo.save(fc);
-      createdFlashCards.push(fc);
-    }
+        const fc = this.flashCardRepo.create({
+          front: flashCard.front,
+          back: flashCard.back,
+          hint: flashCard.hint || null,
+          card: savedCard,
+          userId,
+        });
+        return this.flashCardRepo.save(fc);
+      }),
+    );
+
     return {
       message: 'Flashcards creadas exitosamente',
       cardId: savedCard.id,
@@ -104,11 +115,6 @@ export class FlashCardsService {
     return code;
   }
 
-  /**
-   * Refactor de Card para frontend - solo datos necesarios para mostrar
-   * Excluye: code, userId, acceso, createdAt (datos internos)
-   * NOTA: Usa 'flashcards' (minuscula) para consistencia con el frontend
-   */
   klekRefactor(card: Card) {
     return {
       id: card.id,
@@ -125,16 +131,13 @@ export class FlashCardsService {
     };
   }
 
-  /**
-   * Refactor para lista de decks - solo datos para listar
-   */
   async deckRefactor(
     cards: Card[] | Card,
     userId?: number,
     likesData?: { counts: Map<number, number>; userLiked: Set<number> },
   ) {
     if (Array.isArray(cards)) {
-      return cards.map((card) => ({
+      return (cards as Card[]).map((card) => ({
         id: card.id,
         title: card.title,
         description: card.description,
@@ -148,16 +151,16 @@ export class FlashCardsService {
       }));
     }
     return {
-      id: cards.id,
-      title: cards.title,
-      description: cards.description,
-      area: cards.area,
-      tema: cards.tema,
-      creatorName: cards.user?.name || 'Anónimo',
-      likesCount: likesData?.counts?.get(cards.id) || 0,
-      userLiked: likesData?.userLiked?.has(cards.id) || false,
-      canDelete: userId ? cards.userId === userId : false,
-      totalCards: cards.flashcards?.length || 0,
+      id: (cards as Card).id,
+      title: (cards as Card).title,
+      description: (cards as Card).description,
+      area: (cards as Card).area,
+      tema: (cards as Card).tema,
+      creatorName: (cards as Card).user?.name || 'Anónimo',
+      likesCount: likesData?.counts?.get((cards as Card).id) || 0,
+      userLiked: likesData?.userLiked?.has((cards as Card).id) || false,
+      canDelete: userId ? (cards as Card).userId === userId : false,
+      totalCards: (cards as Card).flashcards?.length || 0,
     };
   }
 
@@ -244,21 +247,15 @@ export class FlashCardsService {
     }
   }
 
-  /**
-   * Get card in locked format - ONLY for owner
-   */
   async getLockedCard(id: number, userId: number) {
     const card = await this.cardRepo.findOne({
       where: { id },
       relations: ['flashcards', 'user'],
     });
     if (!card) throw new NotFoundException('Card not found');
-
-    // ONLY the owner can access locked format
     if (card.userId !== userId) {
       throw new UnauthorizedException('No tienes permiso para ver este mazo');
     }
-
     return this.klekRefactor(card);
   }
 
@@ -302,17 +299,19 @@ export class FlashCardsService {
     );
 
     if (Array.isArray(payload.flashcards) && payload.flashcards.length > 0) {
-      for (const flash of payload.flashcards) {
-        await this.flashCardRepo.save(
-          this.flashCardRepo.create({
-            front: flash.front,
-            back: flash.back,
-            hint: flash.hint ?? null,
-            card,
-            userId,
-          }),
-        );
-      }
+      await Promise.all(
+        payload.flashcards.map((flash) => {
+          return this.flashCardRepo.save(
+            this.flashCardRepo.create({
+              front: flash.front,
+              back: flash.back,
+              hint: flash.hint ?? null,
+              card,
+              userId,
+            }),
+          );
+        }),
+      );
     }
 
     return this.getCardById(card.id, userId);
@@ -341,15 +340,6 @@ export class FlashCardsService {
     return this.getCardById(id, userId);
   }
 
-  // ==================== INTELLIGENT SEARCH ====================
-
-  /**
-   * Búsqueda inteligente de flashcards con soporte para:
-   * - Búsqueda por texto en título, descripción, tema y área
-   * - Búsqueda por código exacto
-   * - Búsqueda en el frente y reverso de las tarjetas
-   * - Paginación con offset y limit (20 items por página)
-   */
   async searchFlashCards(
     query: string,
     userId?: number,

@@ -14,6 +14,7 @@ import { CreateGlobalChatMessageDto } from './dto/create-global-chat-message.dto
 import { JwtGuard } from '../auth/jwt/jwt.guard';
 import { RequireAuthGuard } from '../common/guards/require-auth/require-auth.guard';
 import { getNumericUserId } from '../common/utils/shared.utils';
+import { AuthenticatedRequest } from '../common/types/request.type';
 
 @UseGuards(JwtGuard)
 @Controller('global-chat')
@@ -27,19 +28,25 @@ export class GlobalChatController {
 
   @Post('message')
   @UseGuards(JwtGuard, RequireAuthGuard)
-  async create(@Body() createDto: CreateGlobalChatMessageDto, @Req() req: any) {
+  async create(
+    @Body() createDto: CreateGlobalChatMessageDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
     return this.globalChatService.create(createDto, getNumericUserId(req));
   }
 
   @Get('user/messages')
   @UseGuards(JwtGuard, RequireAuthGuard)
-  async findByUser(@Req() req: any) {
+  async findByUser(@Req() req: AuthenticatedRequest) {
     return this.globalChatService.findByUser(getNumericUserId(req));
   }
 
   @Delete('message/:id')
   @UseGuards(JwtGuard, RequireAuthGuard)
-  async remove(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+  async remove(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: AuthenticatedRequest,
+  ) {
     return this.globalChatService.remove(id, getNumericUserId(req));
   }
 }

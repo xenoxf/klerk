@@ -19,6 +19,7 @@ import { CreateExamDto } from './dto/create-exam.dto';
 import { UpdateExamDto } from './dto/update-exam.dto';
 import { RequireAuthGuard } from '../common/guards/require-auth/require-auth.guard';
 import { getNumericUserId } from '../common/utils/shared.utils';
+import { AuthenticatedRequest } from '../common/types/request.type';
 
 @UseGuards(JwtGuard)
 @Controller('exams')
@@ -26,29 +27,29 @@ export class ExamsController {
   constructor(
     private examsService: ExamsService,
     private examAttemptsService: ExamAttemptsService,
-  ) {}
+  ) { }
 
   // ==================== BASIC CRUD ====================
 
   @Get()
-  getAll(@Req() req: any) {
-    return this.examsService.getPublicExamsDeck(req?.user?.id);
+  getAll(@Req() req: AuthenticatedRequest) {
+    return this.examsService.getPublicExamsDeck(req.user.id);
   }
 
-  @UseGuards(JwtGuard, RequireAuthGuard)
+  @UseGuards(RequireAuthGuard)
   @Get('private')
-  getMyExamsDeck(@Req() req: any) {
+  getMyExamsDeck(@Req() req: AuthenticatedRequest) {
     return this.examsService.getMyExamsDeck(getNumericUserId(req));
   }
 
   @Get('public')
-  getPublicExamsDeck(@Req() req: any) {
-    return this.examsService.getPublicExamsDeck(req?.user?.id);
+  getPublicExamsDeck(@Req() req: AuthenticatedRequest) {
+    return this.examsService.getPublicExamsDeck(req.user.id);
   }
 
   @Get('code/:code')
-  getByCode(@Param('code') code: string, @Req() req: any) {
-    return this.examsService.getExamByCode(code, req?.user?.id);
+  getByCode(@Param('code') code: string, @Req() req: AuthenticatedRequest) {
+    return this.examsService.getExamByCode(code, req.user.id);
   }
 
   /**
@@ -57,7 +58,7 @@ export class ExamsController {
    */
   @Get('play/:id') getForPlay(
     @Param('id', ParseIntPipe) id: number,
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
   ) {
     return this.examsService.getByIdForPlay(id, getNumericUserId(req));
   }
@@ -66,12 +67,15 @@ export class ExamsController {
    * Get exam in locked format - ONLY for owner
    */
   @Get('locked/:id')
-  @UseGuards(JwtGuard, RequireAuthGuard)
-  getLocked(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+  @UseGuards(RequireAuthGuard)
+  getLocked(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: AuthenticatedRequest,
+  ) {
     return this.examsService.getLockedExam(id, getNumericUserId(req));
   }
 
-  @Get('deck') getExamsDeck(@Req() req: any) {
+  @Get('deck') getExamsDeck(@Req() req: AuthenticatedRequest) {
     return this.examsService.getMyExamsDeck(getNumericUserId(req));
   }
 
@@ -81,11 +85,11 @@ export class ExamsController {
     @Query('limit', ParseIntPipe) limit: number = 20,
     @Query('offset', ParseIntPipe) offset: number = 0,
     @Query('searchInQuestions') searchInQuestions: string = 'true',
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
   ) {
     return this.examsService.searchExams(
       query,
-      req?.user?.id,
+      req.user.id,
       limit,
       offset,
       searchInQuestions === 'true',
@@ -94,7 +98,10 @@ export class ExamsController {
 
   @Get('score')
   @UseGuards(JwtGuard, RequireAuthGuard)
-  async updateExamScore(@Query() query: UpdateExamDto, @Req() req: any) {
+  async updateExamScore(
+    @Query() query: UpdateExamDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
     const userId = getNumericUserId(req);
     const decks = await this.examsService.updateExamScore(query, userId);
 
@@ -104,15 +111,16 @@ export class ExamsController {
       // examResult can be single exam or array, handle both
       const exam = Array.isArray(examResult) ? examResult[0] : examResult;
       if (exam && 'totalQuestions' in exam && 'title' in exam) {
+        const examAny = exam as any;
         const correctAnswers = Math.round(
-          (query.score / 100) * (exam as any).totalQuestions,
+          (query.score / 100) * examAny.totalQuestions,
         );
         await this.examAttemptsService.recordAttempt(
           userId,
           query.id,
           correctAnswers,
-          (exam as any).totalQuestions,
-          (exam as any).title || 'Unknown Exam',
+          examAny.totalQuestions,
+          examAny.title || 'Unknown Exam',
           query.userAnswers,
         );
       }
@@ -122,13 +130,19 @@ export class ExamsController {
   }
 
   @Get(':id')
-  getById(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
-    return this.examsService.getByIdWithAccess(id, req?.user?.id);
+  getById(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.examsService.getByIdWithAccess(id, req.user.id);
   }
 
   @Delete(':id')
   @UseGuards(JwtGuard, RequireAuthGuard)
-  delete(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+  delete(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: AuthenticatedRequest,
+  ) {
     return this.examsService.delete(id, getNumericUserId(req));
   }
 
@@ -136,7 +150,10 @@ export class ExamsController {
 
   @Post('generate/topic_or_reference')
   @UseGuards(JwtGuard, RequireAuthGuard)
-  generateFromTopic(@Body() input: GenerateExamDto, @Req() req: any) {
+  generateFromTopic(
+    @Body() input: GenerateExamDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
     return this.examsService.generateExam(input, getNumericUserId(req));
   }
 
@@ -144,7 +161,7 @@ export class ExamsController {
 
   @Post()
   @UseGuards(JwtGuard, RequireAuthGuard)
-  create(@Body() body: CreateExamDto, @Req() req: any) {
+  create(@Body() body: CreateExamDto, @Req() req: AuthenticatedRequest) {
     return this.examsService.create(body, getNumericUserId(req));
   }
 
@@ -153,14 +170,14 @@ export class ExamsController {
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() body: UpdateExamDto,
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
   ) {
     return this.examsService.update(id, body, getNumericUserId(req));
   }
 
   @UseGuards(JwtGuard, RequireAuthGuard)
   @Delete('all')
-  deleteAll(@Req() req: any) {
+  deleteAll(@Req() req: AuthenticatedRequest) {
     return this.examsService.deleteAll(getNumericUserId(req));
   }
 }

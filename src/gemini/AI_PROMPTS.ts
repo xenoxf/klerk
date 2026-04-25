@@ -138,9 +138,8 @@ Devuelve SOLO el JSON.
      - Para términos técnicos, comandos, valores: usa \`código en línea\`
      - Solo usa bloques de código para: múltiples líneas de código (3+ líneas), estructuras completas
   7. **MARKDOWN en contextos y preguntas**:
-     - Puedes usar tablas, negritas, listas, LaTeX (\\(E = mc^2\\)), bloques de cita
+     - Puedes usar tablas, negritas, listas, LaTeX , bloques de cita, tienes total libertad
      - Los contextos usan markdown completo para presentar información rica
-     - Las preguntas directas usan markdown moderado (negritas, listas cortas)
 
   8. **DISTRIBUCIÓN DE RESPUESTAS CORRECTAS - IMPREDECIBLE**:
      - Posición aleatoria y balanceada entre las 4 opciones

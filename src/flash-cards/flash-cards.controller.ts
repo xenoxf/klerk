@@ -1,120 +1,128 @@
 import {
   Controller,
-  Get,
   Post,
   Body,
+  Req,
+  Get,
   Param,
   Delete,
   Patch,
   UseGuards,
-  Query,
-  ParseIntPipe,
-  Req,
 } from '@nestjs/common';
 import { FlashCardsService } from './flash-cards.service';
-import { JwtGuard } from '../auth/jwt/jwt.guard';
 import { GenerateFlashCardsDto } from './dto/generate-flash-cards.dto';
+import { getNumericUserId } from '../common/utils/shared.utils';
+import { RequireAuth } from '../common/decorators/require-auth.decorator';
+import { AuthenticatedRequest } from '../common/types/request.type';
 import { CreateFlashCardDto } from './dto/create-flash-card.dto';
 import { UpdateFlashCardDto } from './dto/update-flash-card.dto';
-import { RequireAuthGuard } from '../common/guards/require-auth/require-auth.guard';
-import { getNumericUserId } from '../common/utils/shared.utils';
+import { JwtGuard } from 'src/auth/jwt/jwt.guard';
+import { RequireAuthGuard } from 'src/common/guards/require-auth/require-auth.guard';
 
 @UseGuards(JwtGuard)
 @Controller('flash-cards')
 export class FlashCardsController {
-  constructor(private readonly flashCardsService: FlashCardsService) {}
+  constructor(private readonly flashCardsService: FlashCardsService) { }
 
-  // ==================== AI GENERATION ====================
   @Post('generate/topic_or_reference')
-  @UseGuards(JwtGuard, RequireAuthGuard)
-  generate(@Body() input: GenerateFlashCardsDto, @Req() req: any) {
-    return this.flashCardsService.generateFrom(input, getNumericUserId(req));
-  }
-
-  // ==================== BASIC CRUD ====================
-  @Get('public')
-  findAllPublic(@Req() req: any) {
-    return this.flashCardsService.findPublicCardsDeck(req?.user?.id);
-  }
-
-  @Get('private')
-  @UseGuards(JwtGuard, RequireAuthGuard)
-  findMyCards(@Req() req: any) {
-    return this.flashCardsService.findMyCardsDeck(getNumericUserId(req));
-  }
-
-  @Get('search')
-  searchFlashCards(
-    @Query('q') query: string,
-    @Query('limit', ParseIntPipe) limit: number = 20,
-    @Query('offset', ParseIntPipe) offset: number = 0,
-    @Query('searchInCards') searchInCards: string = 'true',
-    @Req() req: any,
+  @RequireAuth()
+  async generate(
+    @Body() input: GenerateFlashCardsDto,
+    @Req() req: AuthenticatedRequest,
   ) {
-    return this.flashCardsService.searchFlashCards(
-      query,
-      req?.user?.id,
-      limit,
-      offset,
-      searchInCards === 'true',
-    );
+    return this.flashCardsService.generate(input, getNumericUserId(req));
   }
 
   @Get()
-  @UseGuards(JwtGuard, RequireAuthGuard)
-  findAllMine(@Req() req: any) {
-    return this.flashCardsService.findMyCardsDeck(getNumericUserId(req));
+  async findAll(@Req() req: AuthenticatedRequest) {
+    const userId = getNumericUserId(req);
+    return this.flashCardsService.findMyCardsDeck(userId);
+  }
+
+  @Get('public')
+  async findPublic(@Req() req: AuthenticatedRequest) {
+    const userId = getNumericUserId(req);
+    return this.flashCardsService.findPublicCardsDeck(userId);
+  }
+
+  @UseGuards(RequireAuthGuard)
+  @Get('private')
+  async findPrivate(@Req() req: AuthenticatedRequest) {
+    const userId = getNumericUserId(req);
+    return this.flashCardsService.findMyCardsDeck(userId);
+  }
+
+  @Get('search')
+  async search(
+    @Req() req: AuthenticatedRequest,
+    @Param('q') q: string,
+    @Param('limit') limit: number,
+    @Param('offset') offset: number,
+  ) {
+    const userId = getNumericUserId(req);
+    return this.flashCardsService.searchFlashCards(q, userId, limit, offset);
   }
 
   @Get('klek/:id')
-  findOne(@Param('id') id: string, @Req() req: any) {
-    return this.flashCardsService.getCardKlekById(+id, req?.user?.id);
+  async getCardKlek(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
+    const userId = getNumericUserId(req);
+    return this.flashCardsService.getCardKlekById(+id, userId);
   }
 
-  /**
-   * Get card in locked format - ONLY for owner
-   */
   @Get('locked/:id')
-  @UseGuards(JwtGuard, RequireAuthGuard)
-  findLocked(@Param('id') id: string, @Req() req: any) {
-    return this.flashCardsService.getLockedCard(+id, getNumericUserId(req));
+  @RequireAuth()
+  async getLocked(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
+    const userId = getNumericUserId(req);
+    return this.flashCardsService.getLockedCard(+id, userId);
   }
 
   @Get('code/:code')
-  findByCode(@Param('code') code: string, @Req() req: any) {
-    return this.flashCardsService.getCardByCode(code, req?.user?.id);
+  async getByCode(
+    @Param('code') code: string,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    const userId = getNumericUserId(req);
+    return this.flashCardsService.getCardByCode(code, userId);
   }
 
   @Get(':id')
-  getById(@Param('id') id: string, @Req() req: any) {
-    return this.flashCardsService.getCardById(+id, req?.user?.id);
+  async findOne(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
+    const userId = getNumericUserId(req);
+    return this.flashCardsService.getCardById(+id, userId);
   }
 
   @Post()
-  @UseGuards(JwtGuard, RequireAuthGuard)
-  create(@Body() body: CreateFlashCardDto, @Req() req: any) {
-    return this.flashCardsService.create(body, getNumericUserId(req));
+  @RequireAuth()
+  async create(
+    @Body() payload: CreateFlashCardDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    const userId = getNumericUserId(req);
+    return this.flashCardsService.create(payload, userId);
   }
 
   @Patch(':id')
-  @UseGuards(JwtGuard, RequireAuthGuard)
-  update(
+  @RequireAuth()
+  async update(
     @Param('id') id: string,
-    @Body() body: UpdateFlashCardDto,
-    @Req() req: any,
+    @Body() payload: UpdateFlashCardDto,
+    @Req() req: AuthenticatedRequest,
   ) {
-    return this.flashCardsService.update(+id, body, getNumericUserId(req));
-  }
-
-  @Delete(':id')
-  @UseGuards(JwtGuard, RequireAuthGuard)
-  remove(@Param('id') id: string, @Req() req: any) {
-    return this.flashCardsService.remove(+id, getNumericUserId(req));
+    const userId = getNumericUserId(req);
+    return this.flashCardsService.update(+id, payload, userId);
   }
 
   @Delete('all')
-  @UseGuards(JwtGuard, RequireAuthGuard)
-  async deleteAll(@Req() req: any) {
-    return this.flashCardsService.deleteAll(getNumericUserId(req));
+  @RequireAuth()
+  async deleteAll(@Req() req: AuthenticatedRequest) {
+    const userId = getNumericUserId(req);
+    return this.flashCardsService.deleteAll(userId);
+  }
+
+  @Delete(':id')
+  @RequireAuth()
+  async remove(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
+    const userId = getNumericUserId(req);
+    return this.flashCardsService.remove(+id, userId);
   }
 }

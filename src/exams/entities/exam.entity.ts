@@ -57,6 +57,8 @@ export class Exam {
   @ManyToOne(() => User, (user) => user.exams)
   user: User;
 
-  @OneToMany(() => ExamQuestion, (eq) => eq.exam)
+  @OneToMany(() => ExamQuestion, (eq) => eq.exam, {
+    onDelete: 'CASCADE'
+  })
   questions: ExamQuestion[];
 }

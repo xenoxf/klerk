@@ -11,6 +11,7 @@ import { LikesService } from './likes.service';
 import { JwtGuard } from '../auth/jwt/jwt.guard';
 import { RequireAuthGuard } from '../common/guards/require-auth/require-auth.guard';
 import { getNumericUserId } from '../common/utils/shared.utils';
+import { AuthenticatedRequest } from '../common/types/request.type';
 
 @UseGuards(JwtGuard)
 @Controller('likes')
@@ -19,7 +20,10 @@ export class LikesController {
 
   @Post('exams/:id')
   @UseGuards(RequireAuthGuard)
-  async toggleExamLike(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+  async toggleExamLike(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: AuthenticatedRequest,
+  ) {
     return this.likesService.toggleLike(getNumericUserId(req), 'exam', id);
   }
 
@@ -27,20 +31,26 @@ export class LikesController {
   @UseGuards(RequireAuthGuard)
   async toggleFlashcardLike(
     @Param('id', ParseIntPipe) id: number,
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
   ) {
     return this.likesService.toggleLike(getNumericUserId(req), 'card', id);
   }
 
   @Post('notes/:id')
   @UseGuards(RequireAuthGuard)
-  async toggleNoteLike(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
+  async toggleNoteLike(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: AuthenticatedRequest,
+  ) {
     return this.likesService.toggleLike(getNumericUserId(req), 'note', id);
   }
 
   @Get('exams/:id')
-  async getExamLikes(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
-    const userId = req?.user?.id ? Number(req.user.id) : undefined;
+  async getExamLikes(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    const userId = req.user?.id ? Number(req.user.id) : undefined;
     const count = await this.likesService.getLikeCount('exam', id);
     const userLiked = userId
       ? await this.likesService.hasUserLiked(userId, 'exam', id)
@@ -51,9 +61,9 @@ export class LikesController {
   @Get('flashcards/:id')
   async getFlashcardLikes(
     @Param('id', ParseIntPipe) id: number,
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
   ) {
-    const userId = req?.user?.id ? Number(req.user.id) : undefined;
+    const userId = req.user?.id ? Number(req.user.id) : undefined;
     const count = await this.likesService.getLikeCount('card', id);
     const userLiked = userId
       ? await this.likesService.hasUserLiked(userId, 'card', id)
@@ -62,8 +72,11 @@ export class LikesController {
   }
 
   @Get('notes/:id')
-  async getNoteLikes(@Param('id', ParseIntPipe) id: number, @Req() req: any) {
-    const userId = req?.user?.id ? Number(req.user.id) : undefined;
+  async getNoteLikes(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    const userId = req.user?.id ? Number(req.user.id) : undefined;
     const count = await this.likesService.getLikeCount('note', id);
     const userLiked = userId
       ? await this.likesService.hasUserLiked(userId, 'note', id)
