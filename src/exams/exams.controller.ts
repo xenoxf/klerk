@@ -18,7 +18,10 @@ import { GenerateExamDto } from './dto/generate-exam.dto';
 import { CreateExamDto } from './dto/create-exam.dto';
 import { UpdateExamDto } from './dto/update-exam.dto';
 import { RequireAuthGuard } from '../common/guards/require-auth/require-auth.guard';
-import { getNumericUserId } from '../common/utils/shared.utils';
+import {
+  getNumericUserId,
+  getOptionalNumericUserId,
+} from '../common/utils/shared.utils';
 import { AuthenticatedRequest } from '../common/types/request.type';
 
 @UseGuards(JwtGuard)
@@ -33,7 +36,7 @@ export class ExamsController {
 
   @Get()
   getAll(@Req() req: AuthenticatedRequest) {
-    return this.examsService.getPublicExamsDeck(req.user.id);
+    return this.examsService.getPublicExamsDeck(getOptionalNumericUserId(req));
   }
 
   @UseGuards(RequireAuthGuard)
@@ -44,12 +47,12 @@ export class ExamsController {
 
   @Get('public')
   getPublicExamsDeck(@Req() req: AuthenticatedRequest) {
-    return this.examsService.getPublicExamsDeck(req.user.id);
+    return this.examsService.getPublicExamsDeck(getOptionalNumericUserId(req));
   }
 
   @Get('code/:code')
   getByCode(@Param('code') code: string, @Req() req: AuthenticatedRequest) {
-    return this.examsService.getExamByCode(code, req.user.id);
+    return this.examsService.getExamByCode(code, getOptionalNumericUserId(req));
   }
 
   /**
@@ -89,7 +92,7 @@ export class ExamsController {
   ) {
     return this.examsService.searchExams(
       query,
-      req.user.id,
+      getOptionalNumericUserId(req),
       limit,
       offset,
       searchInQuestions === 'true',
@@ -134,7 +137,7 @@ export class ExamsController {
     @Param('id', ParseIntPipe) id: number,
     @Req() req: AuthenticatedRequest,
   ) {
-    return this.examsService.getByIdWithAccess(id, req.user.id);
+    return this.examsService.getByIdWithAccess(id, getOptionalNumericUserId(req));
   }
 
   @Delete(':id')

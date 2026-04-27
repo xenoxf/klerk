@@ -12,7 +12,10 @@ import { NotesService } from './notes.service';
 import { GenerateNoteDto } from './dto/create-note.dto';
 import { CreateNoteDto } from './dto/create-note-body.dto';
 import { UpdateNoteDto } from './dto/update-note.dto';
-import { getNumericUserId } from '../common/utils/shared.utils';
+import {
+  getNumericUserId,
+  getOptionalNumericUserId,
+} from '../common/utils/shared.utils';
 import { RequireAuth } from '../common/decorators/require-auth.decorator';
 import { AuthenticatedRequest } from '../common/types/request.type';
 
@@ -31,14 +34,12 @@ export class NotesController {
 
   @Get()
   async findAll(@Req() req: AuthenticatedRequest) {
-    const userId = getNumericUserId(req);
-    return this.notesService.findAll(userId);
+    return this.notesService.findAll(getOptionalNumericUserId(req));
   }
 
   @Get('public')
   async findPublic(@Req() req: AuthenticatedRequest) {
-    const userId = getNumericUserId(req);
-    return this.notesService.findPublic(userId);
+    return this.notesService.findPublic(getOptionalNumericUserId(req));
   }
 
   @Get('private')
@@ -56,10 +57,9 @@ export class NotesController {
     @Param('offset') offset: number,
     @Param('searchInContent') searchInContent: boolean,
   ) {
-    const userId = getNumericUserId(req);
     return this.notesService.searchNotes(
       q,
-      userId,
+      getOptionalNumericUserId(req),
       limit,
       offset,
       searchInContent,
@@ -81,8 +81,7 @@ export class NotesController {
     @Param('code') code: string,
     @Req() req: AuthenticatedRequest,
   ) {
-    const userId = getNumericUserId(req);
-    return this.notesService.findOneByCode(code, userId);
+    return this.notesService.findOneByCode(code, getOptionalNumericUserId(req));
   }
 
   @Get('locked/:id')
@@ -94,8 +93,7 @@ export class NotesController {
 
   @Get(':id')
   async findOne(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
-    const userId = getNumericUserId(req);
-    return this.notesService.findOneByAccess(+id, userId);
+    return this.notesService.findOneByAccess(+id, getOptionalNumericUserId(req));
   }
 
   @Patch(':id')

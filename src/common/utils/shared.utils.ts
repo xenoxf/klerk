@@ -17,6 +17,23 @@ export function getNumericUserId(req: { user?: { id?: unknown } }): number {
 }
 
 /**
+ * Extract numeric user ID from request object if available.
+ * Returns null for guests or invalid IDs instead of throwing.
+ */
+export function getOptionalNumericUserId(req: {
+  user?: { id?: unknown; isGuest?: boolean };
+}): number | null {
+  if (!req.user || req.user.isGuest) {
+    return null;
+  }
+  const userId = Number(req.user?.id);
+  if (isNaN(userId)) {
+    return null;
+  }
+  return userId;
+}
+
+/**
  * Fisher-Yates shuffle algorithm.
  * Returns a new shuffled array without mutating the original.
  */

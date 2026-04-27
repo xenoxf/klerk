@@ -10,7 +10,7 @@ import { AuthGuard } from '@nestjs/passport';
 
 @Injectable()
 export class JwtGuard implements CanActivate {
-  constructor(private readonly jwtService: JwtService) {}
+  constructor(private readonly jwtService: JwtService) { }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<Request>();

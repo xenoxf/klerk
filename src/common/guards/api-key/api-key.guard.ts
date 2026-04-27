@@ -13,8 +13,8 @@ export class ApiKeyGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
     const path = request.path;
 
-    // ✅ Permitir rutas públicas
-    if (PUBLIC_PATHS.has(path)) {
+    // ✅ Permitir rutas públicas o de autenticación
+    if (PUBLIC_PATHS.has(path) || path.startsWith('/auth/')) {
       return true;
     }
 

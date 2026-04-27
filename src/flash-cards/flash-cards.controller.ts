@@ -11,7 +11,10 @@ import {
 } from '@nestjs/common';
 import { FlashCardsService } from './flash-cards.service';
 import { GenerateFlashCardsDto } from './dto/generate-flash-cards.dto';
-import { getNumericUserId } from '../common/utils/shared.utils';
+import {
+  getNumericUserId,
+  getOptionalNumericUserId,
+} from '../common/utils/shared.utils';
 import { RequireAuth } from '../common/decorators/require-auth.decorator';
 import { AuthenticatedRequest } from '../common/types/request.type';
 import { CreateFlashCardDto } from './dto/create-flash-card.dto';
@@ -41,7 +44,7 @@ export class FlashCardsController {
 
   @Get('public')
   async findPublic(@Req() req: AuthenticatedRequest) {
-    const userId = getNumericUserId(req);
+    const userId = getOptionalNumericUserId(req);
     return this.flashCardsService.findPublicCardsDeck(userId);
   }
 
@@ -59,13 +62,13 @@ export class FlashCardsController {
     @Param('limit') limit: number,
     @Param('offset') offset: number,
   ) {
-    const userId = getNumericUserId(req);
+    const userId = getOptionalNumericUserId(req);
     return this.flashCardsService.searchFlashCards(q, userId, limit, offset);
   }
 
   @Get('klek/:id')
   async getCardKlek(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
-    const userId = getNumericUserId(req);
+    const userId = getOptionalNumericUserId(req);
     return this.flashCardsService.getCardKlekById(+id, userId);
   }
 
@@ -81,13 +84,13 @@ export class FlashCardsController {
     @Param('code') code: string,
     @Req() req: AuthenticatedRequest,
   ) {
-    const userId = getNumericUserId(req);
+    const userId = getOptionalNumericUserId(req);
     return this.flashCardsService.getCardByCode(code, userId);
   }
 
   @Get(':id')
   async findOne(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
-    const userId = getNumericUserId(req);
+    const userId = getOptionalNumericUserId(req);
     return this.flashCardsService.getCardById(+id, userId);
   }
 
