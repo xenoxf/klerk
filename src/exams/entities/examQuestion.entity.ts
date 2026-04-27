@@ -19,20 +19,17 @@ export class ExamQuestion {
   @Column({ type: 'text', nullable: true })
   explanation?: string;
 
-  /** For ICFES exams: groups questions that share the same context */
   @Column({ nullable: true })
   contextId?: string;
 
-  /** For ICFES exams: the shared context content (markdown) for this question's group */
   @Column({ type: 'text', nullable: true })
   contextContent?: string;
 
-  @ManyToOne(() => Exam, (exam) => exam.questions, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Exam, (exam) => exam.questions, {
+    onDelete: 'CASCADE', // 🔥 BORRAS EXAM → BORRA QUESTIONS
+  })
   exam: Exam;
 
-  @OneToMany(() => ExamOption, (option) => option.question, {
-    cascade: true,
-    onDelete: 'CASCADE',
-  })
+  @OneToMany(() => ExamOption, (option) => option.question)
   options: ExamOption[];
 }

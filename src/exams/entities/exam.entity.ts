@@ -40,7 +40,6 @@ export class Exam {
   @Column({ nullable: true })
   difficulty?: string;
 
-  /** Exam type: 'quiz' = quick questions without context, 'icfes' = Saber 11 style with shared contexts */
   @Column({ default: 'quiz' })
   type: 'quiz' | 'icfes';
 
@@ -54,11 +53,11 @@ export class Exam {
   @Index()
   userId?: number;
 
-  @ManyToOne(() => User, (user) => user.exams)
+  @ManyToOne(() => User, (user) => user.exams, {
+    onDelete: 'SET NULL', // si borras usuario, no borres el examen
+  })
   user: User;
 
-  @OneToMany(() => ExamQuestion, (eq) => eq.exam, {
-    onDelete: 'CASCADE'
-  })
+  @OneToMany(() => ExamQuestion, (eq) => eq.exam)
   questions: ExamQuestion[];
 }
