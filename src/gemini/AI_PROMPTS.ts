@@ -9,23 +9,38 @@ export const AI_PROMPTS = {
   INSTRUCCIONES CRÍTICAS:
   1. Genera EXACTAMENTE ${numberOfQuestions} preguntas de opción múltiple.
   2. Nivel de dificultad: ${difficulty}.
-     - **easy**: Preguntas directas sobre conceptos básicos, definiciones, identificación simple. Una sola operación o concepto por pregunta.
-     - **medium**: Preguntas que requieren aplicación de conocimientos, análisis sencillo, relacionar conceptos. Puede incluir datos o escenarios breves.
-     - **hard**: Preguntas de análisis, evaluación o síntesis. Requieren integrar múltiples conceptos, interpretar datos complejos o resolver problemas.
-  3. Cada pregunta DEBE tener EXACTAMENTE 4 opciones.
+
+   - **Muy Fácil**:
+     * 1 línea
+     * Reconocimiento inmediato
+     * Sin cálculos ni interpretación
+     * Tipo: definición, identificación básica
+
+   - **Fácil**:
+     * 1–2 líneas
+     * Comprensión básica
+     * Puede requerir una operación simple o recordar un concepto
+
+   - **Medio**:
+     * 2–4 líneas
+     * Aplicación de conceptos
+     * Relación entre ideas o interpretación básica
+
+   - **Difícil**:
+     * 3–5 líneas
+     * Análisis, comparación o resolución de problemas
+     * Puede incluir errores típicos o escenarios reales
+
+   - **Muy Difícil**:
+     * 4–6 líneas
+     * Diagnóstico, evaluación o toma de decisiones
+     * Integra múltiples conceptos
+     * Puede incluir ambigüedad controlada o casos complejos
+
+   REGLA CLAVE:
+   > La dificultad depende del tipo de razonamiento, NO de la longitud.  3. Cada pregunta DEBE tener EXACTAMENTE 4 opciones.
   4. EXACTAMENTE UNA opción por pregunta debe ser correcta.
-  5. **ENUNCIADOS CONCISOS - EXÁMENES RÁPIDOS**:
-     - Los enunciados deben ser **DIRECTOS y SIN TEXTO EXCESIVO** para permitir preguntas rápidas
-     - **PROHIBIDO**: Contextos largos de 3-5 párrafos, escenarios extensos, información base innecesaria
-     - **PERMITIDO**: Enunciados de 1-3 oraciones máximo, pueden incluir tablas pequeñas o datos puntuales
-     - Estructura: **Enunciado directo** + **Pregunta específica** (todo en 1-3 líneas)
-     - Ejemplos válidos:
-       * "¿Cuál es la capital de Francia?"
-       * "Halla la moda de los siguientes valores: 3, 5, 7, 5, 9, 5, 2"
-       * "Según la ley de Ohm, si V=12V y R=4Ω, ¿cuál es la corriente I?"
-       * "En la tabla siguiente con datos de ventas, ¿qué mes tuvo mayor incremento?"
-     - Si necesitas incluir datos, usa tablas compactas o listas breves, NO párrafos extensos
-  6. **FORMATO DE CÓDIGO - REGLAS ESTRICTAS**:
+   6. **FORMATO DE CÓDIGO - REGLAS ESTRICTAS**:
      - **NUNCA uses bloques de código para palabras sueltas o frases cortas**
      - **Regla de oro**: Si el "código" tiene menos de 10 palabras, NO uses bloque
      - Para términos técnicos, comandos, valores, propiedades CSS, keywords: usa \`código en línea\`
@@ -51,12 +66,11 @@ export const AI_PROMPTS = {
      - Ejemplo de distribución válida: pregunta 1→opción 3, pregunta 2→opción 1, pregunta 3→opción 4, pregunta 4→opción 2, pregunta 5→opción 4, etc.
   9. Los distractores deben ser **plausibles y basados en errores comunes** de interpretación o cálculo, no obvios.
   10. **RETROALIMENTACIÓN OBLIGATORIA**:
-     - "explanation": Explicación general de por qué la respuesta correcta lo es (1-2 oraciones)
-     - "feedback" (en cada opción): Explicación específica de por qué ESA opción es correcta o incorrecta (1-2 oraciones)
-       * Para la correcta: confirmar por qué es la respuesta adecuada
-       * Para las incorrectas: explicar el error común que lleva a elegir esa opción
-
-  RETORNA SOLO JSON VÁLIDO :
+    - **EXPLICACIÓN (explanation)**: No seas genérico. Explica la lógica técnica o legal de la respuesta correcta para que el usuario aprenda.
+  - **FEEDBACK EN OPCIONES**: 
+    * Para la correcta: Confirma por qué es la adecuada con un dato técnico.
+    * Para las incorrectas: Explica qué error de lógica lleva a esa opción o qué significa realmente ese distractor (ej: "El Art. 11 es para la Vida, no Educación").
+  - **Distractores**: Deben ser plausibles y basados en errores comunes, no absurdos.  RETORNA SOLO JSON VÁLIDO :
 
   {
     "questions": [
@@ -69,21 +83,11 @@ export const AI_PROMPTS = {
           {"text": "24", "isCorrect": false, "feedback": "Incorrecto. Este resultado no corresponde a ninguna operación válida con los datos dados."},
           {"text": "10", "isCorrect": false, "feedback": "Incorrecto. Parece que se sumó todo linealmente (2+3+4=9) o se hizo un error de cálculo."}
         ]
-      },
-      {
-        "question": "Halla la **moda** de los valores: 3, 5, 7, 5, 9, 5, 2",
-        "explanation": "La moda es el valor que más se repite. El 5 aparece 3 veces, más que cualquier otro.",
-        "options": [
-          {"text": "5", "isCorrect": true, "feedback": "¡Correcto! El 5 es el valor con mayor frecuencia (3 veces)."},
-          {"text": "7", "isCorrect": false, "feedback": "Incorrecto. El 7 aparece solo una vez, no es el más frecuente."},
-          {"text": "3", "isCorrect": false, "feedback": "Incorrecto. Aunque 3 es la mediana, no es la moda."},
-          {"text": "9", "isCorrect": false, "feedback": "Incorrecto. El 9 aparece solo una vez."}
-        ]
       }
     ],
     "metadata": {
-      "title": "Título conciso y específico del examen",
-      "description": "Descripción breve indicando competencias evaluadas",
+      "title": "Título del examen, debe ser un muy buen titulo sobre lo que trató el examen",
+      "description": "Descripción  indicando competencias evaluadas",
       "area": "Área académica (ej. Matemáticas, Ciencias, Historia)",
       "tema": "Tema específico evaluado"
     }
@@ -206,7 +210,7 @@ Devuelve SOLO el JSON.
     ],
     "metadata": {
       "title": "Título del examen, debe ser un muy buen titulo sobre lo que trató el examen",
-      "description": "Descripción breve de competencias evaluadas",
+      "description": "Descripción buena de competencias evaluadas",
       "area": "Área académica",
       "tema": "Tema específico"
     }
