@@ -5,7 +5,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 
-const PUBLIC_PATHS = new Set(['/', '/health', '/ping']);
+const PUBLIC_PATHS = new Set(['/health', '/ping', '/auth/']);
 
 @Injectable()
 export class ApiKeyGuard implements CanActivate {
@@ -14,7 +14,7 @@ export class ApiKeyGuard implements CanActivate {
     const path = request.path;
 
     // ✅ Permitir rutas públicas o de autenticación
-    if (PUBLIC_PATHS.has(path) || path.startsWith('/auth/')) {
+    if (PUBLIC_PATHS.has(path) || path.startsWith('/auth')) {
       return true;
     }
 
