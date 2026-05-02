@@ -176,7 +176,7 @@ export class ExamsService {
     return this.examRefactor(exam, userId, true);
   }
 
-  async getByIdForPlay(id: number, userId: number) {
+  async getByIdForPlay(id: number, userId?: number) {
     const exam = await this.examRepo.findOne({
       where: { id },
       relations: ['questions', 'questions.options', 'user'],
@@ -385,7 +385,7 @@ export class ExamsService {
       relations: ['questions', 'questions.options', 'user'],
     });
     if (!exam) throw new NotFoundException('Exam not found');
-    if (!isPublicAccess(exam.acceso)) {
+    if (!isPublicAccess(exam.acceso) && exam.userId !== userId) {
       throw new UnauthorizedException('No tienes acceso a este quiz');
     }
     return this.examRefactor(exam, userId, true);

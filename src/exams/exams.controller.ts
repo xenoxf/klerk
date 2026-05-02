@@ -63,7 +63,7 @@ export class ExamsController {
     @Param('id', ParseIntPipe) id: number,
     @Req() req: AuthenticatedRequest,
   ) {
-    return this.examsService.getByIdForPlay(id, getNumericUserId(req));
+    return this.examsService.getByIdForPlay(id, getOptionalNumericUserId(req));
   }
 
   /**
