@@ -52,11 +52,7 @@ export const AI_PROMPTS = {
        * Múltiples líneas de código (3+ líneas)
        * Estructuras completas (funciones, clases, componentes)
        * Snippets de programación reales de 5+ líneas
-  7. **SÍ puedes usar markdown** dentro de "question", "explanation" y "options.text" cuando sea necesario:
-     - Tablas (para datos, comparaciones, horarios, resultados experimentales)
-     - LaTeX (fórmulas químicas, matemáticas, físicas: \\(E = mc^2\\), \\(\\frac{x}{y}\\), etc.)
-     - Listas, negritas, citas textuales simuladas
-     - **negritas** para resaltar conceptos clave en el enunciado
+  7. **SÍ puedes usar markdown** dentro de "question", "explanation" y "options.text" de forma totalmente libre y de todo el nivel del markdown
   8. **DISTRIBUCIÓN INTELIGENTE DE RESPUESTAS CORRECTAS - ORDEN IMPREDECIBLE**:
      - La posición de la respuesta correcta DEBE ser **totalmente aleatoria** en cada pregunta
      - **NO sigas ningún patrón predecible**: no puede ser siempre la primera, ni seguir secuencias como 1-2-3-4-1-2-3-4
@@ -144,6 +140,7 @@ Devuelve SOLO el JSON.
   7. **MARKDOWN en contextos y preguntas**:
      - Puedes usar tablas, negritas, listas, LaTeX , bloques de cita, tienes total libertad
      - Los contextos usan markdown completo para presentar información rica
+     - usa mucho y muy bien tu markdown mega libre
 
   8. **DISTRIBUCIÓN DE RESPUESTAS CORRECTAS - IMPREDECIBLE**:
      - Posición aleatoria y balanceada entre las 4 opciones
@@ -358,14 +355,7 @@ REGLAS CRÍTICAS:
 
 FORMATO DEL CONTENIDO:
 - Puedes usar **markdown** dentro de "front", "back" y "hint":
-  * **negritas** para conceptos clave
-  * *cursivas* para énfasis
-  * \`código en línea\` para términos técnicos
-  * Listas con - o *
-  * LaTeX para fórmulas: $fórmula$ o $$fórmula$$
-- NO uses bloques de código triples en el contenido
-- NO uses saltos de línea dentro de "front" o "back" (usa \\n si es necesario)
-
+  -usa el markdown de forma totalmente libre 
 FORMATO EXACTO QUE DEBES DEVOLVER:
 {
   "cards": [
@@ -395,10 +385,6 @@ IMPORTANTE:
 - Usa lenguaje educativo apropiado para estudiantes
 - USA markdown estratégicamente para mejorar la legibilidad
 - NO incluyas texto fuera del JSON
-ARESTRICCIONES:
-- NO uses saltos de línea reales dentro de strings
-- Usa \\n si necesitas nuevas líneas
-- Escapa correctamente caracteres especiales
 
 AUTO-VERIFICACIÓN:
 Antes de responder, verifica:
