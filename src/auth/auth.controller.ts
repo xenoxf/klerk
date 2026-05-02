@@ -90,7 +90,7 @@ export class AuthController {
     @Res() res: Response,
   ) {
     try {
-      const code = req.query.code;
+      const code = (req as any).query.code;
 
       if (!code) {
         this.logger.warn('Google callback without code');

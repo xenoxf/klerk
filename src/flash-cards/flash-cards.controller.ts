@@ -19,8 +19,8 @@ import { RequireAuth } from '../common/decorators/require-auth.decorator';
 import { AuthenticatedRequest } from '../common/types/request.type';
 import { CreateFlashCardDto } from './dto/create-flash-card.dto';
 import { UpdateFlashCardDto } from './dto/update-flash-card.dto';
-import { JwtGuard } from 'src/auth/jwt/jwt.guard';
-import { RequireAuthGuard } from 'src/common/guards/require-auth/require-auth.guard';
+import { JwtGuard } from '../auth/jwt/jwt.guard';
+import { RequireAuthGuard } from '../common/guards/require-auth/require-auth.guard';
 
 @UseGuards(JwtGuard)
 @Controller('flash-cards')
