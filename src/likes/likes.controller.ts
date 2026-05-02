@@ -10,7 +10,10 @@ import {
 import { LikesService } from './likes.service';
 import { JwtGuard } from '../auth/jwt/jwt.guard';
 import { RequireAuthGuard } from '../common/guards/require-auth/require-auth.guard';
-import { getNumericUserId } from '../common/utils/shared.utils';
+import {
+  getNumericUserId,
+  getOptionalNumericUserId,
+} from '../common/utils/shared.utils';
 import { AuthenticatedRequest } from '../common/types/request.type';
 
 @UseGuards(JwtGuard)
