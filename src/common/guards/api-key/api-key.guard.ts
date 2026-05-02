@@ -32,7 +32,7 @@ export class ApiKeyGuard implements CanActivate {
 
     // ❌ Si la API key es inválida → error explícito
     if (apiKey != String(process.env.API_KEY)) {
-      throw new ForbiddenException('API Key inválida o faltante. escribiste');
+      throw new ForbiddenException('API Key inválida o faltante');
     }
 
     return true;
