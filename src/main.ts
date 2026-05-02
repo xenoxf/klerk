@@ -279,7 +279,7 @@ async function bootstrap() {
     next();
   });
 
-  //app.useGlobalGuards(new ApiKeyGuard());
+  app.useGlobalGuards(new ApiKeyGuard());
 
   // ============================================
   // INICIALIZACIÓN DEL SERVIDOR
