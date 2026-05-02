@@ -50,7 +50,7 @@ export class LikesController {
     @Param('id', ParseIntPipe) id: number,
     @Req() req: AuthenticatedRequest,
   ) {
-    const userId = req.user?.id ? Number(req.user.id) : undefined;
+    const userId = getOptionalNumericUserId(req);
     const count = await this.likesService.getLikeCount('exam', id);
     const userLiked = userId
       ? await this.likesService.hasUserLiked(userId, 'exam', id)
@@ -63,7 +63,7 @@ export class LikesController {
     @Param('id', ParseIntPipe) id: number,
     @Req() req: AuthenticatedRequest,
   ) {
-    const userId = req.user?.id ? Number(req.user.id) : undefined;
+    const userId = getOptionalNumericUserId(req);
     const count = await this.likesService.getLikeCount('card', id);
     const userLiked = userId
       ? await this.likesService.hasUserLiked(userId, 'card', id)
@@ -76,7 +76,7 @@ export class LikesController {
     @Param('id', ParseIntPipe) id: number,
     @Req() req: AuthenticatedRequest,
   ) {
-    const userId = req.user?.id ? Number(req.user.id) : undefined;
+    const userId = getOptionalNumericUserId(req);
     const count = await this.likesService.getLikeCount('note', id);
     const userLiked = userId
       ? await this.likesService.hasUserLiked(userId, 'note', id)

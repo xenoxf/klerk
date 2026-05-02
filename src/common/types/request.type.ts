@@ -1,10 +1,10 @@
 import { Request } from 'express';
 
 export interface UserPayload {
-  id: number;
+  id: number | string;
   email: string;
   isGuest?: boolean;
-  sub?: number;
+  sub?: number | string;
 }
 
 export interface AuthenticatedRequest extends Request {

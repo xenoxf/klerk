@@ -6,10 +6,27 @@ import { ForbiddenException } from '@nestjs/common';
 
 /**
  * Extract numeric user ID from request object.
- * Throws ForbiddenException if user ID is not a valid number.
+ * Throws ForbiddenException if user ID is not a valid number or if it's a guest.
  */
-export function getNumericUserId(req: { user?: { id?: unknown } }): number {
-  const userId = Number(req.user?.id);
+export function getNumericUserId(req: {
+  user?: { id?: unknown; isGuest?: boolean };
+}): number {
+  if (req.user?.isGuest) {
+    throw new ForbiddenException(
+      'Los usuarios invitados no pueden realizar esta acción. Inicia sesión para continuar.',
+    );
+  }
+
+  const rawId = req.user?.id;
+
+  // Handle guest_ style IDs even if isGuest flag is missing
+  if (typeof rawId === 'string' && rawId.startsWith('guest_')) {
+    throw new ForbiddenException(
+      'Los usuarios invitados no pueden realizar esta acción. Inicia sesión para continuar.',
+    );
+  }
+
+  const userId = Number(rawId);
   if (isNaN(userId)) {
     throw new ForbiddenException('Acceso no permitido');
   }
@@ -26,7 +43,15 @@ export function getOptionalNumericUserId(req: {
   if (!req.user || req.user.isGuest) {
     return null;
   }
-  const userId = Number(req.user?.id);
+
+  const rawId = req.user.id;
+
+  // Handle guest_ style IDs even if isGuest flag is missing
+  if (typeof rawId === 'string' && rawId.startsWith('guest_')) {
+    return null;
+  }
+
+  const userId = Number(rawId);
   if (isNaN(userId)) {
     return null;
   }

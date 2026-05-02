@@ -40,6 +40,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
         id: payload.sub,
         email: payload.email,
         name: payload.name,
+        isGuest: payload.isGuest || false,
       };
     } catch (error) {
       this.logger.error('JWT validation error:', error);
