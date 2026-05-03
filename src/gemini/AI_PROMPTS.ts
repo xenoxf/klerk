@@ -68,19 +68,26 @@ export const AI_PROMPTS = {
   - **FEEDBACK EN OPCIONES**: 
     * Para la correcta: Confirma por qué es la adecuada con un dato técnico.
     * Para las incorrectas: Explica qué error de lógica lleva a esa opción o qué significa realmente ese distractor (ej: "El Art. 11 es para la Vida, no Educación").
-  - **Distractores**: Deben ser plausibles y basados en errores comunes, no absurdos.  RETORNA SOLO JSON VÁLIDO :
+  - **Distractores**: Deben ser plausibles y basados en errores comunes, no absurdos.
+  
+  ---
+  **NIVEL DE MARKDOWN REQUERIDO**:
+  - Usa **negritas** para enfatizar términos clave en TODAS las preguntas.
+  - Usa \`código en línea\` para valores técnicos.
+  - Las explicaciones deben ser ricas: usa listas, tablas o citas si ayudan a entender.
+  
+  RETORNA SOLO JSON VÁLIDO :
 
   {
     "questions": [
       {
         "question": "¿Cuál es el resultado de **2 + 3 × 4**?",
-        "explanation": "### Análisis de la Operación\\n\\nPara resolver esto debemos seguir la **jerarquía de operaciones**:\\n\\n1. **Multiplicación**: $3
-         \\\\times 4 = 12$\\n2. **Suma**: $2 + 12 = 14$\\n\\n> La multiplicación siempre se realiza antes que la suma en ausencia de paréntesis.",
+        "explanation": "### Análisis de la Operación\\n\\nPara resolver esto debemos seguir la **jerarquía de operaciones**:\\n\\n1. **Multiplicación**: $3 \\\\times 4 = 12$\\n2. **Suma**: $2 + 12 = 14$\\n\\n> La multiplicación siempre se realiza antes que la suma en ausencia de paréntesis.",
         "options": [
-           {"text": "**14**", "isCorrect": true, "feedback": "¡Correcto! Aplicaste correctamente el orden: *Multiplicación primero*."},
-           {"text": "**20**", "isCorrect": false, "feedback": "Incorrecto. Olvidaste que la multiplicación tiene **prioridad** sobre la suma."},
-           {"text": "24", "isCorrect": false, "feedback": "Incorrecto. No hay operación que resulte en 24."},
-           {"text": "10", "isCorrect": false, "feedback": "Incorrecto. Error de cálculo básico."} 
+          {"text": "**14**", "isCorrect": true, "feedback": "¡Correcto! Aplicaste correctamente el orden: *Multiplicación primero*."},
+          {"text": "**20**", "isCorrect": false, "feedback": "Incorrecto. Olvidaste que la multiplicación tiene **prioridad** sobre la suma."},
+          {"text": "24", "isCorrect": false, "feedback": "Incorrecto. No hay operación que resulte en 24."},
+          {"text": "10", "isCorrect": false, "feedback": "Incorrecto. Error de cálculo básico."}
         ]
       }
     ],
@@ -167,21 +174,21 @@ Devuelve SOLO el JSON.
     "questions": [
       {
         "contextId": "ctx-1",
-        "contextContent": "## Impacto de la contaminación\\n\\nLa contaminación ambiental es uno de los mayores desafíos del siglo XXI. Según la OMS, más de 7 millones de personas mueren cada año por enfermedades relacionadas con la contaminación del aire.\\n\\n| Tipo de contaminación | Fuente principal | Efecto en salud |\\n|---------------------|------------------|-----------------|\\n| Del aire            | Vehículos        | Asma, cáncer    |\\n| Del agua            | Industria        | Cólera, diarrea |\\n| Del suelo           | Agricultura      | Intoxicación    |",
-        "question": "Según la tabla anterior, ¿cuál es el efecto en salud principal de la contaminación del agua?",
-        "explanation": "La tabla muestra claramente que la contaminación del agua tiene como efecto el cólera y la diarrea.",
+        "contextContent": "## Análisis del Impacto Ambiental\\n\\nLa **contaminación ambiental** representa una de las crisis más severas de nuestra era. \\n\\n### Estadísticas Globales\\n| Factor | Impacto Anual | Fuente |\\n|:---:|:---:|:---:|\\n| Muertes Aire | **7 Millones** | OMS |\\n| Pérdida Biodiversidad | **15%** | ONU |\\n\\n> \\"La inacción hoy es la catástrofe de mañana.\\" — *Informe de Sostenibilidad*",
+        "question": "De acuerdo con la **tabla de estadísticas**, ¿cuál es el impacto anual de las muertes por aire?",
+        "explanation": "La tabla indica explícitamente que la cifra es de **7 Millones**, citando a la **OMS** como fuente.",
         "options": [
-          {"text": "Asma y cáncer", "isCorrect": false, "feedback": "Incorrecto. Estos son efectos de la contaminación del aire según la tabla."},
-          {"text": "Cólera y diarrea", "isCorrect": true, "feedback": "¡Correcto! La tabla indica estos efectos para la contaminación del agua."},
-          {"text": "Intoxicación", "isCorrect": false, "feedback": "Incorrecto. Este es el efecto de la contaminación del suelo."},
-          {"text": "Muerte súbita", "isCorrect": false, "feedback": "Incorrecto. No aparece en la tabla como efecto directo."}
+          {"text": "5 millones", "isCorrect": false, "feedback": "Incorrecto. Revisa la fila de **Muertes Aire** en la tabla."},
+          {"text": "**7 Millones**", "isCorrect": true, "feedback": "¡Exacto! Es el dato reportado por la OMS en el contexto."},
+          {"text": "10 millones", "isCorrect": false, "feedback": "Incorrecto. El dato es menor según el texto."},
+          {"text": "15 millones", "isCorrect": false, "feedback": "Incorrecto. Confundiste el dato con el % de biodiversidad."}
         ]
       },
       {
         "contextId": "ctx-1",
         "contextContent": null,
         "question": "De acuerdo con el texto, ¿cuántas personas mueren al año por enfermedades relacionadas con la contaminación del aire?",
-        "explanation": "El texto indica que son más de 7 millones de personas.",
+        "explanation": "El texto indica que son más de **7 millones** de personas.",
         "options": [
           {"text": "Más de 7 millones", "isCorrect": true, "feedback": "¡Correcto! El texto lo indica explícitamente."},
           {"text": "Más de 5 millones", "isCorrect": false, "feedback": "Incorrecto. El texto dice 7 millones, no 5."},
@@ -336,8 +343,8 @@ Devuelve SOLO el JSON.
 
   {
     "notes": [
-      "## Título técnico expandido\\n\\n### Introducción\\n\\n[Contexto y relevancia del tema]\\n\\n### Fundamentos Teóricos\\n\\n[Desarrollo conceptual profundo con **negritas** para conceptos clave y *cursivas* para énfasis]\\n\\n### Desarrollo Técnico\\n\\n[Explicación detallada con fórmulas en LaTeX: $E = mc^2$ o $$\\int_a^b f(x)dx$$]\\n\\n### Ejemplos Aplicados\\n\\n**Ejemplo 1:** [Desarrollo paso a paso]\\n\\n**Ejemplo 2:** [Otro ejemplo completo]\\n\\n### Tabla Resumen\\n\\n| Concepto | Definición | Ejemplo |\\n|----------|------------|---------|\\n| X        | ...        | ...     |\\n\\n### Errores Comunes\\n\\n> **Advertencia:** [Error frecuente y cómo evitarlo]\\n\\n### Puntos Clave\\n\\n- Punto fundamental 1\\n- Punto fundamental 2\\n- Punto fundamental 3",
-      "## Otro bloque\\n\\n### Introducción\\n\\n[Contexto]...\\n\\n### Desarrollo completo\\n\\n[Contenido profundo con markdown estratégico]..."
+      "## 🔥 El Poder de la Segunda Ley de Newton\\n\\n### 1. Introducción Contextual\\nLa **Dinámica** es la rama de la física que estudia el movimiento de los cuerpos considerando las fuerzas que lo producen. El núcleo de esta disciplina es la **Segunda Ley de Newton**, también conocida como la *Ley Fundamental de la Dinámica*.\\n\\n### 2. Fundamentación Matemática\\nLa relación entre fuerza ($F$), masa ($m$) y aceleración ($a$) se define mediante la ecuación:\\n\\n$$\\\\mathbf{F} = m \\\\cdot \\\\mathbf{a}$$\\n\\n| Variable | Magnitud | Unidad (SI) |\\n|:---:|:---:|:---:|\\n| **F** | Fuerza | Newtons (N) |\\n| **m** | Masa | Kilogramos (kg) |\\n| **a** | Aceleración | $m/s^2$ |\\n\\n### 3. Ejemplo Aplicado Paso a Paso\\n**Escenario**: Un bloque de **10 kg** es empujado con una fuerza neta de **50 N**.\\n\\n- **Paso 1**: Identificar datos ($m=10, F=50$).\\n- **Paso 2**: Despejar aceleración: $a = F/m$.\\n- **Paso 3**: Calcular: $50/10 = \\\\mathbf{5 m/s^2}$.\\n\\n> **Nota técnica**: Si la fuerza se duplica, la aceleración también se duplicará, siempre que la masa permanezca constante.",
+      "## 🛠️ Aplicaciones en Ingeniería\\n\\n### Sistemas de Propulsión\\nEn el diseño de cohetes, la **Segunda Ley** es vital para calcular el *empuje* necesario para vencer la gravedad terrestre.\\n\\n- **Variables Críticas**:\\n  * Masa del combustible (variable)\\n  * Empuje del motor (constante)\\n  * Resistencia aerodinámica\\n\\n### Puntos Clave para Recordar\\n1. La aceleración es **directamente proporcional** a la fuerza.\\n2. La aceleración es **inversamente proporcional** a la masa.\\n3. Fuerza y aceleración son **vectores** (tienen dirección)."
     ],
     "metadata": {
       "title": "Título técnico general",
@@ -371,12 +378,12 @@ FORMATO DEL CONTENIDO:
   - Usa el markdown de forma totalmente libre: **negritas**, *cursivas*, \`código\`, listas, tablas cortas y LaTeX.
   - Las respuestas deben ser visualmente atractivas y jerarquizadas.
 
-FORMATO EXACTO QUE DEBES DEVOLVER:
+FORMATO EXACTO QUE DEVES DEVOLVER:
 {
   "cards": [
     {
       "front": "¿Qué es **Machine Learning**?",
-      "back": "Es una rama de la **IA** que permite a las máquinas aprender de datos.\\n\\n### Tipos Principales:\\n1. **Supervisado**\\n2. **No Supervisado**\\n3. **Por Refuerzo**\\n\\nFórmula base: $y = f(x) + \\\\epsilon$",
+      "back": "Es una rama de la **IA** que permite a las máquinas aprender de datos.\\n\\n### Tipos Principales:\\n1. **Supervisado**\\n2. **No Supervisado**\\n3. **Por Reinforce**\\n\\nFórmula base: $y = f(x) + \\\\epsilon$",
       "hint": "Se basa en *patrones estadísticos*"
     },
     {
@@ -471,7 +478,7 @@ ${chatContext?.previousTopics && chatContext.previousTopics.length > 0
 6. **MARKDOWN libre** el markdown debe ser muy libre, puedes hacer lo quesea, omo latex,tablas,codigo en linea y de bloques,quimica,negrina de todo puedes hacer,
 se muy visual y dinamico en tus explicaciones sa emojis, usa cualquier cosa que ayude a una mejor explicación ejemplo si alguien pide cosas, puedes darle una tabla  cosas asi osea tiene s todo un arsenal para 
 hacer mas visual tu explicacion
-7. **Límite**: máx. no escribas mas de 1000 tokens de texto por respuesta osea ese es tu maximo pero no quiere decir que sea obligado tu maximo, si la epxlicacione stan importqante que nesecitas un poco mas (50 tokens maximos de mas) haslo, pero no quiere decir que pases ese limite a cada rato
+7. **Límite**: máx. no escribas mas de 1000 tokens de texto por respuesta osea ese es tu maximo pero no quiere decir que sea obligado tu maximo, si la epxlicacione stan importqante que nesecitas un poco mas (50 tokens maximos de mas) haslo, pero no quiere decir que pase ese limite a cada rato
 
 ## EJEMPLOS CORRECTOS
 
@@ -533,26 +540,6 @@ Tú: "La **fotosíntesis** es el proceso por el cual las plantas convierten luz 
 // Helper para manejo de errores y retry
 export const PROMPT_ERROR_HANDLING = {
   retryInstructions: (error: string, originalPrompt: string) => `
-    PREVIOUS RESPONSE ERROR: ${error}
-
-    PLEASE RETRY with these corrections:
-    1. Ensure output is ONLY valid JSON, no markdown
-    2. Follow the exact structure specified
-    3. Include all required fields
-    4. Validate data types are correct
-
-    ORIGINAL REQUEST:
-    ${originalPrompt.substring(0, 500)}...
-
-    Return ONLY the corrected JSON response.
-  `,
-  fallbackPrompt: (type: string) => `
-    Simplified ${type} generation request:
-    Return minimal valid JSON with basic structure.
-    Focus on correctness over completeness if errors persist.
-  `,
-};
-lPrompt: string) => `
     PREVIOUS RESPONSE ERROR: ${error}
 
     PLEASE RETRY with these corrections:
