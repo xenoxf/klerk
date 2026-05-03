@@ -86,7 +86,8 @@ export const AI_PROMPTS = {
       "description": "Descripción  indicando competencias evaluadas",
       "area": "Área académica (ej. Matemáticas, Ciencias, Historia)",
       "tema": "Tema específico evaluado"
-    }
+    }// no inicies los titulo o descripciones con cosas tipo: card de esto o exmane o evaluación de esto, osea se centrado
+
   }
 
 
@@ -96,6 +97,8 @@ Antes de responder, verifica:
 - ¿No hay comillas de codigo fuera del JSON?
 - ¿Es JSON válido?
 Si algo falla, corrígelo antes de responder.
+ - Las opciones correctas no obligatoriante deben estar ene l imso lugar del ejemplo, osea nescito que varies sbien las ubicacione spara que no sea detctale el lugar de la respeusta para que ni adiviando o hacinedo sumas pueda adivinar
+
 
 RESPUESTA FINAL:
 Devuelve SOLO el JSON.
@@ -219,6 +222,7 @@ Devuelve SOLO el JSON.
   - Preguntas sin contexto: contextId = null, contextContent = null
   - Cada grupo de contexto debe tener entre 2 y 4 preguntas.
   - La IA decide cuántos contextos poner y si poner o no contextos.
+  - Las opciones correctas no obligatoriante deben estar ene l imso lugar del ejemplo, osea nescito que varies sbien las ubicacione spara que no sea detctale el lugar de la respeusta para que ni adiviando o hacinedo sumas pueda adivinar
 
 AUTO-VERIFICACIÓN:
 Antes de responder, verifica:
@@ -226,6 +230,7 @@ Antes de responder, verifica:
 - ¿No hay comillas de codigo fuera del JSON?
 - ¿Es JSON válido?
 Si algo falla, corrígelo antes de responder.
+// no inicies los titulo o descripciones con cosas tipo: card de esto o exmane o evaluación de esto, osea se centrado
 
 RESPUESTA FINAL:
 Devuelve SOLO el JSON.
@@ -371,11 +376,12 @@ FORMATO EXACTO QUE DEBES DEVOLVER:
     }
   ],
   "metadata": {
-    "title": "Fundamentos de Machine Learning",
+    "title": "Un buen titulo que explique de que trata esto.",
     "description": "Flashcards sobre conceptos básicos de aprendizaje automático e inteligencia artificial",
     "area": "Ciencias de la Computación",
     "tema": "Machine Learning - Conceptos Fundamentales"
   }
+  // no inicies los titulo o descripciones con cosas tipo: card de esto o exmane o evaluación de esto, osea se centrado
 }
 
 IMPORTANTE:
