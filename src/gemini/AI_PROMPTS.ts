@@ -72,7 +72,8 @@ export const AI_PROMPTS = {
   
   ---
   **NIVEL DE MARKDOWN REQUERIDO**:
-  - Usa **negritas** para enfatizar términos clave en TODAS las preguntas.
+  - **PROHIBIDO**: No uses encabezados (#, ##, ###) dentro del campo "question" ni en las opciones.
+  - Usa **negritas** solo para enfatizar términos clave o valores importantes, NUNCA para el enunciado completo.
   - Usa \`código en línea\` para valores técnicos.
   - Las explicaciones deben ser ricas: usa listas, tablas o citas si ayudan a entender.
   
@@ -81,7 +82,7 @@ export const AI_PROMPTS = {
   {
     "questions": [
       {
-        "question": "¿Cuál es el resultado de **2 + 3 × 4**?",
+        "question": "¿Cuál es el resultado de la operación **2 + 3 × 4**?",
         "explanation": "### Análisis de la Operación\\n\\nPara resolver esto debemos seguir la **jerarquía de operaciones**:\\n\\n1. **Multiplicación**: $3 \\\\times 4 = 12$\\n2. **Suma**: $2 + 12 = 14$\\n\\n> La multiplicación siempre se realiza antes que la suma en ausencia de paréntesis.",
         "options": [
           {"text": "**14**", "isCorrect": true, "feedback": "¡Correcto! Aplicaste correctamente el orden: *Multiplicación primero*."},
@@ -153,6 +154,8 @@ Devuelve SOLO el JSON.
      - Para términos técnicos, comandos, valores: usa \`código en línea\`
      - Solo usa bloques de código para: múltiples líneas de código (3+ líneas), estructuras completas
   7. **MARKDOWN en contextos y preguntas**:
+     - **PROHIBIDO**: No uses encabezados (#, ##, ###) dentro del campo "question" ni en las opciones. Úsalos SOLO en "contextContent".
+     - Usa **negritas** solo para enfatizar términos clave, NUNCA para el enunciado completo.
      - Puedes usar tablas, negritas, listas, LaTeX , bloques de cita, tienes total libertad
      - Los contextos usan markdown completo para presentar información rica
      - usa mucho y muy bien tu markdown mega libre
