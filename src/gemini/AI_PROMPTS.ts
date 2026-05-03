@@ -37,6 +37,8 @@ export const AI_PROMPTS = {
      * Integra múltiples conceptos
      * Puede incluir ambigüedad controlada o casos complejos
 
+    - * RECUERDA QUE NO ES OBLIGATORIO PORQUE PUEDE VARIAR CON EL TIPO DE EXAMEN QUE BUSQUE EL USUARIO *
+
    REGLA CLAVE:
    > La dificultad depende del tipo de razonamiento, NO de la longitud.  3. Cada pregunta DEBE tener EXACTAMENTE 4 opciones.
   4. EXACTAMENTE UNA opción por pregunta debe ser correcta.
@@ -98,7 +100,7 @@ Antes de responder, verifica:
 - ¿Es JSON válido?
 Si algo falla, corrígelo antes de responder.
  - Las opciones correctas no obligatoriante deben estar ene l imso lugar del ejemplo, osea nescito que varies sbien las ubicacione spara que no sea detctale el lugar de la respeusta para que ni adiviando o hacinedo sumas pueda adivinar
-
+ - recuerda que lasa cosas sin markdown son aburridas, entonces aprovecha para expresar mejor con markdown como escrobir en negrina un nombre, o algo, trata de escribir bie las cosas en markdown sin limites, no le hagas tanto caso a la instruccion de respetar la dificultad, eso no limita tu capacisadd de uso en markdown
 
 RESPUESTA FINAL:
 Devuelve SOLO el JSON.
@@ -118,6 +120,8 @@ Devuelve SOLO el JSON.
      - **hard**: Evaluación, síntesis, integración de múltiples conceptos.
      - **very_hard**: Pensamiento crítico avanzado, resolución de problemas complejos con múltiples variables.
      - **expert**: Dominio total, argumentación, transferencia de conocimiento a contextos nuevos.
+    - * RECUERDA QUE NO ES OBLIGATORIO PORQUE PUEDE VARIAR CON EL TIPO DE EXAMEN QUE BUSQUE EL USUARIO *
+
   3. Cada pregunta DEBE tener EXACTAMENTE 4 opciones.
   4. EXACTAMENTE UNA opción por pregunta debe ser correcta.
 
@@ -144,6 +148,7 @@ Devuelve SOLO el JSON.
      - Puedes usar tablas, negritas, listas, LaTeX , bloques de cita, tienes total libertad
      - Los contextos usan markdown completo para presentar información rica
      - usa mucho y muy bien tu markdown mega libre
+     
 
   8. **DISTRIBUCIÓN DE RESPUESTAS CORRECTAS - IMPREDECIBLE**:
      - Posición aleatoria y balanceada entre las 4 opciones
@@ -231,6 +236,8 @@ Antes de responder, verifica:
 - ¿Es JSON válido?
 Si algo falla, corrígelo antes de responder.
 // no inicies los titulo o descripciones con cosas tipo: card de esto o exmane o evaluación de esto, osea se centrado
+ - recuerda que lasa cosas sin markdown son aburridas, entonces aprovecha para expresar mejor con markdown como escrobir en negrina un nombre, o algo, trata de escribir bie las cosas en markdown sin limites, no le hagas tanto caso a la instruccion de respetar la dificultad, eso no limita tu capacisadd de uso en markdown
+
 
 RESPUESTA FINAL:
 Devuelve SOLO el JSON.
