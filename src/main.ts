@@ -32,33 +32,6 @@ async function bootstrap() {
   });
 
   // ============================================
-  // RATE LIMITING GLOBAL (DoS Protection)
-  // ============================================
-  // Limita peticiones por IP para prevenir ataques DoS
-  app.use(
-    rateLimit({
-      windowMs: 15 * 60 * 1000, // 15 minutos
-      max: 45, // Máximo 35 peticiones por IP cada 15 minutos
-      message: {
-        statusCode: 429,
-        error: 'Too Many Requests',
-        message:
-          'Demasiadas peticiones, por favor intenta más tarde (15 minutos)',
-      },
-      standardHeaders: true,
-      legacyHeaders: false,
-      skip: (req) => {
-        // Skip rate limiting para health checks y hello
-        return (
-          req.path === '/health' ||
-          req.path === '/ping' ||
-          req.path === '/hello'
-        );
-      },
-    }),
-  );
-
-  // ============================================
   // RATE LIMITING ESPECÍFICO PARA AUTH (Brute Force Protection)
   // ============================================
   // Limita más estrictamente los endpoints de autenticación
@@ -72,25 +45,6 @@ async function bootstrap() {
         error: 'Too Many Requests',
         message:
           'Demasiados intentos de autenticación, por favor intenta más tarde (15 minutos) ',
-      },
-      standardHeaders: true,
-      legacyHeaders: false,
-    }),
-  );
-
-  // ============================================
-  // RATE LIMITING PARA AI GENERATION (Abuse Protection)
-  // ============================================
-  // Limita el uso de generación con IA para prevenir abuso
-  app.use(
-    '/exams/generate/topic_or_reference',
-    rateLimit({
-      windowMs: 60 * 60 * 1000, // 1 hora
-      max: 20, // Máximo 20 generaciones por hora
-      message: {
-        statusCode: 429,
-        error: 'Too Many Requests',
-        message: 'Límite de generación de exámenes alcanzado, espera una hora.',
       },
       standardHeaders: true,
       legacyHeaders: false,
