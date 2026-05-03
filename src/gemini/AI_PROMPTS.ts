@@ -74,12 +74,13 @@ export const AI_PROMPTS = {
     "questions": [
       {
         "question": "¿Cuál es el resultado de **2 + 3 × 4**?",
-        "explanation": "Según la jerarquía de operaciones, primero se multiplica y luego se suma: 3×4=12, luego 2+12=14.",
+        "explanation": "### Análisis de la Operación\\n\\nPara resolver esto debemos seguir la **jerarquía de operaciones**:\\n\\n1. **Multiplicación**: $3
+         \\\\times 4 = 12$\\n2. **Suma**: $2 + 12 = 14$\\n\\n> La multiplicación siempre se realiza antes que la suma en ausencia de paréntesis.",
         "options": [
-          {"text": "14", "isCorrect": true, "feedback": "¡Correcto! Se aplica la jerarquía: multiplicación antes que suma."},
-          {"text": "20", "isCorrect": false, "feedback": "Incorrecto. Este error surge cuando se suma primero (2+3=5) y luego se multiplica (5×4=20), ignorando la jerarquía de operaciones."},
-          {"text": "24", "isCorrect": false, "feedback": "Incorrecto. Este resultado no corresponde a ninguna operación válida con los datos dados."},
-          {"text": "10", "isCorrect": false, "feedback": "Incorrecto. Parece que se sumó todo linealmente (2+3+4=9) o se hizo un error de cálculo."}
+           {"text": "**14**", "isCorrect": true, "feedback": "¡Correcto! Aplicaste correctamente el orden: *Multiplicación primero*."},
+           {"text": "**20**", "isCorrect": false, "feedback": "Incorrecto. Olvidaste que la multiplicación tiene **prioridad** sobre la suma."},
+           {"text": "24", "isCorrect": false, "feedback": "Incorrecto. No hay operación que resulte en 24."},
+           {"text": "10", "isCorrect": false, "feedback": "Incorrecto. Error de cálculo básico."} 
         ]
       }
     ],
@@ -367,14 +368,16 @@ REGLAS CRÍTICAS:
 
 FORMATO DEL CONTENIDO:
 - Puedes usar **markdown** dentro de "front", "back" y "hint":
-  -usa el markdown de forma totalmente libre 
+  - Usa el markdown de forma totalmente libre: **negritas**, *cursivas*, \`código\`, listas, tablas cortas y LaTeX.
+  - Las respuestas deben ser visualmente atractivas y jerarquizadas.
+
 FORMATO EXACTO QUE DEBES DEVOLVER:
 {
   "cards": [
     {
       "front": "¿Qué es **Machine Learning**?",
-      "back": "**Machine Learning** es una rama de la *inteligencia artificial* que permite a las computadoras aprender patrones a partir de datos.\\n\\nFórmula clave: $y = mx + b$",
-      "hint": "Piensa en *aprendizaje automático* basado en datos"
+      "back": "Es una rama de la **IA** que permite a las máquinas aprender de datos.\\n\\n### Tipos Principales:\\n1. **Supervisado**\\n2. **No Supervisado**\\n3. **Por Refuerzo**\\n\\nFórmula base: $y = f(x) + \\\\epsilon$",
+      "hint": "Se basa en *patrones estadísticos*"
     },
     {
       "front": "¿Cuál es la diferencia entre aprendizaje \`supervisado\` y \`no supervisado\`?",
@@ -530,6 +533,26 @@ Tú: "La **fotosíntesis** es el proceso por el cual las plantas convierten luz 
 // Helper para manejo de errores y retry
 export const PROMPT_ERROR_HANDLING = {
   retryInstructions: (error: string, originalPrompt: string) => `
+    PREVIOUS RESPONSE ERROR: ${error}
+
+    PLEASE RETRY with these corrections:
+    1. Ensure output is ONLY valid JSON, no markdown
+    2. Follow the exact structure specified
+    3. Include all required fields
+    4. Validate data types are correct
+
+    ORIGINAL REQUEST:
+    ${originalPrompt.substring(0, 500)}...
+
+    Return ONLY the corrected JSON response.
+  `,
+  fallbackPrompt: (type: string) => `
+    Simplified ${type} generation request:
+    Return minimal valid JSON with basic structure.
+    Focus on correctness over completeness if errors persist.
+  `,
+};
+lPrompt: string) => `
     PREVIOUS RESPONSE ERROR: ${error}
 
     PLEASE RETRY with these corrections:
