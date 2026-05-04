@@ -40,7 +40,12 @@ export class FlashCardsService {
     },
     userId: number,
   ) {
-    const dynamicCost = calculateFlashcardCost(input.quantity, input.reference);
+    const isPublic = normalizeAccess(input.acceso) === 'publico';
+    let dynamicCost = calculateFlashcardCost(input.quantity, input.reference);
+
+    if (isPublic) {
+      dynamicCost = Math.ceil(dynamicCost * 0.5);
+    }
 
     const creditStatus = await this.creditsService.consumeCredits(
       userId,

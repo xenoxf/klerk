@@ -43,11 +43,16 @@ export class ExamsService {
     );
     const examType = input.type || 'quiz';
 
-    const dynamicCost = calculateExamCost(
+    const isPublic = normalizeAccess(input.acceso) === 'publico';
+    let dynamicCost = calculateExamCost(
       input.numberOfQuestions,
       input.difficulty,
       input.reference,
     );
+
+    if (isPublic) {
+      dynamicCost = Math.ceil(dynamicCost * 0.5);
+    }
 
     const creditStatus = await this.creditsService.consumeCredits(
       userId,

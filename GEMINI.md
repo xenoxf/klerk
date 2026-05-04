@@ -548,6 +548,9 @@ Exam 1---* ExamAttempt
   - FLASHCARD_GENERATION: 2 credits
   - CHAT_MESSAGE: 1 credit
 
+- **Discount System:**
+  - Public content (Exams/Flashcards): 50% discount on credit consumption.
+
 - **Dynamic pricing:**
   - Exams: +0.5 per question, difficulty multiplier (0.8x to 3.0x), +1 for long topics
   - Notes: detail multiplier (breve=1.0x, medio=1.4x, detallado=1.9x)
