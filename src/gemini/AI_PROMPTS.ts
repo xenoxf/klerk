@@ -93,7 +93,7 @@ export const AI_PROMPTS = {
       }
     ],
     "metadata": {
-      "title": "Título del examen, debe ser un muy buen titulo sobre lo que trató el examen",
+      "title": "Un buen titulo que explique de que trata esto.",
       "description": "Descripción  indicando competencias evaluadas",
       "area": "Área académica (ej. Matemáticas, Ciencias, Historia)",
       "tema": "Tema específico evaluado"
@@ -225,7 +225,7 @@ Devuelve SOLO el JSON.
       }
     ],
     "metadata": {
-      "title": "...",
+      "title": "Un buen titulo que explique de que trata esto.",
       "description": "Descripción buena de competencias evaluadas",
       "area": "Área académica",
       "tema": "Tema específico"
