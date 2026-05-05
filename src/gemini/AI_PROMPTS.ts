@@ -19,7 +19,8 @@ export const AI_PROMPTS = {
    - **Fácil**:
      * 1–2 líneas
      * Comprensión básica
-     * Puede requerir una operación simple o recordar un concepto
+     * Puede requerir una operación simple o recordar un concepto.
+     * **REGLA**: Que sea fácil NO significa que la respuesta sea obvia o regalada; debe exigir un mínimo de memoria o lógica.
 
    - **Medio**:
      * 2–4 líneas
@@ -73,7 +74,8 @@ export const AI_PROMPTS = {
   ---
   **NIVEL DE MARKDOWN REQUERIDO**:
   - **PROHIBIDO**: No uses encabezados (#, ##, ###) dentro del campo "question" ni en las opciones.
-  - Usa **negritas** solo para enfatizar términos clave o valores importantes, NUNCA para el enunciado completo.
+  - Usa **negritas** frecuentemente para resaltar **nombres**, **fechas**, **términos clave** o **valores importantes**. El markdown hace que el contenido sea más legible y profesional.
+  - **ESTILO DE OPCIONES**: Mantén un formato visual consistente en las 4 opciones. Si usas negritas en una, úsalas en todas (si aplica). Nunca resaltes la correcta de forma diferente a las demás.
   - Usa \`código en línea\` para valores técnicos.
   - Las explicaciones deben ser ricas: usa listas, tablas o citas si ayudan a entender.
   
@@ -87,8 +89,8 @@ export const AI_PROMPTS = {
         "options": [
           {"text": "**14**", "isCorrect": true, "feedback": "¡Correcto! Aplicaste correctamente el orden: *Multiplicación primero*."},
           {"text": "**20**", "isCorrect": false, "feedback": "Incorrecto. Olvidaste que la multiplicación tiene **prioridad** sobre la suma."},
-          {"text": "24", "isCorrect": false, "feedback": "Incorrecto. No hay operación que resulte en 24."},
-          {"text": "10", "isCorrect": false, "feedback": "Incorrecto. Error de cálculo básico."}
+          {"text": "**24**", "isCorrect": false, "feedback": "Incorrecto. No hay operación que resulte en 24."},
+          {"text": "**10**", "isCorrect": false, "feedback": "Incorrecto. Error de cálculo básico."}
         ]
       }
     ],
@@ -97,7 +99,7 @@ export const AI_PROMPTS = {
       "description": "Descripción  indicando competencias evaluadas",
       "area": "Área académica (ej. Matemáticas, Ciencias, Historia)",
       "tema": "Tema específico evaluado"
-    }// no inicies los titulo o descripciones con cosas tipo: card de esto o exmane o evaluación de esto, osea se centrado
+    }// PROHIBIDO: No inicies títulos o descripciones con "Examen de...", "Evaluación sobre...", "Test de...", etc. Sé directo. Ej: "Fundamentos de Física Hidrostática" en lugar de "Examen de Física".
 
   }
 
@@ -124,7 +126,7 @@ Devuelve SOLO el JSON.
   1. Genera EXACTAMENTE ${numberOfQuestions} preguntas de opción múltiple.
   2. Nivel de dificultad: ${difficulty}.
      - **very_easy**: Identificación directa de conceptos básicos.
-     - **easy**: Comprensión y aplicación simple de un solo concepto.
+     - **easy**: Comprensión y aplicación simple de un solo concepto. **REGLA**: Que sea fácil NO significa que la respuesta sea obvia o regalada; debe exigir un mínimo de memoria o lógica.
      - **medium**: Análisis de información, relación de conceptos, interpretación de datos.
      - **hard**: Evaluación, síntesis, integración de múltiples conceptos.
      - **very_hard**: Pensamiento crítico avanzado, resolución de problemas complejos con múltiples variables.
@@ -155,7 +157,8 @@ Devuelve SOLO el JSON.
      - Solo usa bloques de código para: múltiples líneas de código (3+ líneas), estructuras completas
   7. **MARKDOWN en contextos y preguntas**:
      - **PROHIBIDO**: No uses encabezados (#, ##, ###) dentro del campo "question" ni en las opciones. Úsalos SOLO en "contextContent".
-     - Usa **negritas** solo para enfatizar términos clave, NUNCA para el enunciado completo.
+     - Usa **negritas** frecuentemente para resaltar **nombres**, **fechas**, **términos clave** o **valores importantes**. El markdown hace que el contenido sea más legible y profesional.
+     - **ESTILO DE OPCIONES**: Mantén un formato visual consistente en las 4 opciones. Si usas negritas en una, úsalas en todas (si aplica). Nunca resaltes la correcta de forma diferente a las demás.
      - Puedes usar tablas, negritas, listas, LaTeX , bloques de cita, tienes total libertad
      - Los contextos usan markdown completo para presentar información rica
      - usa mucho y muy bien tu markdown mega libre
@@ -193,10 +196,10 @@ Devuelve SOLO el JSON.
         "question": "De acuerdo con el texto, ¿cuántas personas mueren al año por enfermedades relacionadas con la contaminación del aire?",
         "explanation": "El texto indica que son más de **7 millones** de personas.",
         "options": [
-          {"text": "Más de 7 millones", "isCorrect": true, "feedback": "¡Correcto! El texto lo indica explícitamente."},
-          {"text": "Más de 5 millones", "isCorrect": false, "feedback": "Incorrecto. El texto dice 7 millones, no 5."},
-          {"text": "Más de 10 millones", "isCorrect": false, "feedback": "Incorrecto. Es una cifra mayor a la reportada."},
-          {"text": "Menos de 3 millones", "isCorrect": false, "feedback": "Incorrecto. La cifra real es mucho mayor."}
+          {"text": "**Más de 7 millones**", "isCorrect": true, "feedback": "¡Correcto! El texto lo indica explícitamente."},
+          {"text": "**Más de 5 millones**", "isCorrect": false, "feedback": "Incorrecto. El texto dice 7 millones, no 5."},
+          {"text": "**Más de 10 millones**", "isCorrect": false, "feedback": "Incorrecto. Es una cifra mayor a la reportada."},
+          {"text": "**Menos de 3 millones**", "isCorrect": false, "feedback": "Incorrecto. La cifra real es mucho mayor."}
         ]
       },
       {
@@ -246,7 +249,7 @@ Antes de responder, verifica:
 - ¿No hay comillas de codigo fuera del JSON?
 - ¿Es JSON válido?
 Si algo falla, corrígelo antes de responder.
-// no inicies los titulo o descripciones con cosas tipo: card de esto o exmane o evaluación de esto, osea se centrado
+// PROHIBIDO: No inicies títulos o descripciones con "Examen de...", "Evaluación sobre...", "Test de...", etc. Sé directo. Ej: "Fundamentos de Física Hidrostática" en lugar de "Examen de Física".
  - recuerda que lasa cosas sin markdown son aburridas, entonces aprovecha para expresar mejor con markdown como escrobir en negrina un nombre, o algo, trata de escribir bie las cosas en markdown sin limites, no le hagas tanto caso a la instruccion de respetar la dificultad, eso no limita tu capacisadd de uso en markdown
 
 
@@ -324,7 +327,7 @@ Devuelve SOLO el JSON.
   ---
 
   ### Metadatos (texto plano, sin Markdown)
-  - **title**: Título técnico general que refleje la referencia trabajada.
+  - **title**: Título técnico general que refleje la referencia trabajada. **PROHIBIDO**: No inicies títulos con "Notas sobre...", "Resumen de...", etc. Sé directo. Ej: "Leyes de la Termodinámica" en lugar de "Notas de Termodinámica".
   - **description**: Descripción breve indicando qué referencia del usuario se desarrolló y a qué nivel de detalle.
   - **area**: Área académica específica (ej. Termodinámica, Lingüística computacional, Bioquímica).
   - **tema**: Tema concreto con precisión técnica (ej. Segunda ley de la termodinámica aplicada a motores térmicos).
@@ -379,6 +382,7 @@ REGLAS CRÍTICAS:
 FORMATO DEL CONTENIDO:
 - Puedes usar **markdown** dentro de "front", "back" y "hint":
   - Usa el markdown de forma totalmente libre: **negritas**, *cursivas*, \`código\`, listas, tablas cortas y LaTeX.
+  - Usa **negritas** frecuentemente para resaltar **nombres**, **fechas**, **términos clave** o **valores importantes**.
   - Las respuestas deben ser visualmente atractivas y jerarquizadas.
 
 FORMATO EXACTO QUE DEVES DEVOLVER:
@@ -401,7 +405,7 @@ FORMATO EXACTO QUE DEVES DEVOLVER:
     "area": "Ciencias de la Computación",
     "tema": "Machine Learning - Conceptos Fundamentales"
   }
-  // no inicies los titulo o descripciones con cosas tipo: card de esto o exmane o evaluación de esto, osea se centrado
+  // PROHIBIDO: No inicies títulos o descripciones con "Flashcards de...", "Tarjetas sobre...", etc. Sé directo. Ej: "Anatomía del Corazón" en lugar de "Flashcards de Anatomía".
 }
 
 IMPORTANTE:
