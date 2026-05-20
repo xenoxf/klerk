@@ -30,7 +30,7 @@ export class AuthService {
   constructor(
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
-  ) {}
+  ) { }
 
   /** 🔐 Generar JWT access token (duración de 24h para buena UX) */
   private generateAccessToken(
@@ -469,6 +469,3 @@ export class AuthService {
   }
 }
 
-// Nota: El campo 'provider' ha sido reemplazado por 'providerId'
-// googleAuth() está correctamente implementado en auth.service.ts
-// googleAuthWithCode() maneja el intercambio de código
