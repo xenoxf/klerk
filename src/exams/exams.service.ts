@@ -144,6 +144,113 @@ export class ExamsService {
       this.logger.error(e.message)
     }
   }
+  async generateExamFromFile(
+    input: {
+      fileBase64: string;
+      mimeType: string;
+      reference: string;
+      numberOfQuestions: number;
+      difficulty: string;
+      type?: 'quiz' | 'icfes';
+      acceso: string;
+    },
+    userId: number,
+  ) {
+    this.logger.log(`Starting generateExamFromFile for user ${userId}`);
+
+    const isPublic = normalizeAccess(input.acceso) === 'publico';
+    let dynamicCost = calculateExamCost(
+      input.numberOfQuestions,
+      input.difficulty,
+      input.reference || 'archivo',
+    );
+
+    if (isPublic) {
+      dynamicCost = Math.ceil(dynamicCost * 0.5);
+    }
+
+    const creditStatus = await this.creditsService.consumeCredits(
+      userId,
+      'EXAM_GENERATION',
+      dynamicCost,
+    );
+
+    let response: ExamResponse;
+    if (input.type === 'icfes') {
+      response = await this.geminiService.generateIcfesExamFromFile(
+        input.fileBase64,
+        input.mimeType,
+        input.reference,
+        input.numberOfQuestions,
+        input.difficulty,
+      );
+    } else {
+      response = await this.geminiService.generateExamFromFile(
+        input.fileBase64,
+        input.mimeType,
+        input.reference,
+        input.numberOfQuestions,
+        input.difficulty,
+      );
+    }
+
+    const { questions, metadata } = response;
+    const { title, description, tema, area } = metadata;
+
+    const exam = this.examRepo.create({
+      area,
+      tema,
+      title,
+      description,
+      difficulty: input.difficulty,
+      type: input.type || 'quiz',
+      userId,
+      totalQuestions: input.numberOfQuestions,
+      acceso: normalizeAccess(input.acceso),
+      code: await this.generateCode(),
+    });
+
+    const savedExam = await this.examRepo.save(exam);
+    this.logger.log(`Exam from file saved with ID: ${savedExam.id}`);
+
+    await Promise.all(
+      questions.map(async (q) => {
+        const question = this.questionRepo.create({
+          question: q.question,
+          explanation: q.explanation || '',
+          contextId: q.contextId || null,
+          contextContent:
+            input.type === 'icfes' && q.contextId ? q.contextContent : null,
+          exam: savedExam,
+        });
+
+        const savedQuestion = await this.questionRepo.save(question);
+
+        if (q.options && q.options.length > 0) {
+          await Promise.all(
+            q.options.map((opt) => {
+              const option = this.optionRepo.create({
+                text: opt.text,
+                isCorrect: opt.isCorrect,
+                feedback: opt.feedback || '',
+                question: savedQuestion,
+              });
+              return this.optionRepo.save(option);
+            }),
+          );
+        }
+      }),
+    );
+
+    return {
+      message: 'Examen generado exitosamente desde archivo',
+      examId: savedExam.id,
+      totalQuestions: savedExam.totalQuestions,
+      creditsRemaining: creditStatus.remaining,
+      creditsTotal: creditStatus.total,
+    };
+  }
+
   // ==================== BASIC CRUD ====================
 
   async generateCode() {

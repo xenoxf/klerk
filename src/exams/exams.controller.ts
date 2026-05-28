@@ -10,7 +10,10 @@ import {
   Query,
   ParseIntPipe,
   Req,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { ExamsService } from './exams.service';
 import { ExamAttemptsService } from '../exam-attempts/exam-attempts.service';
 import { JwtGuard } from '../auth/jwt/jwt.guard';
@@ -158,6 +161,37 @@ export class ExamsController {
     @Req() req: AuthenticatedRequest,
   ) {
     return this.examsService.generateExam(input, getNumericUserId(req));
+  }
+
+  @Post('generate/from-file')
+  @UseGuards(JwtGuard, RequireAuthGuard)
+  @UseInterceptors(FileInterceptor('file'))
+  async generateFromFile(
+    @UploadedFile() file: Express.Multer.File,
+    @Body() input: {
+      reference?: string;
+      numberOfQuestions?: number;
+      difficulty?: string;
+      type?: 'quiz' | 'icfes';
+      acceso?: string;
+    },
+    @Req() req: AuthenticatedRequest,
+  ) {
+    if (!file) {
+      throw new Error('Archivo requerido');
+    }
+    return this.examsService.generateExamFromFile(
+      {
+        fileBase64: file.buffer.toString('base64'),
+        mimeType: file.mimetype,
+        reference: input.reference || '',
+        numberOfQuestions: input.numberOfQuestions || 10,
+        difficulty: input.difficulty || 'medium',
+        type: input.type || 'quiz',
+        acceso: input.acceso || 'public',
+      },
+      getNumericUserId(req),
+    );
   }
 
   // ==================== CRUD OPERATIONS ====================

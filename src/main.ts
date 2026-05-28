@@ -7,9 +7,11 @@ import { ValidationPipe } from '@nestjs/common';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { ExpressAdapter } from '@nestjs/platform-express';
+import { NestExpressApplication } from '@nestjs/platform-express';
+import { join } from 'path';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, new ExpressAdapter());
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, new ExpressAdapter());
 
   // ============================================
   // CONFIGURACIÓN CORS - PRODUCCIÓN SEGURO
@@ -130,12 +132,27 @@ async function bootstrap() {
   );
 
   // ============================================
+  // SERVE STATIC FILES (uploads)
+  // ============================================
+  app.useStaticAssets(join(__dirname, '..', 'uploads'), {
+    prefix: '/uploads/',
+    setHeaders: (res) => {
+      res.set('Cross-Origin-Resource-Policy', 'cross-origin');
+    },
+  });
+
+  // ============================================
   // REQUEST SIZE LIMITS (Payload Attack Protection)
   // ============================================
   // Limita el tamaño del body de las peticiones
   app.use((req, res, next) => {
-    // Skip para endpoints que no tienen body
+    // Skip para endpoints que no tienen body y para file uploads
     if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
+      return next();
+    }
+
+    // Skip body size check for file upload routes (multer handles these)
+    if (req.path?.includes('/from-file') || req.path?.includes('/with-file')) {
       return next();
     }
 

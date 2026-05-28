@@ -6,13 +6,14 @@ import {
   Content,
   GenerationConfig,
   ResponseSchema,
+  Part,
 } from '@google/generative-ai';
 import { AI_PROMPTS } from './AI_PROMPTS';
 
 const MODELS = [
   'gemini-2.5-flash-lite',
   'gemini-2.5-flash',
-  'gemini-2.0-flash',
+  'gemini-2.0-flash-lite',
   'gemini-1.5-flash',
 ] as const;
 
@@ -115,8 +116,16 @@ export class GeminiService {
         responseMimeType: 'application/json',
         responseSchema: schema,
       };
+      return this.genAI.getGenerativeModel({
+        generationConfig: config.generationConfig,
+        model: config.model,
+      });
+
     }
-    return this.genAI.getGenerativeModel(config);
+
+    return this.genAI.getGenerativeModel({
+      model: config.model,
+    })
   }
 
   private async generateWithSchema(
@@ -326,7 +335,7 @@ export class GeminiService {
     return { response: result.response.text().trim() };
   }
 
-  async *generateEducationalChatResponseStream(
+  async * generateEducationalChatResponseStream(
     msg: string,
     history?: Content[],
   ) {
@@ -362,5 +371,126 @@ export class GeminiService {
       .text()
       .trim()
       .replace(/^["']|["']$/g, '');
+  }
+
+  // ==================== MULTIMODAL METHODS ====================
+
+  private buildFilePart(fileBase64: string, mimeType: string): Part {
+    return {
+      inlineData: {
+        data: fileBase64,
+        mimeType,
+      },
+    };
+  }
+
+  async generateExamFromFile(
+    fileBase64: string,
+    mimeType: string,
+    reference: string,
+    num: number,
+    diff: string,
+  ): Promise<ExamResponse> {
+    const textPrompt = `${AI_PROMPTS.generateExam(num, diff)}\n\nEl usuario ha subido un archivo como referencia. También dice: "${reference || 'genera preguntas sobre este archivo'}". Analiza el archivo y genera preguntas basadas en su contenido.`;
+    const filePart = this.buildFilePart(fileBase64, mimeType);
+
+    const result = await this.getModel(MODELS[0], this.EXAM_SCHEMA).generateContent([textPrompt, filePart]);
+    const text = result.response.text();
+    if (!text) throw new Error('Empty response from Gemini');
+    return JSON.parse(JsonExtractor.extract(text));
+  }
+
+  async generateIcfesExamFromFile(
+    fileBase64: string,
+    mimeType: string,
+    reference: string,
+    num: number,
+    diff: string,
+  ): Promise<ExamResponse> {
+    const textPrompt = `${AI_PROMPTS.generateIcfesExam(num, diff)}\n\nEl usuario ha subido un archivo como referencia. También dice: "${reference || 'genera preguntas sobre este archivo'}". Analiza el archivo y genera preguntas basadas en su contenido.`;
+    const filePart = this.buildFilePart(fileBase64, mimeType);
+
+    const result = await this.getModel(MODELS[0], this.EXAM_SCHEMA).generateContent([textPrompt, filePart]);
+    const text = result.response.text();
+    if (!text) throw new Error('Empty response from Gemini');
+    return JSON.parse(JsonExtractor.extract(text));
+  }
+
+  async generateFlashcardsFromFile(
+    fileBase64: string,
+    mimeType: string,
+    reference: string,
+    num: number,
+  ): Promise<CardResponse> {
+    const textPrompt = `${AI_PROMPTS.generateFlashcards(num)}\n\nEl usuario ha subido un archivo como referencia. También dice: "${reference || 'genera flashcards sobre este archivo'}". Analiza el archivo y genera flashcards basadas en su contenido.`;
+    const filePart = this.buildFilePart(fileBase64, mimeType);
+
+    const result = await this.getModel(MODELS[0], this.CARD_SCHEMA).generateContent([textPrompt, filePart]);
+    const text = result.response.text();
+    if (!text) throw new Error('Empty response from Gemini');
+    return JSON.parse(JsonExtractor.extract(text));
+  }
+
+  async generateEducationalChatResponseWithFile(
+    msg: string,
+    fileBase64: string,
+    mimeType: string,
+    history?: Content[],
+  ) {
+    let historyText = '';
+    if (history && history.length > 0) {
+      historyText = history
+        .map((h) => {
+          const role = h.role === 'user' ? 'User' : 'Assistant';
+          const text = h.parts.map((p) => p.text).join(' ');
+          return `${role}: ${text}`;
+        })
+        .join('\n');
+    }
+
+    const systemPrompt = AI_PROMPTS.SYSTEM_PROMPT({
+      previousTopics: [],
+      messageCount: history?.length || 0,
+    });
+
+    const userMsg = `El usuario ha subido un archivo y dice: "${msg || 'Analiza este archivo'}". Analiza el archivo y responde basándote en su contenido.`;
+    const prompt = `${systemPrompt}\n\n${historyText}\nUser: ${userMsg}`;
+    const filePart = this.buildFilePart(fileBase64, mimeType);
+
+    const result = await this.getModel(MODELS[0]).generateContent([prompt, filePart]);
+    return { response: result.response.text().trim() };
+  }
+
+  async * generateEducationalChatResponseStreamWithFile(
+    msg: string,
+    fileBase64: string,
+    mimeType: string,
+    history?: Content[],
+  ) {
+    let historyText = '';
+    if (history && history.length > 0) {
+      historyText = history
+        .map((h) => {
+          const role = h.role === 'user' ? 'User' : 'Assistant';
+          const text = h.parts.map((p) => p.text).join(' ');
+          return `${role}: ${text}`;
+        })
+        .join('\n');
+    }
+
+    const systemPrompt = AI_PROMPTS.SYSTEM_PROMPT({
+      previousTopics: [],
+      messageCount: history?.length || 0,
+    });
+
+    const userMsg = `El usuario ha subido un archivo y dice: "${msg || 'Analiza este archivo'}". Analiza el archivo y responde basándote en su contenido.`;
+    const prompt = `${systemPrompt}\n\n${historyText}\nUser: ${userMsg}`;
+    const filePart = this.buildFilePart(fileBase64, mimeType);
+
+    const result = await this.getModel(MODELS[0]).generateContentStream([prompt, filePart]);
+    for await (const chunk of result.stream) {
+      const text = chunk.text();
+      if (text) yield text;
+    }
   }
 }

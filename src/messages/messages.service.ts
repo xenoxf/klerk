@@ -24,6 +24,117 @@ export class MessagesService {
   }
 
   // Streaming SSE endpoint for chat
+  async *sendMessageStreamWithFile(
+    input: { prompt: string; chatId?: number; fileBase64: string; mimeType: string },
+    userId: number,
+  ): AsyncIterableIterator<string> {
+    if (!input.fileBase64) {
+      throw new BadRequestException('File data is required');
+    }
+
+    const creditStatus = await this.creditsService.consumeCredits(
+      userId,
+      'CHAT_MESSAGE',
+    );
+
+    let chat: Chat | null = null;
+
+    if (input.chatId) {
+      chat = await this.chatRepo.findOne({
+        where: { id: input.chatId, userId },
+        select: ['id', 'title', 'userId'],
+      });
+      if (!chat) {
+        chat = await this.chatRepo.findOne({
+          where: { id: input.chatId },
+          select: ['id', 'title', 'userId'],
+        });
+        if (chat && chat.userId !== userId) {
+          const chatTitle = await this.generateChatTitle(input.prompt || 'Archivo').catch(
+            () => 'Nuevo Chat',
+          );
+          chat = await this.createChat(userId, chatTitle);
+        } else if (!chat) {
+          const chatTitle = await this.generateChatTitle(input.prompt || 'Archivo').catch(
+            () => 'Nuevo Chat',
+          );
+          chat = await this.createChat(userId, chatTitle);
+        }
+      }
+    } else {
+      const chatTitle = await this.generateChatTitle(input.prompt || 'Archivo').catch(
+        () => 'Nuevo Chat',
+      );
+      chat = await this.createChat(userId, chatTitle);
+    }
+
+    let recentMessages: Message[] = [];
+    if (chat) {
+      recentMessages = await this.messageRepo
+        .createQueryBuilder('message')
+        .select(['message.prompt', 'message.response', 'message.createdAt'])
+        .where('message.chatId = :chatId', { chatId: chat.id })
+        .orderBy('message.createdAt', 'DESC')
+        .limit(5)
+        .getMany();
+      recentMessages = recentMessages.reverse();
+    }
+
+    const conversationHistory: Content[] = [];
+    recentMessages.forEach((msg) => {
+      conversationHistory.push({
+        role: 'user',
+        parts: [{ text: msg.prompt }],
+      });
+      conversationHistory.push({
+        role: 'model',
+        parts: [{ text: msg.response }],
+      });
+    });
+
+    yield `data: ${JSON.stringify({ type: 'credits', remaining: creditStatus.remaining, total: creditStatus.total })}\n\n`;
+
+    let fullResponse = '';
+    let aiError: Error | null = null;
+
+    try {
+      const aiStream = this.geminiService.generateEducationalChatResponseStreamWithFile(
+        input.prompt,
+        input.fileBase64,
+        input.mimeType,
+        conversationHistory.length > 0 ? conversationHistory : undefined,
+      );
+
+      for await (const chunk of aiStream) {
+        fullResponse += chunk;
+        yield `data: ${JSON.stringify({ type: 'chunk', content: chunk })}\n\n`;
+      }
+    } catch (error) {
+      aiError = error as Error;
+      this.logger.error(`AI stream with file failed: ${aiError?.message}`);
+    }
+
+    if (!fullResponse.trim()) {
+      fullResponse =
+        aiError?.message ||
+        'Lo siento, estoy teniendo dificultades técnicas en este momento. Por favor, intenta de nuevo en unos segundos.';
+      yield `data: ${JSON.stringify({ type: 'chunk', content: fullResponse })}\n\n`;
+    }
+
+    const createdAt = new Date().toISOString();
+    const userMessage = this.messageRepo.create({
+      prompt: input.prompt || '[Archivo subido]',
+      response: fullResponse,
+      chat,
+      userId,
+      chatId: chat!.id,
+      createdAt,
+    });
+    await this.messageRepo.save(userMessage);
+
+    yield `data: ${JSON.stringify({ type: 'done', messageId: userMessage.id, chatId: chat!.id })}\n\n`;
+  }
+
   async *sendMessageStream(
     input: { prompt: string; chatId?: number },
     userId: number,

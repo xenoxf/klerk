@@ -8,7 +8,10 @@ import {
   Delete,
   Patch,
   UseGuards,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { FlashCardsService } from './flash-cards.service';
 import { GenerateFlashCardsDto } from './dto/generate-flash-cards.dto';
 import {
@@ -34,6 +37,33 @@ export class FlashCardsController {
     @Req() req: AuthenticatedRequest,
   ) {
     return this.flashCardsService.generate(input, getNumericUserId(req));
+  }
+
+  @Post('generate/from-file')
+  @RequireAuth()
+  @UseInterceptors(FileInterceptor('file'))
+  async generateFromFile(
+    @UploadedFile() file: Express.Multer.File,
+    @Body() input: {
+      reference?: string;
+      quantity?: number;
+      acceso?: string;
+    },
+    @Req() req: AuthenticatedRequest,
+  ) {
+    if (!file) {
+      throw new Error('Archivo requerido');
+    }
+    return this.flashCardsService.generateFromFile(
+      {
+        fileBase64: file.buffer.toString('base64'),
+        mimeType: file.mimetype,
+        reference: input.reference || '',
+        quantity: input.quantity || 5,
+        acceso: input.acceso || 'public',
+      },
+      getNumericUserId(req),
+    );
   }
 
   @Get()

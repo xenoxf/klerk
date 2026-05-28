@@ -102,6 +102,80 @@ export class FlashCardsService {
     };
   }
 
+  async generateFromFile(
+    input: {
+      fileBase64: string;
+      mimeType: string;
+      reference: string;
+      quantity: number;
+      acceso?: string;
+    },
+    userId: number,
+  ) {
+    const isPublic = normalizeAccess(input.acceso) === 'publico';
+    let dynamicCost = calculateFlashcardCost(input.quantity, input.reference || 'archivo');
+
+    if (isPublic) {
+      dynamicCost = Math.ceil(dynamicCost * 0.5);
+    }
+
+    const creditStatus = await this.creditsService.consumeCredits(
+      userId,
+      'FLASHCARD_GENERATION',
+      dynamicCost,
+    );
+
+    const response: CardResponse = await this.geminiService.generateFlashcardsFromFile(
+      input.fileBase64,
+      input.mimeType,
+      input.reference,
+      input.quantity,
+    );
+
+    const metadata = response.metadata || { title: 'Mazo', description: '' };
+    const title = metadata.title || 'Mazo de Flashcards';
+    const description = metadata.description || '';
+    const area = metadata.area || '';
+    const tema = metadata.tema || '';
+
+    const card = this.cardRepo.create({
+      area,
+      title,
+      description,
+      tema,
+      userId,
+      code: await this.generateCode(),
+      acceso: normalizeAccess(input.acceso),
+    });
+    const savedCard = await this.cardRepo.save(card);
+
+    const cards = response.cards || [];
+    const createdFlashCards = await Promise.all(
+      cards.map((flashCard) => {
+        if (!flashCard.front || !flashCard.back) {
+          throw new Error('Flashcard generada sin frente o reverso.');
+        }
+
+        const fc = this.flashCardRepo.create({
+          front: flashCard.front,
+          back: flashCard.back,
+          hint: flashCard.hint || null,
+          card: savedCard,
+          userId,
+        });
+        return this.flashCardRepo.save(fc);
+      }),
+    );
+
+    return {
+      message: 'Flashcards creadas exitosamente desde archivo',
+      cardId: savedCard.id,
+      totalCards: createdFlashCards.length,
+      creditsRemaining: creditStatus.remaining,
+      creditsTotal: creditStatus.total,
+    };
+  }
+
   async findCardById(id: number, userId: number) {
     return this.cardRepo.findOne({
       where: { id, userId },
