@@ -18,6 +18,7 @@ import { JwtGuard } from '../auth/jwt/jwt.guard';
 import { RequireAuthGuard } from '../common/guards/require-auth/require-auth.guard';
 import { getNumericUserId } from '../common/utils/shared.utils';
 import { AuthenticatedRequest } from '../common/types/request.type';
+import { UploadedFile as FileUpload } from '../common/types/upload.type';
 
 @UseGuards(JwtGuard, RequireAuthGuard)
 @Controller('messages')
@@ -36,9 +37,22 @@ export class MessagesController {
   }
 
   @Post('send/stream/with-file')
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('file', {
+    limits: { fileSize: 10 * 1024 * 1024 },
+    fileFilter: (_req: any, file: any, cb: any) => {
+      const allowed = [
+        'image/png', 'image/jpeg', 'image/webp', 'image/gif',
+        'application/pdf',
+      ];
+      if (allowed.includes(file.mimetype)) {
+        cb(null, true);
+      } else {
+        cb(new Error('Formato de archivo no soportado. Solo imágenes (PNG, JPG, WEBP, GIF) y PDF'), false);
+      }
+    },
+  }))
   async sendStreamWithFile(
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile() file: FileUpload,
     @Body() input: { prompt?: string; chatId?: number },
     @Req() req: AuthenticatedRequest,
     @Res() res: Response,

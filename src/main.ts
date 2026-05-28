@@ -9,6 +9,7 @@ import rateLimit from 'express-rate-limit';
 import { ExpressAdapter } from '@nestjs/platform-express';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
+import { existsSync, mkdirSync } from 'fs';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, new ExpressAdapter());
@@ -134,7 +135,11 @@ async function bootstrap() {
   // ============================================
   // SERVE STATIC FILES (uploads)
   // ============================================
-  app.useStaticAssets(join(__dirname, '..', 'uploads'), {
+  const uploadsDir = join(__dirname, '..', 'uploads');
+  if (!existsSync(uploadsDir)) {
+    mkdirSync(uploadsDir, { recursive: true });
+  }
+  app.useStaticAssets(uploadsDir, {
     prefix: '/uploads/',
     setHeaders: (res) => {
       res.set('Cross-Origin-Resource-Policy', 'cross-origin');

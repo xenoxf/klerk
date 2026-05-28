@@ -12,6 +12,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { UploadedFile as FileUpload } from '../common/types/upload.type';
 import { FlashCardsService } from './flash-cards.service';
 import { GenerateFlashCardsDto } from './dto/generate-flash-cards.dto';
 import {
@@ -41,9 +42,22 @@ export class FlashCardsController {
 
   @Post('generate/from-file')
   @RequireAuth()
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('file', {
+    limits: { fileSize: 10 * 1024 * 1024 },
+    fileFilter: (_req: any, file: any, cb: any) => {
+      const allowed = [
+        'image/png', 'image/jpeg', 'image/webp', 'image/gif',
+        'application/pdf',
+      ];
+      if (allowed.includes(file.mimetype)) {
+        cb(null, true);
+      } else {
+        cb(new Error('Formato de archivo no soportado. Solo imágenes (PNG, JPG, WEBP, GIF) y PDF'), false);
+      }
+    },
+  }))
   async generateFromFile(
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile() file: FileUpload,
     @Body() input: {
       reference?: string;
       quantity?: number;

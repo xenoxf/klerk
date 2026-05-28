@@ -26,6 +26,7 @@ import {
   getOptionalNumericUserId,
 } from '../common/utils/shared.utils';
 import { AuthenticatedRequest } from '../common/types/request.type';
+import { UploadedFile as FileUpload } from '../common/types/upload.type';
 
 @UseGuards(JwtGuard)
 @Controller('exams')
@@ -165,9 +166,22 @@ export class ExamsController {
 
   @Post('generate/from-file')
   @UseGuards(JwtGuard, RequireAuthGuard)
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('file', {
+    limits: { fileSize: 10 * 1024 * 1024 },
+    fileFilter: (_req: any, file: any, cb: any) => {
+      const allowed = [
+        'image/png', 'image/jpeg', 'image/webp', 'image/gif',
+        'application/pdf',
+      ];
+      if (allowed.includes(file.mimetype)) {
+        cb(null, true);
+      } else {
+        cb(new Error('Formato de archivo no soportado. Solo imágenes (PNG, JPG, WEBP, GIF) y PDF'), false);
+      }
+    },
+  }))
   async generateFromFile(
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile() file: FileUpload,
     @Body() input: {
       reference?: string;
       numberOfQuestions?: number;
