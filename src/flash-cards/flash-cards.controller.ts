@@ -9,9 +9,10 @@ import {
   Patch,
   UseGuards,
   UploadedFile,
+  UploadedFiles,
   UseInterceptors,
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { UploadedFile as FileUpload } from '../common/types/upload.type';
 import { FlashCardsService } from './flash-cards.service';
 import { GenerateFlashCardsDto } from './dto/generate-flash-cards.dto';
@@ -42,7 +43,7 @@ export class FlashCardsController {
 
   @Post('generate/from-file')
   @RequireAuth()
-  @UseInterceptors(FileInterceptor('file', {
+  @UseInterceptors(FilesInterceptor('files', 5, {
     limits: { fileSize: 10 * 1024 * 1024 },
     fileFilter: (_req: any, file: any, cb: any) => {
       const allowed = [
@@ -57,7 +58,7 @@ export class FlashCardsController {
     },
   }))
   async generateFromFile(
-    @UploadedFile() file: FileUpload,
+    @UploadedFiles() files: FileUpload[],
     @Body() input: {
       reference?: string;
       quantity?: number;
@@ -65,13 +66,16 @@ export class FlashCardsController {
     },
     @Req() req: AuthenticatedRequest,
   ) {
-    if (!file) {
+    if (!files || files.length === 0) {
       throw new Error('Archivo requerido');
     }
+    const filePayloads = files.map(f => ({
+      fileBase64: f.buffer.toString('base64'),
+      mimeType: f.mimetype,
+    }));
     return this.flashCardsService.generateFromFile(
       {
-        fileBase64: file.buffer.toString('base64'),
-        mimeType: file.mimetype,
+        files: filePayloads,
         reference: input.reference || '',
         quantity: input.quantity || 5,
         acceso: input.acceso || 'public',

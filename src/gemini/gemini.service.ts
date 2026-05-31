@@ -384,51 +384,75 @@ export class GeminiService {
     };
   }
 
+  private async generateContentWithFileFallback(
+    contents: (string | Part)[],
+    schema?: ResponseSchema,
+  ): Promise<string> {
+    for (const modelName of MODELS) {
+      let keysTried = 0;
+      while (keysTried < this.apiKeys.length) {
+        try {
+          const model = this.getModel(modelName, schema);
+          const result = await model.generateContent(contents);
+          const text = result.response.text();
+          if (text) return text.trim();
+          throw new Error('Empty');
+        } catch (error: unknown) {
+          const err = error as { status?: number; code?: number | string };
+          const code = err.status || err.code;
+          if (code === 429 && keysTried < this.apiKeys.length - 1) {
+            this.rotateKey();
+            keysTried++;
+            continue;
+          }
+          this.logger.warn(
+            `Model ${modelName} file content error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          );
+          break;
+        }
+      }
+    }
+    throw new Error('All models failed for file content');
+  }
+
   async generateExamFromFile(
-    fileBase64: string,
-    mimeType: string,
+    files: Array<{ fileBase64: string; mimeType: string }>,
     reference: string,
     num: number,
     diff: string,
   ): Promise<ExamResponse> {
-    const textPrompt = `${AI_PROMPTS.generateExam(num, diff)}\n\nEl usuario ha subido un archivo como referencia. También dice: "${reference || 'genera preguntas sobre este archivo'}". Analiza el archivo y genera preguntas basadas en su contenido.`;
-    const filePart = this.buildFilePart(fileBase64, mimeType);
+    const textPrompt = `${AI_PROMPTS.generateExam(num, diff)}\n\nEl usuario ha subido ${files.length} archivo(s) como referencia. También dice: "${reference || 'genera preguntas sobre estos archivos'}". Analiza los archivos y genera preguntas basadas en su contenido.`;
+    const fileParts = files.map(f => this.buildFilePart(f.fileBase64, f.mimeType));
 
-    const result = await this.getModel(MODELS[0], this.EXAM_SCHEMA).generateContent([textPrompt, filePart]);
-    const text = result.response.text();
-    if (!text) throw new Error('Empty response from Gemini');
-    return JSON.parse(JsonExtractor.extract(text));
+    const raw = await this.generateContentWithFileFallback([textPrompt, ...fileParts], this.EXAM_SCHEMA);
+    this.logger.debug(raw);
+    return JSON.parse(JsonExtractor.extract(raw));
   }
 
   async generateIcfesExamFromFile(
-    fileBase64: string,
-    mimeType: string,
+    files: Array<{ fileBase64: string; mimeType: string }>,
     reference: string,
     num: number,
     diff: string,
   ): Promise<ExamResponse> {
-    const textPrompt = `${AI_PROMPTS.generateIcfesExam(num, diff)}\n\nEl usuario ha subido un archivo como referencia. También dice: "${reference || 'genera preguntas sobre este archivo'}". Analiza el archivo y genera preguntas basadas en su contenido.`;
-    const filePart = this.buildFilePart(fileBase64, mimeType);
+    const textPrompt = `${AI_PROMPTS.generateIcfesExam(num, diff)}\n\nEl usuario ha subido ${files.length} archivo(s) como referencia. También dice: "${reference || 'genera preguntas sobre estos archivos'}". Analiza los archivos y genera preguntas basadas en su contenido.`;
+    const fileParts = files.map(f => this.buildFilePart(f.fileBase64, f.mimeType));
 
-    const result = await this.getModel(MODELS[0], this.EXAM_SCHEMA).generateContent([textPrompt, filePart]);
-    const text = result.response.text();
-    if (!text) throw new Error('Empty response from Gemini');
-    return JSON.parse(JsonExtractor.extract(text));
+    const raw = await this.generateContentWithFileFallback([textPrompt, ...fileParts], this.EXAM_SCHEMA);
+    this.logger.debug(raw);
+    return JSON.parse(JsonExtractor.extract(raw));
   }
 
   async generateFlashcardsFromFile(
-    fileBase64: string,
-    mimeType: string,
+    files: Array<{ fileBase64: string; mimeType: string }>,
     reference: string,
     num: number,
   ): Promise<CardResponse> {
-    const textPrompt = `${AI_PROMPTS.generateFlashcards(num)}\n\nEl usuario ha subido un archivo como referencia. También dice: "${reference || 'genera flashcards sobre este archivo'}". Analiza el archivo y genera flashcards basadas en su contenido.`;
-    const filePart = this.buildFilePart(fileBase64, mimeType);
+    const textPrompt = `${AI_PROMPTS.generateFlashcards(num)}\n\nEl usuario ha subido ${files.length} archivo(s) como referencia. También dice: "${reference || 'genera flashcards sobre estos archivos'}". Analiza los archivos y genera flashcards basadas en su contenido.`;
+    const fileParts = files.map(f => this.buildFilePart(f.fileBase64, f.mimeType));
 
-    const result = await this.getModel(MODELS[0], this.CARD_SCHEMA).generateContent([textPrompt, filePart]);
-    const text = result.response.text();
-    if (!text) throw new Error('Empty response from Gemini');
-    return JSON.parse(JsonExtractor.extract(text));
+    const raw = await this.generateContentWithFileFallback([textPrompt, ...fileParts], this.CARD_SCHEMA);
+    return JSON.parse(JsonExtractor.extract(raw));
   }
 
   async generateEducationalChatResponseWithFile(
@@ -457,14 +481,13 @@ export class GeminiService {
     const prompt = `${systemPrompt}\n\n${historyText}\nUser: ${userMsg}`;
     const filePart = this.buildFilePart(fileBase64, mimeType);
 
-    const result = await this.getModel(MODELS[0]).generateContent([prompt, filePart]);
-    return { response: result.response.text().trim() };
+    const raw = await this.generateContentWithFileFallback([prompt, filePart]);
+    return { response: raw };
   }
 
   async * generateEducationalChatResponseStreamWithFile(
     msg: string,
-    fileBase64: string,
-    mimeType: string,
+    files: Array<{ fileBase64: string; mimeType: string }>,
     history?: Content[],
   ) {
     let historyText = '';
@@ -483,14 +506,42 @@ export class GeminiService {
       messageCount: history?.length || 0,
     });
 
-    const userMsg = `El usuario ha subido un archivo y dice: "${msg || 'Analiza este archivo'}". Analiza el archivo y responde basándote en su contenido.`;
+    const fileCount = files.length;
+    const userMsg = fileCount === 1
+      ? `El usuario ha subido un archivo y dice: "${msg || 'Analiza este archivo'}". Analiza el archivo y responde basándote en su contenido.`
+      : `El usuario ha subido ${fileCount} archivos y dice: "${msg || 'Analiza estos archivos'}". Analiza los archivos y responde basándote en su contenido.`;
     const prompt = `${systemPrompt}\n\n${historyText}\nUser: ${userMsg}`;
-    const filePart = this.buildFilePart(fileBase64, mimeType);
+    const fileParts = files.map(f => this.buildFilePart(f.fileBase64, f.mimeType));
 
-    const result = await this.getModel(MODELS[0]).generateContentStream([prompt, filePart]);
-    for await (const chunk of result.stream) {
-      const text = chunk.text();
-      if (text) yield text;
+    // For streaming, try models sequentially on failure
+    let lastError: Error | null = null;
+    for (const modelName of MODELS) {
+      let keysTried = 0;
+      while (keysTried < this.apiKeys.length) {
+        try {
+          const model = this.getModel(modelName);
+          const result = await model.generateContentStream([prompt, ...fileParts]);
+          for await (const chunk of result.stream) {
+            const text = chunk.text();
+            if (text) yield text;
+          }
+          return;
+        } catch (error: unknown) {
+          lastError = error as Error;
+          const err = error as { status?: number; code?: number | string };
+          const code = err.status || err.code;
+          if (code === 429 && keysTried < this.apiKeys.length - 1) {
+            this.rotateKey();
+            keysTried++;
+            continue;
+          }
+          this.logger.warn(
+            `Model ${modelName} stream file error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          );
+          break;
+        }
+      }
     }
+    throw lastError || new Error('All models failed for file stream');
   }
 }

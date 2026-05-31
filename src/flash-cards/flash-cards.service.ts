@@ -104,8 +104,7 @@ export class FlashCardsService {
 
   async generateFromFile(
     input: {
-      fileBase64: string;
-      mimeType: string;
+      files: Array<{ fileBase64: string; mimeType: string }>;
       reference: string;
       quantity: number;
       acceso?: string;
@@ -126,8 +125,7 @@ export class FlashCardsService {
     );
 
     const response: CardResponse = await this.geminiService.generateFlashcardsFromFile(
-      input.fileBase64,
-      input.mimeType,
+      input.files,
       input.reference,
       input.quantity,
     );

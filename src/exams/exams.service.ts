@@ -146,8 +146,7 @@ export class ExamsService {
   }
   async generateExamFromFile(
     input: {
-      fileBase64: string;
-      mimeType: string;
+      files: Array<{ fileBase64: string; mimeType: string }>;
       reference: string;
       numberOfQuestions: number;
       difficulty: string;
@@ -178,16 +177,14 @@ export class ExamsService {
     let response: ExamResponse;
     if (input.type === 'icfes') {
       response = await this.geminiService.generateIcfesExamFromFile(
-        input.fileBase64,
-        input.mimeType,
+        input.files,
         input.reference,
         input.numberOfQuestions,
         input.difficulty,
       );
     } else {
       response = await this.geminiService.generateExamFromFile(
-        input.fileBase64,
-        input.mimeType,
+        input.files,
         input.reference,
         input.numberOfQuestions,
         input.difficulty,

@@ -85,6 +85,51 @@ async function bootstrap() {
     }),
   );
 
+  app.use(
+    '/messages/send/stream/with-file',
+    rateLimit({
+      windowMs: 24 * 60 * 60 * 1000, // 24 horas
+      max: 30, // Máximo 30 subidas de archivo por día
+      message: {
+        statusCode: 429,
+        error: 'Too Many Requests',
+        message: 'Límite diario de subida de archivos alcanzado (30/día). Vuelve mañana.',
+      },
+      standardHeaders: true,
+      legacyHeaders: false,
+    }),
+  );
+
+  app.use(
+    '/exams/generate/from-file',
+    rateLimit({
+      windowMs: 24 * 60 * 60 * 1000, // 24 horas
+      max: 10, // Máximo 10 exámenes desde archivo por día
+      message: {
+        statusCode: 429,
+        error: 'Too Many Requests',
+        message: 'Límite diario de exámenes desde archivo alcanzado (10/día). Vuelve mañana.',
+      },
+      standardHeaders: true,
+      legacyHeaders: false,
+    }),
+  );
+
+  app.use(
+    '/flash-cards/generate/from-file',
+    rateLimit({
+      windowMs: 24 * 60 * 60 * 1000, // 24 horas
+      max: 10, // Máximo 10 generaciones de flashcards desde archivo por día
+      message: {
+        statusCode: 429,
+        error: 'Too Many Requests',
+        message: 'Límite diario de flashcards desde archivo alcanzado (10/día). Vuelve mañana.',
+      },
+      standardHeaders: true,
+      legacyHeaders: false,
+    }),
+  );
+
   // ============================================
   // HELMET - SECURITY HEADERS MEJORADOS
   // ============================================

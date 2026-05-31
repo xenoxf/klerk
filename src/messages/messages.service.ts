@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { Message } from './entities/message.entity';
 import { Chat } from './entities/chat.entity';
 import { GeminiService } from '../gemini/gemini.service';
@@ -25,10 +25,10 @@ export class MessagesService {
 
   // Streaming SSE endpoint for chat
   async *sendMessageStreamWithFile(
-    input: { prompt: string; chatId?: number; fileBase64: string; mimeType: string },
+    input: { prompt: string; chatId?: number; files: Array<{ fileBase64: string; mimeType: string; fileName: string; filePath: string }> },
     userId: number,
   ): AsyncIterableIterator<string> {
-    if (!input.fileBase64) {
+    if (!input.files || input.files.length === 0) {
       throw new BadRequestException('File data is required');
     }
 
@@ -100,8 +100,7 @@ export class MessagesService {
     try {
       const aiStream = this.geminiService.generateEducationalChatResponseStreamWithFile(
         input.prompt,
-        input.fileBase64,
-        input.mimeType,
+        input.files.map(f => ({ fileBase64: f.fileBase64, mimeType: f.mimeType })),
         conversationHistory.length > 0 ? conversationHistory : undefined,
       );
 
@@ -122,13 +121,22 @@ export class MessagesService {
     }
 
     const createdAt = new Date().toISOString();
+    const fileNames = input.files.map(f => f.fileName).join('||');
+    const fileTypes = input.files.map(f => f.mimeType).join('||');
+    const fileData = input.files.map(f => f.mimeType.startsWith('image/') ? f.fileBase64 : '').join('||');
+    const filePaths = input.files.map(f => f.filePath).join('||');
+
     const userMessage = this.messageRepo.create({
-      prompt: input.prompt || '[Archivo subido]',
+      prompt: input.prompt || '[Archivo(s) subido(s)]',
       response: fullResponse,
       chat,
       userId,
       chatId: chat!.id,
       createdAt,
+      fileName: fileNames,
+      fileType: fileTypes,
+      fileData: fileData,
+      filePath: filePaths,
     });
     await this.messageRepo.save(userMessage);
 
@@ -431,6 +439,10 @@ export class MessagesService {
         'message.prompt',
         'message.response',
         'message.createdAt',
+        'message.fileName',
+        'message.fileType',
+        'message.fileData',
+        'message.filePath',
       ])
       .where('message.chatId = :chatId', { chatId })
       .orderBy('message.createdAt', 'ASC')
@@ -445,6 +457,12 @@ export class MessagesService {
         prompt: msg.prompt,
         response: msg.response,
         createdAt: msg.createdAt,
+        fileName: msg.fileName,
+        fileType: msg.fileType,
+        fileData: msg.fileType?.startsWith('image/') ? msg.fileData : null,
+        fileUrl: msg.filePath
+          ? msg.filePath.split('||').map(p => p ? `/uploads/${p}` : '').join('||')
+          : null,
       })),
     };
   }
@@ -461,5 +479,22 @@ export class MessagesService {
     await this.chatRepo.delete(chatId);
 
     return { success: true, deletedChatId: chatId };
+  }
+
+  // Eliminar todos los chats del usuario
+  async deleteAllChats(userId: number) {
+    const chats = await this.chatRepo.find({
+      where: { userId },
+      select: ['id'],
+    });
+
+    if (chats.length === 0) return { success: true, deletedCount: 0 };
+
+    const chatIds = chats.map(c => c.id);
+
+    await this.messageRepo.delete({ chatId: In(chatIds) });
+    await this.chatRepo.delete({ userId });
+
+    return { success: true, deletedCount: chatIds.length };
   }
 }

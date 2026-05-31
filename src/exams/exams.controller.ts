@@ -11,9 +11,10 @@ import {
   ParseIntPipe,
   Req,
   UploadedFile,
+  UploadedFiles,
   UseInterceptors,
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { ExamsService } from './exams.service';
 import { ExamAttemptsService } from '../exam-attempts/exam-attempts.service';
 import { JwtGuard } from '../auth/jwt/jwt.guard';
@@ -166,7 +167,7 @@ export class ExamsController {
 
   @Post('generate/from-file')
   @UseGuards(JwtGuard, RequireAuthGuard)
-  @UseInterceptors(FileInterceptor('file', {
+  @UseInterceptors(FilesInterceptor('files', 5, {
     limits: { fileSize: 10 * 1024 * 1024 },
     fileFilter: (_req: any, file: any, cb: any) => {
       const allowed = [
@@ -181,7 +182,7 @@ export class ExamsController {
     },
   }))
   async generateFromFile(
-    @UploadedFile() file: FileUpload,
+    @UploadedFiles() files: FileUpload[],
     @Body() input: {
       reference?: string;
       numberOfQuestions?: number;
@@ -191,13 +192,16 @@ export class ExamsController {
     },
     @Req() req: AuthenticatedRequest,
   ) {
-    if (!file) {
+    if (!files || files.length === 0) {
       throw new Error('Archivo requerido');
     }
+    const filePayloads = files.map(f => ({
+      fileBase64: f.buffer.toString('base64'),
+      mimeType: f.mimetype,
+    }));
     return this.examsService.generateExamFromFile(
       {
-        fileBase64: file.buffer.toString('base64'),
-        mimeType: file.mimetype,
+        files: filePayloads,
         reference: input.reference || '',
         numberOfQuestions: input.numberOfQuestions || 10,
         difficulty: input.difficulty || 'medium',

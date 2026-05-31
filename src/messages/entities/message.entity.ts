@@ -31,6 +31,18 @@ export class Message {
   @Index()
   chatId?: number;
 
+  @Column({ nullable: true })
+  fileName?: string;
+
+  @Column({ nullable: true })
+  fileType?: string;
+
+  @Column({ nullable: true, type: 'text' })
+  fileData?: string;
+
+  @Column({ nullable: true })
+  filePath?: string;
+
   @ManyToOne(() => Chat, (chat) => chat.messages, { onDelete: 'CASCADE' })
   chat: Chat;
 }
