@@ -15,6 +15,11 @@ export class AppController {
     return true;
   }
 
+  @Get()
+  helloWorld(): string {
+    return 'Hola mundo';
+  }
+
   @Get('ping')
   ping(): string {
     return 'pong';

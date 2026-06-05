@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 
 const PUBLIC_PATHS = new Set(['/health', '/ping', '/auth/', '/junior']);
+const helloWorld = '/';
 
 @Injectable()
 export class ApiKeyGuard implements CanActivate {
@@ -17,6 +18,8 @@ export class ApiKeyGuard implements CanActivate {
     if (PUBLIC_PATHS.has(path) || path.startsWith('/auth')) {
       return true;
     }
+
+    if (helloWorld == path) return true;
 
     // ✅ Si ya hay usuario autenticado (JWT), NO joder
     if (request.user) {
