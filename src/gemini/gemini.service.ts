@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import {
   GoogleGenerativeAI,
   GenerativeModel,
@@ -64,7 +65,6 @@ export interface CardResponse {
  * NO limpia ni modifica el contenido interno (Markdown manda).
  */
 class JsonExtractor {
-
   static extract(raw: string): string {
     if (!raw) return '';
     let text = raw.trim();
@@ -85,11 +85,14 @@ export class GeminiService {
   private readonly apiKeys: string[];
   private currentKeyIndex = 0;
 
-  constructor() {
-    this.apiKeys = [
-      process.env.GEMINI_API_KEY,
-      process.env.GEMINI_API_KEY_2,
-    ].filter((key): key is string => !!key && key !== 'undefined');
+  constructor(private readonly configService: ConfigService) {
+    const keys = [
+      this.configService.get<string>('GEMINI_API_KEY'),
+      this.configService.get<string>('GEMINI_API_KEY_2'),
+    ];
+    this.apiKeys = keys.filter(
+      (key): key is string => !!key && key !== 'undefined',
+    );
 
     if (this.apiKeys.length === 0) throw new Error('No API Keys');
     this.genAI = new GoogleGenerativeAI(this.apiKeys[0]);
@@ -120,12 +123,11 @@ export class GeminiService {
         generationConfig: config.generationConfig,
         model: config.model,
       });
-
     }
 
     return this.genAI.getGenerativeModel({
       model: config.model,
-    })
+    });
   }
 
   private async generateWithSchema(
@@ -305,7 +307,8 @@ export class GeminiService {
     const raw = await this.generateWithSchema(
       `${AI_PROMPTS.generateFlashcards(num)}\n\nTema: ${topic}`,
       this.CARD_SCHEMA,
-    ); this.logger.debug(raw);
+    );
+    this.logger.debug(raw);
     return JSON.parse(JsonExtractor.extract(raw));
   }
 
@@ -325,17 +328,14 @@ export class GeminiService {
         .join('\n');
     }
 
-    const systemPrompt = AI_PROMPTS.SYSTEM_PROMPT({
-      previousTopics: [],
-      messageCount: history?.length || 0,
-    });
+    const systemPrompt = AI_PROMPTS.SYSTEM_PROMPT();
     const prompt = `${systemPrompt}\n\n${historyText}\nUser: ${msg}`;
 
     const result = await this.getModel(MODELS[0]).generateContent(prompt);
     return { response: result.response.text().trim() };
   }
 
-  async * generateEducationalChatResponseStream(
+  async *generateEducationalChatResponseStream(
     msg: string,
     history?: Content[],
   ) {
@@ -350,10 +350,7 @@ export class GeminiService {
         .join('\n');
     }
 
-    const systemPrompt = AI_PROMPTS.SYSTEM_PROMPT({
-      previousTopics: [],
-      messageCount: history?.length || 0,
-    });
+    const systemPrompt = AI_PROMPTS.SYSTEM_PROMPT();
     const prompt = `${systemPrompt}\n\n${historyText}\nUser: ${msg}`;
 
     const result = await this.getModel(MODELS[0]).generateContentStream(prompt);
@@ -422,9 +419,14 @@ export class GeminiService {
     diff: string,
   ): Promise<ExamResponse> {
     const textPrompt = `${AI_PROMPTS.generateExam(num, diff)}\n\nEl usuario ha subido ${files.length} archivo(s) como referencia. También dice: "${reference || 'genera preguntas sobre estos archivos'}". Analiza los archivos y genera preguntas basadas en su contenido.`;
-    const fileParts = files.map(f => this.buildFilePart(f.fileBase64, f.mimeType));
+    const fileParts = files.map((f) =>
+      this.buildFilePart(f.fileBase64, f.mimeType),
+    );
 
-    const raw = await this.generateContentWithFileFallback([textPrompt, ...fileParts], this.EXAM_SCHEMA);
+    const raw = await this.generateContentWithFileFallback(
+      [textPrompt, ...fileParts],
+      this.EXAM_SCHEMA,
+    );
     this.logger.debug(raw);
     return JSON.parse(JsonExtractor.extract(raw));
   }
@@ -436,9 +438,14 @@ export class GeminiService {
     diff: string,
   ): Promise<ExamResponse> {
     const textPrompt = `${AI_PROMPTS.generateIcfesExam(num, diff)}\n\nEl usuario ha subido ${files.length} archivo(s) como referencia. También dice: "${reference || 'genera preguntas sobre estos archivos'}". Analiza los archivos y genera preguntas basadas en su contenido.`;
-    const fileParts = files.map(f => this.buildFilePart(f.fileBase64, f.mimeType));
+    const fileParts = files.map((f) =>
+      this.buildFilePart(f.fileBase64, f.mimeType),
+    );
 
-    const raw = await this.generateContentWithFileFallback([textPrompt, ...fileParts], this.EXAM_SCHEMA);
+    const raw = await this.generateContentWithFileFallback(
+      [textPrompt, ...fileParts],
+      this.EXAM_SCHEMA,
+    );
     this.logger.debug(raw);
     return JSON.parse(JsonExtractor.extract(raw));
   }
@@ -449,9 +456,14 @@ export class GeminiService {
     num: number,
   ): Promise<CardResponse> {
     const textPrompt = `${AI_PROMPTS.generateFlashcards(num)}\n\nEl usuario ha subido ${files.length} archivo(s) como referencia. También dice: "${reference || 'genera flashcards sobre estos archivos'}". Analiza los archivos y genera flashcards basadas en su contenido.`;
-    const fileParts = files.map(f => this.buildFilePart(f.fileBase64, f.mimeType));
+    const fileParts = files.map((f) =>
+      this.buildFilePart(f.fileBase64, f.mimeType),
+    );
 
-    const raw = await this.generateContentWithFileFallback([textPrompt, ...fileParts], this.CARD_SCHEMA);
+    const raw = await this.generateContentWithFileFallback(
+      [textPrompt, ...fileParts],
+      this.CARD_SCHEMA,
+    );
     return JSON.parse(JsonExtractor.extract(raw));
   }
 
@@ -472,10 +484,7 @@ export class GeminiService {
         .join('\n');
     }
 
-    const systemPrompt = AI_PROMPTS.SYSTEM_PROMPT({
-      previousTopics: [],
-      messageCount: history?.length || 0,
-    });
+    const systemPrompt = AI_PROMPTS.SYSTEM_PROMPT();
 
     const userMsg = `El usuario ha subido un archivo y dice: "${msg || 'Analiza este archivo'}". Analiza el archivo y responde basándote en su contenido.`;
     const prompt = `${systemPrompt}\n\n${historyText}\nUser: ${userMsg}`;
@@ -485,7 +494,7 @@ export class GeminiService {
     return { response: raw };
   }
 
-  async * generateEducationalChatResponseStreamWithFile(
+  async *generateEducationalChatResponseStreamWithFile(
     msg: string,
     files: Array<{ fileBase64: string; mimeType: string }>,
     history?: Content[],
@@ -501,17 +510,17 @@ export class GeminiService {
         .join('\n');
     }
 
-    const systemPrompt = AI_PROMPTS.SYSTEM_PROMPT({
-      previousTopics: [],
-      messageCount: history?.length || 0,
-    });
+    const systemPrompt = AI_PROMPTS.SYSTEM_PROMPT();
 
     const fileCount = files.length;
-    const userMsg = fileCount === 1
-      ? `El usuario ha subido un archivo y dice: "${msg || 'Analiza este archivo'}". Analiza el archivo y responde basándote en su contenido.`
-      : `El usuario ha subido ${fileCount} archivos y dice: "${msg || 'Analiza estos archivos'}". Analiza los archivos y responde basándote en su contenido.`;
+    const userMsg =
+      fileCount === 1
+        ? `El usuario ha subido un archivo y dice: "${msg || 'Analiza este archivo'}". Analiza el archivo y responde basándote en su contenido.`
+        : `El usuario ha subido ${fileCount} archivos y dice: "${msg || 'Analiza estos archivos'}". Analiza los archivos y responde basándote en su contenido.`;
     const prompt = `${systemPrompt}\n\n${historyText}\nUser: ${userMsg}`;
-    const fileParts = files.map(f => this.buildFilePart(f.fileBase64, f.mimeType));
+    const fileParts = files.map((f) =>
+      this.buildFilePart(f.fileBase64, f.mimeType),
+    );
 
     // For streaming, try models sequentially on failure
     let lastError: Error | null = null;
@@ -520,7 +529,10 @@ export class GeminiService {
       while (keysTried < this.apiKeys.length) {
         try {
           const model = this.getModel(modelName);
-          const result = await model.generateContentStream([prompt, ...fileParts]);
+          const result = await model.generateContentStream([
+            prompt,
+            ...fileParts,
+          ]);
           for await (const chunk of result.stream) {
             const text = chunk.text();
             if (text) yield text;

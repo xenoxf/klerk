@@ -5,7 +5,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 
-const PUBLIC_PATHS = new Set(['/health', '/ping', '/auth/', '/junior']);
+const PUBLIC_PATHS = new Set(['/health', '/ping', '/auth/']);
 const helloWorld = '/';
 
 @Injectable()

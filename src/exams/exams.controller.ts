@@ -10,11 +10,10 @@ import {
   Query,
   ParseIntPipe,
   Req,
-  UploadedFile,
   UploadedFiles,
   UseInterceptors,
 } from '@nestjs/common';
-import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
+import { FilesInterceptor } from '@nestjs/platform-express';
 import { ExamsService } from './exams.service';
 import { ExamAttemptsService } from '../exam-attempts/exam-attempts.service';
 import { JwtGuard } from '../auth/jwt/jwt.guard';
@@ -35,7 +34,7 @@ export class ExamsController {
   constructor(
     private examsService: ExamsService,
     private examAttemptsService: ExamAttemptsService,
-  ) { }
+  ) {}
 
   // ==================== BASIC CRUD ====================
 
@@ -142,7 +141,10 @@ export class ExamsController {
     @Param('id', ParseIntPipe) id: number,
     @Req() req: AuthenticatedRequest,
   ) {
-    return this.examsService.getByIdWithAccess(id, getOptionalNumericUserId(req));
+    return this.examsService.getByIdWithAccess(
+      id,
+      getOptionalNumericUserId(req),
+    );
   }
 
   @Delete(':id')
@@ -167,23 +169,34 @@ export class ExamsController {
 
   @Post('generate/from-file')
   @UseGuards(JwtGuard, RequireAuthGuard)
-  @UseInterceptors(FilesInterceptor('files', 5, {
-    limits: { fileSize: 10 * 1024 * 1024 },
-    fileFilter: (_req: any, file: any, cb: any) => {
-      const allowed = [
-        'image/png', 'image/jpeg', 'image/webp', 'image/gif',
-        'application/pdf',
-      ];
-      if (allowed.includes(file.mimetype)) {
-        cb(null, true);
-      } else {
-        cb(new Error('Formato de archivo no soportado. Solo imágenes (PNG, JPG, WEBP, GIF) y PDF'), false);
-      }
-    },
-  }))
+  @UseInterceptors(
+    FilesInterceptor('files', 5, {
+      limits: { fileSize: 10 * 1024 * 1024 },
+      fileFilter: (_req: any, file: any, cb: any) => {
+        const allowed = [
+          'image/png',
+          'image/jpeg',
+          'image/webp',
+          'image/gif',
+          'application/pdf',
+        ];
+        if (allowed.includes(file.mimetype)) {
+          cb(null, true);
+        } else {
+          cb(
+            new Error(
+              'Formato de archivo no soportado. Solo imágenes (PNG, JPG, WEBP, GIF) y PDF',
+            ),
+            false,
+          );
+        }
+      },
+    }),
+  )
   async generateFromFile(
     @UploadedFiles() files: FileUpload[],
-    @Body() input: {
+    @Body()
+    input: {
       reference?: string;
       numberOfQuestions?: number;
       difficulty?: string;
@@ -195,7 +208,7 @@ export class ExamsController {
     if (!files || files.length === 0) {
       throw new Error('Archivo requerido');
     }
-    const filePayloads = files.map(f => ({
+    const filePayloads = files.map((f) => ({
       fileBase64: f.buffer.toString('base64'),
       mimeType: f.mimetype,
     }));

@@ -112,7 +112,10 @@ export class FlashCardsService {
     userId: number,
   ) {
     const isPublic = normalizeAccess(input.acceso) === 'publico';
-    let dynamicCost = calculateFlashcardCost(input.quantity, input.reference || 'archivo');
+    let dynamicCost = calculateFlashcardCost(
+      input.quantity,
+      input.reference || 'archivo',
+    );
 
     if (isPublic) {
       dynamicCost = Math.ceil(dynamicCost * 0.5);
@@ -124,11 +127,12 @@ export class FlashCardsService {
       dynamicCost,
     );
 
-    const response: CardResponse = await this.geminiService.generateFlashcardsFromFile(
-      input.files,
-      input.reference,
-      input.quantity,
-    );
+    const response: CardResponse =
+      await this.geminiService.generateFlashcardsFromFile(
+        input.files,
+        input.reference,
+        input.quantity,
+      );
 
     const metadata = response.metadata || { title: 'Mazo', description: '' };
     const title = metadata.title || 'Mazo de Flashcards';

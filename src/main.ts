@@ -12,19 +12,22 @@ import { join } from 'path';
 import { existsSync, mkdirSync } from 'fs';
 
 async function bootstrap() {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule, new ExpressAdapter());
+  const app = await NestFactory.create<NestExpressApplication>(
+    AppModule,
+    new ExpressAdapter(),
+  );
+
+  const corsOrigins = (process.env.CORS_ORIGINS ?? 'http://localhost:3000')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
 
   // ============================================
   // CONFIGURACIÓN CORS - PRODUCCIÓN SEGURO
   // ============================================
   // Configuración segura para producción
   app.enableCors({
-    origin: [
-      'http://localhost:3000',
-      'https://learnyos.vercel.app',
-      'https://klerk.onrender.com',
-      'https://learnyos-love.vercel.app',
-    ],
+    origin: corsOrigins,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
     allowedHeaders:
@@ -93,7 +96,8 @@ async function bootstrap() {
       message: {
         statusCode: 429,
         error: 'Too Many Requests',
-        message: 'Límite diario de subida de archivos alcanzado (30/día). Vuelve mañana.',
+        message:
+          'Límite diario de subida de archivos alcanzado (30/día). Vuelve mañana.',
       },
       standardHeaders: true,
       legacyHeaders: false,
@@ -108,7 +112,8 @@ async function bootstrap() {
       message: {
         statusCode: 429,
         error: 'Too Many Requests',
-        message: 'Límite diario de exámenes desde archivo alcanzado (10/día). Vuelve mañana.',
+        message:
+          'Límite diario de exámenes desde archivo alcanzado (10/día). Vuelve mañana.',
       },
       standardHeaders: true,
       legacyHeaders: false,
@@ -123,7 +128,8 @@ async function bootstrap() {
       message: {
         statusCode: 429,
         error: 'Too Many Requests',
-        message: 'Límite diario de flashcards desde archivo alcanzado (10/día). Vuelve mañana.',
+        message:
+          'Límite diario de flashcards desde archivo alcanzado (10/día). Vuelve mañana.',
       },
       standardHeaders: true,
       legacyHeaders: false,
@@ -148,9 +154,7 @@ async function bootstrap() {
           scriptSrc: ["'self'"],
           connectSrc: [
             "'self'",
-            'https://klerk.onrender.com',
-            'http://localhost:2300',
-            'http://localhost:4000',
+            process.env.BACKEND_URL ?? 'http://localhost:2300',
           ],
           frameSrc: ["'none'"],
           objectSrc: ["'none'"],
@@ -308,15 +312,12 @@ async function bootstrap() {
   const port = process.env.PORT ?? 2300;
 
   await app.listen(port, '0.0.0.0');
-  const maskedApiKey = process.env.API_KEY;
   console.log(`
   🚀  ==========================================
   ✅  SERVIDOR INICIADO CORRECTAMENTE
   🔒  MODO SEGURO ACTIVADO
   📌  Puerto: ${port}
   🌐  URL: http://localhost:${port}
-  🌐  🚀: https://klerk.onrender.com
-  🌐  💙: https://klerk-love.onrender.com
 
   🛡️  SECURITY FEATURES:
      • Rate Limiting: 45 req/15min global
@@ -329,7 +330,6 @@ async function bootstrap() {
      • Suspicious Activity Logging: ENABLED
 
   🔐  Health Check: http://localhost:${port}/health
-  🔑  X-API-KEY: ${maskedApiKey}
   ==========================================
   `);
 }

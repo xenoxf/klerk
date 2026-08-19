@@ -93,7 +93,10 @@ export class NotesController {
 
   @Get(':id')
   async findOne(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
-    return this.notesService.findOneByAccess(+id, getOptionalNumericUserId(req));
+    return this.notesService.findOneByAccess(
+      +id,
+      getOptionalNumericUserId(req),
+    );
   }
 
   @Patch(':id')

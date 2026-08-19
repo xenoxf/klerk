@@ -30,7 +30,7 @@ export class AuthService {
   constructor(
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
-  ) { }
+  ) {}
 
   /** 🔐 Generar JWT access token (duración de 24h para buena UX) */
   private generateAccessToken(
@@ -279,7 +279,7 @@ export class AuthService {
       const redirectUri =
         process.env.GOOGLE_REDIRECT_URI ||
         process.env.GOOGLE_CALLBACK_URL ||
-        'http://localhost:3000/auth/callback';
+        'http://localhost:2300/auth/google/callback';
 
       if (!clientId || !clientSecret) {
         throw new Error('Google OAuth credentials no están configuradas');
@@ -468,4 +468,3 @@ export class AuthService {
     return { message: 'Sesión cerrada correctamente' };
   }
 }
-

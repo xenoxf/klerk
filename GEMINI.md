@@ -170,22 +170,22 @@ npm run format           # Prettier formatting
 
 | Variable | Purpose | Example |
 |----------|---------|---------|
-| `API_KEY` | Global API key for ApiKeyGuard (header: `x-api-key`) | `HFUIHFI...` |
-| `JWT_SECRET` | JWT signing secret | `dghsfas...` |
+| `API_KEY` | Global API key for ApiKeyGuard (header: `x-api-key`) | `********` |
+| `JWT_SECRET` | JWT signing secret | `********` |
 | `JWT_EXPIRATION` | JWT token expiration | `24h` |
-| `DB_HOST` | PostgreSQL host | `***REMOVED***` |
-| `DB_PORT` | PostgreSQL port | `27423` |
-| `DB_USER` | DB username | `avnadmin` |
-| `DB_PASS` | DB password | `AVNS_yyZ...` |
-| `DB_NAME` | Database name | `defaultdb` |
-| `GEMINI_API_KEY` | Google Gemini API key (primary) | `AIzaSyA...` |
-| `GEMINI_API_KEY_2` | Google Gemini API key (fallback) | `AIzaSyD...` |
+| `DB_HOST` | PostgreSQL host | `localhost` |
+| `DB_PORT` | PostgreSQL port | `5432` |
+| `DB_USER` | DB username | `postgres` |
+| `DB_PASS` | DB password | `********` |
+| `DB_NAME` | Database name | `klerk` |
+| `GEMINI_API_KEY` | Google Gemini API key (primary) | `********` |
+| `GEMINI_API_KEY_2` | Google Gemini API key (fallback) | `********` |
 | `MAIL_HOST` | SMTP server | `smtp.gmail.com` |
 | `MAIL_PORT` | SMTP port | `587` |
-| `MAIL_USER` | SMTP username | `***REMOVED***` |
-| `MAIL_PASS` | SMTP password | `***REMOVED***` |
-| `GOOGLE_CLIENT_ID` | Google OAuth client ID | `4804289...` |
-| `GOOGLE_CLIENT_SECRET` | Google OAuth client secret | `GOCSPX-...` |
+| `MAIL_USER` | SMTP username | `user@gmail.com` |
+| `MAIL_PASS` | SMTP password | `********` |
+| `GOOGLE_CLIENT_ID` | Google OAuth client ID | `********.apps.googleusercontent.com` |
+| `GOOGLE_CLIENT_SECRET` | Google OAuth client secret | `********` |
 | `GOOGLE_REDIRECT_URI` | OAuth callback URL | `http://localhost:2300/auth/google/callback` |
 | `PORT` | Server port | `2300` |
 | `NODE_ENV` | Environment | `development` |
@@ -644,7 +644,7 @@ Contains detailed system prompts for each AI generation type.
 3. **AI generation failures:** Gemini API keys may be rate-limited or invalid; check `gemini.service.ts` logs
 4. **Database connection:** PostgreSQL requires SSL connection (per `SSL=true` in `.env`)
 5. **Rate limiting:** Check `ThrottlerModule` and `express-rate-limit` configurations in `main.ts`
-6. **CORS issues:** Allowed origins defined in `main.ts`: `localhost:3000`, `learnyos.vercel.app`, `klerk.onrender.com`, `learnyos-love.vercel.app`
+6. **CORS issues:** Allowed origins defined by `CORS_ORIGINS` in `.env` (comma-separated)
 7. **Exception logs:** Check console output for `AllExceptionsFilter` logs (prefix: "Exceptions")
 
 ---

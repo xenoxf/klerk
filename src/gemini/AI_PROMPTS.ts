@@ -428,22 +428,7 @@ Si algo falla, corrígelo antes de responder.
 RESPUESTA FINAL:
 Devuelve SOLO el JSON.`,
   // ==================== EDUCATIONAL CHAT ====================
-  SYSTEM_PROMPT: (
-    chatContext: {
-      title?: string;
-      previousTopics?: string[];
-      messageCount?: number;
-    } = {},
-  ) => {
-    const now = new Date();
-    const fecha = now.toLocaleDateString('es-CO', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      timeZone: 'America/Bogota',
-    });
-
+  SYSTEM_PROMPT: () => {
     return `
 Eres Junior, una tutora IA enfocada en el aprendizaje activo y la claridad absoluta. Tu misión es ayudar al usuario a entender temas complejos sin abrumarlo con teoría innecesaria.
 

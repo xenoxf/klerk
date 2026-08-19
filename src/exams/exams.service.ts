@@ -31,7 +31,7 @@ export class ExamsService {
     private readonly geminiService: GeminiService,
     private readonly creditsService: CreditsService,
     private readonly likesService: LikesService,
-  ) { }
+  ) {}
 
   // ==================== GENERATE EXAM FROM TOPIC ====================
 
@@ -93,12 +93,14 @@ export class ExamsService {
       });
 
       const savedExam = await this.examRepo.save(exam);
-      this.logger.log(`Exam saved with ID: ${savedExam.id} for user: ${userId}`);
+      this.logger.log(
+        `Exam saved with ID: ${savedExam.id} for user: ${userId}`,
+      );
 
       // Parallelize question saving
       await Promise.all(
         questions.map(async (q) => {
-          this.logger.log(`Exam.question is saving...`)
+          this.logger.log(`Exam.question is saving...`);
           const question = this.questionRepo.create({
             question: q.question,
             explanation: q.explanation || '',
@@ -109,14 +111,13 @@ export class ExamsService {
           });
 
           const savedQuestion = await this.questionRepo.save(question);
-          this.logger.log(`Exam.question is saved`)
+          this.logger.log(`Exam.question is saved`);
 
           // Parallelize options saving for each question
           if (q.options && q.options.length > 0) {
             await Promise.all(
-
               q.options.map((opt) => {
-                this.logger.log(`Exam.options is saving...`)
+                this.logger.log(`Exam.options is saving...`);
 
                 const option = this.optionRepo.create({
                   text: opt.text,
@@ -126,9 +127,8 @@ export class ExamsService {
                 });
                 return this.optionRepo.save(option);
               }),
-
-            ); this.logger.log(`Exam.options is saved`)
-
+            );
+            this.logger.log(`Exam.options is saved`);
           }
         }),
       );
@@ -141,7 +141,7 @@ export class ExamsService {
         creditsTotal: creditStatus.total,
       };
     } catch (e: any) {
-      this.logger.error(e.message)
+      this.logger.error(e.message);
     }
   }
   async generateExamFromFile(
@@ -431,11 +431,11 @@ export class ExamsService {
           options:
             q.options && q.options.length > 0
               ? q.options.map((opt) => ({
-                id: opt.id,
-                text: opt.text,
-                isCorrect: opt.isCorrect,
-                feedback: opt.feedback || '',
-              }))
+                  id: opt.id,
+                  text: opt.text,
+                  isCorrect: opt.isCorrect,
+                  feedback: opt.feedback || '',
+                }))
               : [],
         })),
       };

@@ -8,11 +8,10 @@ import {
   Delete,
   Patch,
   UseGuards,
-  UploadedFile,
   UploadedFiles,
   UseInterceptors,
 } from '@nestjs/common';
-import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
+import { FilesInterceptor } from '@nestjs/platform-express';
 import { UploadedFile as FileUpload } from '../common/types/upload.type';
 import { FlashCardsService } from './flash-cards.service';
 import { GenerateFlashCardsDto } from './dto/generate-flash-cards.dto';
@@ -30,7 +29,7 @@ import { RequireAuthGuard } from '../common/guards/require-auth/require-auth.gua
 @UseGuards(JwtGuard)
 @Controller('flash-cards')
 export class FlashCardsController {
-  constructor(private readonly flashCardsService: FlashCardsService) { }
+  constructor(private readonly flashCardsService: FlashCardsService) {}
 
   @Post('generate/topic_or_reference')
   @RequireAuth()
@@ -43,23 +42,34 @@ export class FlashCardsController {
 
   @Post('generate/from-file')
   @RequireAuth()
-  @UseInterceptors(FilesInterceptor('files', 5, {
-    limits: { fileSize: 10 * 1024 * 1024 },
-    fileFilter: (_req: any, file: any, cb: any) => {
-      const allowed = [
-        'image/png', 'image/jpeg', 'image/webp', 'image/gif',
-        'application/pdf',
-      ];
-      if (allowed.includes(file.mimetype)) {
-        cb(null, true);
-      } else {
-        cb(new Error('Formato de archivo no soportado. Solo imágenes (PNG, JPG, WEBP, GIF) y PDF'), false);
-      }
-    },
-  }))
+  @UseInterceptors(
+    FilesInterceptor('files', 5, {
+      limits: { fileSize: 10 * 1024 * 1024 },
+      fileFilter: (_req: any, file: any, cb: any) => {
+        const allowed = [
+          'image/png',
+          'image/jpeg',
+          'image/webp',
+          'image/gif',
+          'application/pdf',
+        ];
+        if (allowed.includes(file.mimetype)) {
+          cb(null, true);
+        } else {
+          cb(
+            new Error(
+              'Formato de archivo no soportado. Solo imágenes (PNG, JPG, WEBP, GIF) y PDF',
+            ),
+            false,
+          );
+        }
+      },
+    }),
+  )
   async generateFromFile(
     @UploadedFiles() files: FileUpload[],
-    @Body() input: {
+    @Body()
+    input: {
       reference?: string;
       quantity?: number;
       acceso?: string;
@@ -69,7 +79,7 @@ export class FlashCardsController {
     if (!files || files.length === 0) {
       throw new Error('Archivo requerido');
     }
-    const filePayloads = files.map(f => ({
+    const filePayloads = files.map((f) => ({
       fileBase64: f.buffer.toString('base64'),
       mimeType: f.mimetype,
     }));

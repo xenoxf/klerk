@@ -25,7 +25,16 @@ export class MessagesService {
 
   // Streaming SSE endpoint for chat
   async *sendMessageStreamWithFile(
-    input: { prompt: string; chatId?: number; files: Array<{ fileBase64: string; mimeType: string; fileName: string; filePath: string }> },
+    input: {
+      prompt: string;
+      chatId?: number;
+      files: Array<{
+        fileBase64: string;
+        mimeType: string;
+        fileName: string;
+        filePath: string;
+      }>;
+    },
     userId: number,
   ): AsyncIterableIterator<string> {
     if (!input.files || input.files.length === 0) {
@@ -50,21 +59,21 @@ export class MessagesService {
           select: ['id', 'title', 'userId'],
         });
         if (chat && chat.userId !== userId) {
-          const chatTitle = await this.generateChatTitle(input.prompt || 'Archivo').catch(
-            () => 'Nuevo Chat',
-          );
+          const chatTitle = await this.generateChatTitle(
+            input.prompt || 'Archivo',
+          ).catch(() => 'Nuevo Chat');
           chat = await this.createChat(userId, chatTitle);
         } else if (!chat) {
-          const chatTitle = await this.generateChatTitle(input.prompt || 'Archivo').catch(
-            () => 'Nuevo Chat',
-          );
+          const chatTitle = await this.generateChatTitle(
+            input.prompt || 'Archivo',
+          ).catch(() => 'Nuevo Chat');
           chat = await this.createChat(userId, chatTitle);
         }
       }
     } else {
-      const chatTitle = await this.generateChatTitle(input.prompt || 'Archivo').catch(
-        () => 'Nuevo Chat',
-      );
+      const chatTitle = await this.generateChatTitle(
+        input.prompt || 'Archivo',
+      ).catch(() => 'Nuevo Chat');
       chat = await this.createChat(userId, chatTitle);
     }
 
@@ -98,11 +107,15 @@ export class MessagesService {
     let aiError: Error | null = null;
 
     try {
-      const aiStream = this.geminiService.generateEducationalChatResponseStreamWithFile(
-        input.prompt,
-        input.files.map(f => ({ fileBase64: f.fileBase64, mimeType: f.mimeType })),
-        conversationHistory.length > 0 ? conversationHistory : undefined,
-      );
+      const aiStream =
+        this.geminiService.generateEducationalChatResponseStreamWithFile(
+          input.prompt,
+          input.files.map((f) => ({
+            fileBase64: f.fileBase64,
+            mimeType: f.mimeType,
+          })),
+          conversationHistory.length > 0 ? conversationHistory : undefined,
+        );
 
       for await (const chunk of aiStream) {
         fullResponse += chunk;
@@ -121,10 +134,12 @@ export class MessagesService {
     }
 
     const createdAt = new Date().toISOString();
-    const fileNames = input.files.map(f => f.fileName).join('||');
-    const fileTypes = input.files.map(f => f.mimeType).join('||');
-    const fileData = input.files.map(f => f.mimeType.startsWith('image/') ? f.fileBase64 : '').join('||');
-    const filePaths = input.files.map(f => f.filePath).join('||');
+    const fileNames = input.files.map((f) => f.fileName).join('||');
+    const fileTypes = input.files.map((f) => f.mimeType).join('||');
+    const fileData = input.files
+      .map((f) => (f.mimeType.startsWith('image/') ? f.fileBase64 : ''))
+      .join('||');
+    const filePaths = input.files.map((f) => f.filePath).join('||');
 
     const userMessage = this.messageRepo.create({
       prompt: input.prompt || '[Archivo(s) subido(s)]',
@@ -461,7 +476,10 @@ export class MessagesService {
         fileType: msg.fileType,
         fileData: msg.fileType?.startsWith('image/') ? msg.fileData : null,
         fileUrl: msg.filePath
-          ? msg.filePath.split('||').map(p => p ? `/uploads/${p}` : '').join('||')
+          ? msg.filePath
+              .split('||')
+              .map((p) => (p ? `/uploads/${p}` : ''))
+              .join('||')
           : null,
       })),
     };
@@ -490,7 +508,7 @@ export class MessagesService {
 
     if (chats.length === 0) return { success: true, deletedCount: 0 };
 
-    const chatIds = chats.map(c => c.id);
+    const chatIds = chats.map((c) => c.id);
 
     await this.messageRepo.delete({ chatId: In(chatIds) });
     await this.chatRepo.delete({ userId });

@@ -1,20 +1,24 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
 
 @Injectable()
 export class MailService {
   private transporter: nodemailer.Transporter;
 
-  constructor() {
+  constructor(private readonly configService: ConfigService) {
     this.initializeTransporter();
   }
 
   private initializeTransporter() {
     // Usar configuración de variables de ambiente
-    const mailUser = process.env.MAIL_USER;
-    const mailPass = process.env.MAIL_PASS;
-    const mailHost = process.env.MAIL_HOST || 'smtp.gmail.com';
-    const mailPort = parseInt(process.env.MAIL_PORT || '587');
+    const mailUser = this.configService.get<string>('MAIL_USER');
+    const mailPass = this.configService.get<string>('MAIL_PASS');
+    const mailHost = this.configService.get<string>(
+      'MAIL_HOST',
+      'smtp.gmail.com',
+    );
+    const mailPort = this.configService.get<number>('MAIL_PORT', 587);
 
     // Validar que existan las credenciales
     if (!mailUser || !mailPass) {
@@ -42,7 +46,10 @@ export class MailService {
     userName: string,
   ): Promise<boolean> {
     try {
-      if (!process.env.MAIL_USER || !process.env.MAIL_PASS) {
+      if (
+        !this.configService.get<string>('MAIL_USER') ||
+        !this.configService.get<string>('MAIL_PASS')
+      ) {
         console.error('❌ Credenciales de correo no configuradas');
         throw new BadRequestException(
           'El servicio de correos no está configurado correctamente',
@@ -50,11 +57,16 @@ export class MailService {
       }
 
       // URL base del frontend
-      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+      const frontendUrl = this.configService.get<string>(
+        'FRONTEND_URL',
+        'http://localhost:3000',
+      );
       const verificationUrl = `${frontendUrl}/auth?token=${verificationToken}`;
 
       const mailOptions = {
-        from: process.env.MAIL_FROM || process.env.MAIL_USER,
+        from:
+          this.configService.get<string>('MAIL_FROM') ||
+          this.configService.get<string>('MAIL_USER'),
         to: to,
         subject: '🎓 Verifica tu email - LearnyOS',
         html: `
