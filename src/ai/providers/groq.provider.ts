@@ -23,7 +23,7 @@ export class GroqProvider implements AiProvider {
     private readonly configService: ConfigService,
   ) {
     this.modelName =
-      configService.get<string>('GROQ_MODEL') || 'llama-3.1-8b-instant';
+      configService.get<string>('GROQ_MODEL') || 'openai/gpt-oss-20b';
   }
 
   supportsVision(): boolean {

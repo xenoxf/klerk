@@ -5,9 +5,8 @@ import { AI_PROMPTS } from '../gemini/AI_PROMPTS';
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 
 const DEFAULT_TEXT_MODELS = [
-  'llama-3.3-70b-versatile',
+  'openai/gpt-oss-20b',
   'openai/gpt-oss-120b',
-  'llama-3.1-8b-instant',
 ] as const;
 
 const DEFAULT_VISION_MODEL = 'qwen/qwen3.6-27b';
@@ -538,7 +537,7 @@ export class GroqService {
             AI_PROMPTS.CHAT_TITLE_SYSTEM_PROMPT + '\n\n' + msg.substring(0, 100),
         },
       ],
-      { temperature: 0.3, maxTokens: 60 },
+      { temperature: 0.3, maxTokens: 500 },
     );
     return text.trim().replace(/^["']|["']$/g, '');
   }

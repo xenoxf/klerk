@@ -12,6 +12,7 @@ import { ExamQuestion } from './entities/examQuestion.entity';
 import { ExamOption } from './entities/exam-option.entity';
 import { GenerateExamDto } from './dto/generate-exam.dto';
 import { GroqService, ExamResponse } from '../groq/groq.service';
+import { ExamResponse as GeneratedExam } from '../ai/ai-provider.interface';
 import { CreditsService, calculateExamCost } from '../credits/credits.service';
 import { LikesService } from '../likes/likes.service';
 import { UpdateExamDto } from './dto/update-exam.dto';
@@ -349,8 +350,65 @@ export class ExamsService {
     return this.getById(savedExam.id, userId);
   }
 
-  async update(id: number, payload: Partial<Exam>, userId: number) {
-    const exam = await this.examRepo.findOne({ where: { id, userId } });
+  /**
+   * Persiste un examen YA generado por el agente (vía AiRouter).
+   * No consume créditos: el agente ya cobró antes de llamar.
+   */
+  async saveGeneratedExam(
+    response: GeneratedExam,
+    meta: { difficulty?: string; type?: 'quiz' | 'icfes'; acceso?: string },
+    userId: number,
+  ) {
+    const examType = meta.type === 'icfes' ? 'icfes' : 'quiz';
+    const exam = this.examRepo.create({
+      area: response.metadata.area ?? '',
+      tema: response.metadata.tema ?? '',
+      title: response.metadata.title,
+      description: response.metadata.description ?? '',
+      difficulty: meta.difficulty ?? 'medium',
+      type: examType,
+      userId,
+      totalQuestions: response.questions.length,
+      acceso: normalizeAccess(meta.acceso),
+      code: await this.generateCode(),
+    });
+
+    const savedExam = await this.examRepo.save(exam);
+
+    await Promise.all(
+      response.questions.map(async (q) => {
+        const question = await this.questionRepo.save(
+          this.questionRepo.create({
+            question: q.question,
+            explanation: q.explanation || '',
+            contextId: q.contextId || null,
+            contextContent:
+              examType === 'icfes' && q.contextId ? q.contextContent : null,
+            exam: savedExam,
+          }),
+        );
+
+        if (q.options && q.options.length > 0) {
+          await Promise.all(
+            q.options.map((opt) =>
+              this.optionRepo.save(
+                this.optionRepo.create({
+                  text: opt.text,
+                  isCorrect: !!opt.isCorrect,
+                  feedback: opt.feedback || '',
+                  question,
+                }),
+              ),
+            ),
+          );
+        }
+      }),
+    );
+
+    return this.getById(savedExam.id, userId);
+  }
+
+  async update(id: number, payload: Partial<Exam>, userId: number) {   const exam = await this.examRepo.findOne({ where: { id, userId } });
     if (!exam)
       throw new NotFoundException('Exam not found or not owned by user');
 

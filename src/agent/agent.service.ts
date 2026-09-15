@@ -2,6 +2,9 @@ import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { AiRouterService } from '../ai/ai-router.service';
 import { Content } from '../ai/ai-provider.interface';
 import { CreditsService } from '../credits/credits.service';
+import { ExamsService } from '../exams/exams.service';
+import { FlashCardsService } from '../flash-cards/flash-cards.service';
+import { NotesService } from '../notes/notes.service';
 import {
   calculateExamCost,
   calculateFlashcardCost,
@@ -40,15 +43,24 @@ export class AgentService {
   constructor(
     private readonly aiRouter: AiRouterService,
     private readonly creditsService: CreditsService,
+    private readonly examsService: ExamsService,
+    private readonly flashCardsService: FlashCardsService,
+    private readonly notesService: NotesService,
   ) {}
 
   async classifyIntent(
     prompt: string,
     history: Content[] = [],
+    userId?: number,
   ): Promise<AgentClassification> {
     const routerPrompt = this.buildRouterPrompt(prompt, history);
     try {
-      const result = await this.aiRouter.chat(routerPrompt, undefined, 'groq');
+      const result = await this.aiRouter.chat(
+        routerPrompt,
+        undefined,
+        undefined,
+        userId,
+      );
       return this.parseAgentResponse(result.response);
     } catch (e) {
       this.logger.error(`Intent classification failed: ${e}`);
@@ -124,10 +136,15 @@ Si es respuesta directa: {"needsTools": false, "tools": [], "directAnswer": true
   ): AsyncGenerator<string> {
     this.logger.log(`Agent chat: ${prompt.substring(0, 80)}`);
 
-    const classification = await this.classifyIntent(prompt, history);
+    const classification = await this.classifyIntent(prompt, history, userId);
 
     if (!classification.needsTools || classification.tools.length === 0) {
-      for await (const c of this.aiRouter.chatStream(prompt, history)) {
+      for await (const c of this.aiRouter.chatStream(
+        prompt,
+        history,
+        undefined,
+        userId,
+      )) {
         yield sse({ type: 'chunk', content: c.content });
       }
       return;
@@ -163,7 +180,12 @@ Si es respuesta directa: {"needsTools": false, "tools": [], "directAnswer": true
     }
 
     const synthPrompt = this.buildSynthesisPrompt(prompt, toolResults);
-    for await (const c of this.aiRouter.chatStream(synthPrompt, history)) {
+    for await (const c of this.aiRouter.chatStream(
+      synthPrompt,
+      history,
+      undefined,
+      userId,
+    )) {
       yield sse({ type: 'chunk', content: c.content });
     }
 
@@ -198,8 +220,30 @@ Si es respuesta directa: {"needsTools": false, "tools": [], "directAnswer": true
         }
         const exam =
           type === 'icfes'
-            ? await this.aiRouter.generateIcfesExam(reference, num, diff)
-            : await this.aiRouter.generateExam(reference, num, diff);
+            ? await this.aiRouter.generateIcfesExam(
+                reference,
+                num,
+                diff,
+                undefined,
+                userId,
+              )
+            : await this.aiRouter.generateExam(
+                reference,
+                num,
+                diff,
+                undefined,
+                userId,
+              );
+        // Persistir en la biblioteca del usuario
+        let examId: number | undefined;
+        if (userId) {
+          const saved: any = await this.examsService.saveGeneratedExam(
+            exam,
+            { difficulty: diff, type },
+            userId,
+          );
+          examId = saved?.id;
+        }
         return {
           name,
           success: true,
@@ -209,6 +253,7 @@ Si es respuesta directa: {"needsTools": false, "tools": [], "directAnswer": true
             action: {
               kind: 'exam_created',
               title: exam.metadata.title,
+              id: examId,
             },
           },
         };
@@ -230,7 +275,30 @@ Si es respuesta directa: {"needsTools": false, "tools": [], "directAnswer": true
             cost,
           );
         }
-        const cards = await this.aiRouter.generateFlashcards(reference, quantity);
+        const cards = await this.aiRouter.generateFlashcards(
+          reference,
+          quantity,
+          undefined,
+          userId,
+        );
+        // Persistir en la biblioteca del usuario
+        let cardId: number | undefined;
+        if (userId) {
+          const saved: any = await this.flashCardsService.create(
+            {
+              title: cards.metadata.title,
+              description: cards.metadata.description ?? '',
+              tema: reference,
+              flashcards: cards.cards.map((c) => ({
+                front: c.front,
+                back: c.back,
+                hint: c.hint,
+              })),
+            },
+            userId,
+          );
+          cardId = saved?.id;
+        }
         return {
           name,
           success: true,
@@ -240,6 +308,7 @@ Si es respuesta directa: {"needsTools": false, "tools": [], "directAnswer": true
             action: {
               kind: 'flashcards_created',
               title: cards.metadata.title,
+              id: cardId,
             },
           },
         };
@@ -259,7 +328,31 @@ Si es respuesta directa: {"needsTools": false, "tools": [], "directAnswer": true
             cost,
           );
         }
-        const notes = await this.aiRouter.generateNote(reference, num, detail);
+        const notes = await this.aiRouter.generateNote(
+          reference,
+          num,
+          detail,
+          undefined,
+          userId,
+        );
+        // Persistir en la biblioteca del usuario
+        let noteId: number | undefined;
+        if (userId) {
+          const saved: any = await this.notesService.create(
+            {
+              title: notes.metadata.title,
+              description: notes.metadata.description ?? '',
+              levelOfDetail: detail,
+              noteContents: notes.notes.map((n, i) => ({
+                tema: n.topic ?? n.title ?? reference,
+                content: n.content,
+                order: i,
+              })),
+            },
+            userId,
+          );
+          noteId = saved?.id;
+        }
         return {
           name,
           success: true,
@@ -269,6 +362,7 @@ Si es respuesta directa: {"needsTools": false, "tools": [], "directAnswer": true
             action: {
               kind: 'notes_created',
               title: notes.metadata.title,
+              id: noteId,
             },
           },
         };

@@ -20,7 +20,7 @@ export class AiService {
     private readonly configService: ConfigService,
   ) {}
 
-  async getConfig(userId: number): Promise<UserAiConfig> {
+  async getConfig(userId: number): Promise<Omit<UserAiConfig, 'byokEncryptedKey'>> {
     let cfg = await this.configRepo.findOne({ where: { userId } });
     if (!cfg) {
       cfg = this.configRepo.create({
@@ -31,14 +31,16 @@ export class AiService {
       });
       cfg = await this.configRepo.save(cfg);
     }
-    return cfg;
+    // Nunca exponer la llave cifrada al cliente
+    const { byokEncryptedKey, ...safe } = cfg;
+    return safe;
   }
 
   async updateConfig(
     userId: number,
     dto: UpdateAiConfigDto,
-  ): Promise<UserAiConfig> {
-    const cfg = await this.getConfig(userId);
+  ): Promise<Omit<UserAiConfig, 'byokEncryptedKey'>> {
+    const cfg = (await this.getConfig(userId)) as UserAiConfig;
 
     if (dto.provider) {
       if (!['auto', 'groq', 'gemini'].includes(dto.provider)) {
@@ -67,7 +69,9 @@ export class AiService {
     }
 
     cfg.updatedAt = new Date();
-    return this.configRepo.save(cfg);
+    const saved = await this.configRepo.save(cfg);
+    const { byokEncryptedKey, ...safe } = saved;
+    return safe;
   }
 
   async getProviders() {
@@ -77,18 +81,18 @@ export class AiService {
         label: 'Groq',
         models: [
           {
-            id: 'llama-3.1-8b-instant',
-            label: 'Llama 3.1 8B (ahorro)',
+            id: 'openai/gpt-oss-20b',
+            label: 'GPT-OSS 20B (ahorro)',
             tier: 'CHEAP',
           },
           {
-            id: 'llama-3.3-70b-versatile',
-            label: 'Llama 3.3 70B (calidad)',
+            id: 'openai/gpt-oss-120b',
+            label: 'GPT-OSS 120B (calidad)',
             tier: 'QUALITY',
           },
         ],
         supportsVision: true,
-        defaultModel: 'llama-3.1-8b-instant',
+        defaultModel: 'openai/gpt-oss-20b',
       },
       {
         id: 'gemini',

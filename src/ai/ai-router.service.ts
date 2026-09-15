@@ -1,5 +1,8 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { UserAiConfig } from './entities/user-ai-config.entity';
 import {
   AiProvider,
   CardResponse,
@@ -20,9 +23,9 @@ export type TaskTier = 'CHEAP' | 'BALANCED' | 'QUALITY';
 export class AiRouterService {
   private readonly logger = new Logger(AiRouterService.name);
 
-  // Siempre modo ahorro: modelos baratos
+  // Siempre modo ahorro: modelos baratos (verificados contra la API)
   private readonly CHEAP_MODEL: Record<string, string> = {
-    groq: 'llama-3.1-8b-instant',
+    groq: 'openai/gpt-oss-20b',
     gemini: 'gemini-2.5-flash-lite',
   };
 
@@ -30,11 +33,52 @@ export class AiRouterService {
     private readonly groqProvider: GroqProvider,
     private readonly geminiProvider: GeminiProvider,
     private readonly configService: ConfigService,
+    @InjectRepository(UserAiConfig)
+    private readonly configRepo: Repository<UserAiConfig>,
   ) {}
 
   getProvider(providerId?: string): AiProvider {
     if (providerId === 'gemini') return this.geminiProvider;
     return this.groqProvider;
+  }
+
+  /**
+   * Provider efectivo de un usuario según su Centro IA (Mi IA).
+   * 'auto' o sin config → groq (ahorro por defecto).
+   */
+  async resolveProviderId(userId?: number): Promise<'groq' | 'gemini'> {
+    if (userId) {
+      try {
+        const cfg = await this.configRepo.findOne({
+          where: { userId },
+          select: ['provider'],
+        });
+        if (cfg?.provider === 'gemini') return 'gemini';
+      } catch (e) {
+        this.logger.warn(`No se pudo leer UserAiConfig: ${e}`);
+      }
+    }
+    return this.configService.get<string>('AI_DEFAULT_PROVIDER') === 'gemini'
+      ? 'gemini'
+      : 'groq';
+  }
+
+  /** Modelo + provider efectivos para chat (siempre ahorro). */
+  async resolveChatModel(
+    userId?: number,
+  ): Promise<{ provider: string; model: string }> {
+    const provider = await this.resolveProviderId(userId);
+    return { provider, model: this.CHEAP_MODEL[provider] };
+  }
+
+  private async providerFor(
+    providerId?: string,
+    userId?: number,
+  ): Promise<AiProvider> {
+    if (providerId === 'groq' || providerId === 'gemini') {
+      return this.getProvider(providerId);
+    }
+    return this.getProvider(await this.resolveProviderId(userId));
   }
 
   getModelForTask(_tier: TaskTier): string {
@@ -57,16 +101,21 @@ export class AiRouterService {
     msg: string,
     history?: Content[],
     providerId?: string,
+    userId?: number,
   ): Promise<ChatResponse> {
-    return this.getProvider(providerId).chat(msg, history);
+    return (await this.providerFor(providerId, userId)).chat(msg, history);
   }
 
   async *chatStream(
     msg: string,
     history?: Content[],
     providerId?: string,
+    userId?: number,
   ): AsyncGenerator<ChatStreamChunk> {
-    yield* this.getProvider(providerId).chatStream(msg, history);
+    yield* (await this.providerFor(providerId, userId)).chatStream(
+      msg,
+      history,
+    );
   }
 
   async chatWithFile(
@@ -75,8 +124,9 @@ export class AiRouterService {
     mimeType: string,
     history?: Content[],
     providerId?: string,
+    userId?: number,
   ): Promise<ChatResponse> {
-    const provider = this.getProvider(providerId);
+    const provider = await this.providerFor(providerId, userId);
     if (!provider.supportsVision()) {
       throw new BadRequestException('Este provider no soporta archivos');
     }
@@ -88,8 +138,9 @@ export class AiRouterService {
     files: FileInput[],
     history?: Content[],
     providerId?: string,
+    userId?: number,
   ): AsyncGenerator<ChatStreamChunk> {
-    const provider = this.getProvider(providerId);
+    const provider = await this.providerFor(providerId, userId);
     if (!provider.supportsVision()) {
       throw new BadRequestException('Este provider no soporta archivos');
     }
@@ -101,8 +152,13 @@ export class AiRouterService {
     num: number,
     diff: string,
     providerId?: string,
+    userId?: number,
   ): Promise<ExamResponse> {
-    return this.getProvider(providerId).generateExam(topic, num, diff);
+    return (await this.providerFor(providerId, userId)).generateExam(
+      topic,
+      num,
+      diff,
+    );
   }
 
   async generateIcfesExam(
@@ -110,8 +166,13 @@ export class AiRouterService {
     num: number,
     diff: string,
     providerId?: string,
+    userId?: number,
   ): Promise<ExamResponse> {
-    return this.getProvider(providerId).generateIcfesExam(topic, num, diff);
+    return (await this.providerFor(providerId, userId)).generateIcfesExam(
+      topic,
+      num,
+      diff,
+    );
   }
 
   async generateNote(
@@ -119,19 +180,32 @@ export class AiRouterService {
     num: number,
     detail: string,
     providerId?: string,
+    userId?: number,
   ): Promise<NoteResponse> {
-    return this.getProvider(providerId).generateNote(topic, num, detail);
+    return (await this.providerFor(providerId, userId)).generateNote(
+      topic,
+      num,
+      detail,
+    );
   }
 
   async generateFlashcards(
     topic: string,
     num: number,
     providerId?: string,
+    userId?: number,
   ): Promise<CardResponse> {
-    return this.getProvider(providerId).generateFlashcards(topic, num);
+    return (await this.providerFor(providerId, userId)).generateFlashcards(
+      topic,
+      num,
+    );
   }
 
-  async generateTitle(msg: string, providerId?: string): Promise<string> {
-    return this.getProvider(providerId).generateTitle(msg);
+  async generateTitle(
+    msg: string,
+    providerId?: string,
+    userId?: number,
+  ): Promise<string> {
+    return (await this.providerFor(providerId, userId)).generateTitle(msg);
   }
 }

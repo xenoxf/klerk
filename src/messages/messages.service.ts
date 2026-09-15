@@ -21,8 +21,12 @@ export class MessagesService {
   ) {}
 
   // Generar título del chat basado en el primer mensaje
-  private async generateChatTitle(prompt: string): Promise<string> {
-    return await this.aiRouter.generateTitle(prompt, 'groq');
+  // Usa el provider elegido por el usuario en Mi IA
+  private async generateChatTitle(
+    prompt: string,
+    userId?: number,
+  ): Promise<string> {
+    return await this.aiRouter.generateTitle(prompt, undefined, userId);
   }
 
   // Streaming SSE endpoint for chat
@@ -63,11 +67,13 @@ export class MessagesService {
         if (chat && chat.userId !== userId) {
           const chatTitle = await this.generateChatTitle(
             input.prompt || 'Archivo',
+            userId,
           ).catch(() => 'Nuevo Chat');
           chat = await this.createChat(userId, chatTitle);
         } else if (!chat) {
           const chatTitle = await this.generateChatTitle(
             input.prompt || 'Archivo',
+            userId,
           ).catch(() => 'Nuevo Chat');
           chat = await this.createChat(userId, chatTitle);
         }
@@ -75,6 +81,7 @@ export class MessagesService {
     } else {
       const chatTitle = await this.generateChatTitle(
         input.prompt || 'Archivo',
+        userId,
       ).catch(() => 'Nuevo Chat');
       chat = await this.createChat(userId, chatTitle);
     }
@@ -113,6 +120,8 @@ export class MessagesService {
         input.prompt,
         input.files.map((f) => ({ fileBase64: f.fileBase64, mimeType: f.mimeType })),
         conversationHistory.length > 0 ? conversationHistory : undefined,
+        undefined,
+        userId,
       );
 
       for await (const chunk of aiStream) {
@@ -139,6 +148,7 @@ export class MessagesService {
       .join('||');
     const filePaths = input.files.map((f) => f.filePath).join('||');
 
+    const fileChatModel = await this.aiRouter.resolveChatModel(userId);
     const userMessage = this.messageRepo.create({
       prompt: input.prompt || '[Archivo(s) subido(s)]',
       response: fullResponse,
@@ -150,8 +160,8 @@ export class MessagesService {
       fileType: fileTypes,
       fileData: fileData,
       filePath: filePaths,
-      modelUsed: 'llama-3.1-8b-instant',
-      provider: 'groq',
+      modelUsed: fileChatModel.model,
+      provider: fileChatModel.provider,
     });
     await this.messageRepo.save(userMessage);
 
@@ -191,13 +201,13 @@ export class MessagesService {
         });
         // If chat belongs to another user, create a new one for this user
         if (chat && chat.userId !== userId) {
-          const chatTitle = await this.generateChatTitle(input.prompt).catch(
+          const chatTitle = await this.generateChatTitle(input.prompt, userId).catch(
             () => 'Nuevo Chat',
           );
           chat = await this.createChat(userId, chatTitle);
         } else if (!chat) {
           // Chat doesn't exist at all - create a new one
-          const chatTitle = await this.generateChatTitle(input.prompt).catch(
+          const chatTitle = await this.generateChatTitle(input.prompt, userId).catch(
             () => 'Nuevo Chat',
           );
           chat = await this.createChat(userId, chatTitle);
@@ -205,7 +215,7 @@ export class MessagesService {
       }
     } else {
       // No chatId - this is a new conversation
-      const chatTitle = await this.generateChatTitle(input.prompt).catch(
+      const chatTitle = await this.generateChatTitle(input.prompt, userId).catch(
         () => 'Nuevo Chat',
       );
       chat = await this.createChat(userId, chatTitle);
@@ -241,8 +251,9 @@ export class MessagesService {
 
     let fullResponse = '';
     let toolCalls: any[] = [];
-    const modelUsed = 'llama-3.1-8b-instant';
-    const provider = 'groq';
+    // Provider/modelo reales según el Centro IA del usuario
+    const { provider, model: modelUsed } =
+      await this.aiRouter.resolveChatModel(userId);
     let aiError: Error | null = null;
 
     try {
@@ -274,6 +285,17 @@ export class MessagesService {
         if (parsed.type === 'tool' && parsed.toolName) {
           toolCalls.push({ name: parsed.toolName, status: parsed.status });
         }
+        // Enriquecer el tool con lo que creó (para tarjetas en el historial)
+        if (parsed.type === 'action' && parsed.kind) {
+          const last = toolCalls[toolCalls.length - 1];
+          const info = {
+            kind: parsed.kind,
+            title: parsed.title,
+            id: parsed.id,
+          };
+          if (last && !last.kind) Object.assign(last, info);
+          else toolCalls.push({ name: 'action', status: 'done', ...info });
+        }
       }
     } catch (error) {
       aiError = error as Error;
@@ -298,8 +320,8 @@ export class MessagesService {
       chatId: chat!.id,
       createdAt,
       toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
-      modelUsed: modelUsed || 'llama-3.1-8b-instant',
-      provider: provider || 'groq',
+      modelUsed,
+      provider,
     });
     await this.messageRepo.save(userMessage);
 
@@ -346,19 +368,19 @@ export class MessagesService {
           select: ['id', 'title', 'userId'],
         });
         if (chat && chat.userId !== userId) {
-          const chatTitle = await this.generateChatTitle(input.prompt).catch(
+          const chatTitle = await this.generateChatTitle(input.prompt, userId).catch(
             () => 'Nuevo Chat',
           );
           chat = await this.createChat(userId, chatTitle);
         } else if (!chat) {
-          const chatTitle = await this.generateChatTitle(input.prompt).catch(
+          const chatTitle = await this.generateChatTitle(input.prompt, userId).catch(
             () => 'Nuevo Chat',
           );
           chat = await this.createChat(userId, chatTitle);
         }
       }
     } else {
-      const chatTitle = await this.generateChatTitle(input.prompt).catch(
+      const chatTitle = await this.generateChatTitle(input.prompt, userId).catch(
         () => 'Nuevo Chat',
       );
       chat = await this.createChat(userId, chatTitle);
@@ -391,9 +413,19 @@ export class MessagesService {
     });
 
     let aiResponse = '';
+    let aiProvider = 'groq';
+    let aiModel = 'openai/gpt-oss-20b';
 
     try {
-      const response = await this.aiRouter.chat(input.prompt, conversationHistory.length > 0 ? conversationHistory : undefined);
+      const resolved = await this.aiRouter.resolveChatModel(userId);
+      aiProvider = resolved.provider;
+      aiModel = resolved.model;
+      const response = await this.aiRouter.chat(
+        input.prompt,
+        conversationHistory.length > 0 ? conversationHistory : undefined,
+        undefined,
+        userId,
+      );
       aiResponse = response.response;
     } catch (error) {
       Logger.error(
@@ -412,8 +444,8 @@ export class MessagesService {
       userId,
       chatId: chat!.id,
       createdAt,
-      modelUsed: 'llama-3.1-8b-instant',
-      provider: 'groq',
+      modelUsed: aiModel,
+      provider: aiProvider,
     });
     const savedMessage = await this.messageRepo.save(userMessage);
 
