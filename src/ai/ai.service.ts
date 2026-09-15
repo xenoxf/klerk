@@ -79,6 +79,7 @@ export class AiService {
       {
         id: 'groq',
         label: 'Groq',
+        available: this.groqProvider.isAvailable(),
         models: [
           {
             id: 'openai/gpt-oss-20b',
@@ -97,6 +98,7 @@ export class AiService {
       {
         id: 'gemini',
         label: 'Gemini',
+        available: this.geminiProvider.isAvailable(),
         models: [
           {
             id: 'gemini-2.5-flash-lite',
@@ -123,9 +125,19 @@ export class AiService {
     error?: string;
   }> {
     const start = Date.now();
+    const provider =
+      dto.provider === 'gemini' ? this.geminiProvider : this.groqProvider;
+    // Diagnóstico honesto y rápido si ni siquiera hay keys
+    if (!provider.isAvailable()) {
+      return {
+        ok: false,
+        latencyMs: Date.now() - start,
+        model: provider.modelName,
+        provider: dto.provider,
+        error: `Sin API keys configuradas para ${dto.provider}: agrega la key en el .env del backend`,
+      };
+    }
     try {
-      const provider =
-        dto.provider === 'gemini' ? this.geminiProvider : this.groqProvider;
       await provider.generateTitle('Hola, prueba de conexión');
       return {
         ok: true,

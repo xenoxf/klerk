@@ -31,6 +31,10 @@ export class GeminiProvider implements AiProvider {
     return true;
   }
 
+  isAvailable(): boolean {
+    return this.geminiService.hasUsableKeys();
+  }
+
   async chat(msg: string, history?: Content[]): Promise<ChatResponse> {
     const result = await this.geminiService.generateEducationalChatResponse(
       msg,

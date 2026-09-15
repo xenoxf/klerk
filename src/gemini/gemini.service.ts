@@ -94,8 +94,33 @@ export class GeminiService {
       (key): key is string => !!key && key !== 'undefined',
     );
 
-    if (this.apiKeys.length === 0) throw new Error('No API Keys');
-    this.genAI = new GoogleGenerativeAI(this.apiKeys[0]);
+    // NUNCA tumbar el arranque por keys faltantes: se degrada y el router
+    // usa otro proveedor. Solo se falla al intentar llamar sin keys.
+    if (this.hasUsableKeys()) {
+      this.genAI = new GoogleGenerativeAI(this.apiKeys[0]);
+    } else {
+      this.logger.error(
+        'Sin GEMINI_API_KEY: el proveedor Gemini queda deshabilitado hasta configurar keys.',
+      );
+      // Placeholder para no romper getModel() antes del assertKeys()
+      this.genAI = new GoogleGenerativeAI('missing-key');
+    }
+  }
+
+  /** Hay al menos una key real (no vacía ni placeholder). */
+  hasUsableKeys(): boolean {
+    return (
+      this.apiKeys.length > 0 &&
+      !this.apiKeys.every((key) => key === 'change_me')
+    );
+  }
+
+  private assertKeys(): void {
+    if (!this.hasUsableKeys()) {
+      throw new Error(
+        'Gemini sin API keys configuradas: configura GEMINI_API_KEY en el .env',
+      );
+    }
   }
 
   private rotateKey(): void {
@@ -109,6 +134,8 @@ export class GeminiService {
     name: ModelName = MODELS[0],
     schema?: ResponseSchema,
   ): GenerativeModel {
+    // Embudo único: todo el servicio pasa por aquí
+    this.assertKeys();
     const config: {
       model: ModelName;
       generationConfig?: GenerationConfig;

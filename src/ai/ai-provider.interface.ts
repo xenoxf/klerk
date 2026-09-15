@@ -75,6 +75,8 @@ export interface FileInput {
 export interface AiProvider {
   readonly providerId: string;
   readonly modelName: string;
+  /** false si no hay API keys reales configuradas (no tumba nada, solo avisa) */
+  isAvailable(): boolean;
   supportsVision(): boolean;
   chat(msg: string, history?: Content[]): Promise<ChatResponse>;
   chatStream(msg: string, history?: Content[]): AsyncGenerator<ChatStreamChunk>;

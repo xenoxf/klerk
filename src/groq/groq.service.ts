@@ -112,8 +112,13 @@ export class GroqService {
       (key): key is string => !!key && key !== 'undefined',
     );
 
-    if (this.apiKeys.length === 0) throw new Error('No API Keys');
-    if (this.apiKeys.every((key) => key === 'change_me')) {
+    // NUNCA tumbar el arranque por keys faltantes: se degrada y el router
+    // usa otro proveedor. Solo se falla al intentar llamar sin keys.
+    if (this.apiKeys.length === 0) {
+      this.logger.error(
+        'Sin GROQ_API_KEY: el proveedor Groq queda deshabilitado hasta configurar keys.',
+      );
+    } else if (this.apiKeys.every((key) => key === 'change_me')) {
       this.logger.warn(
         'GROQ_API_KEY tiene valor placeholder: configura tu key real de https://console.groq.com/keys',
       );
@@ -143,6 +148,22 @@ export class GroqService {
   private rotateKey(): void {
     if (this.apiKeys.length > 1) {
       this.currentKeyIndex = (this.currentKeyIndex + 1) % this.apiKeys.length;
+    }
+  }
+
+  /** Hay al menos una key real (no vacía ni placeholder). */
+  hasUsableKeys(): boolean {
+    return (
+      this.apiKeys.length > 0 &&
+      !this.apiKeys.every((key) => key === 'change_me')
+    );
+  }
+
+  private assertKeys(): void {
+    if (!this.hasUsableKeys()) {
+      throw new Error(
+        'Groq sin API keys configuradas: configura GROQ_API_KEY en el .env',
+      );
     }
   }
 
@@ -187,6 +208,7 @@ export class GroqService {
     temperature?: number;
     maxTokens?: number;
   }): Promise<string> {
+    this.assertKeys();
     const body: Record<string, unknown> = {
       model: opts.model,
       messages: opts.messages,
@@ -229,6 +251,7 @@ export class GroqService {
     temperature?: number;
     maxTokens?: number;
   }): AsyncGenerator<string> {
+    this.assertKeys();
     const res = await fetch(GROQ_API_URL, {
       method: 'POST',
       headers: {
@@ -338,6 +361,7 @@ export class GroqService {
     textPrompt: string,
     files: FileInput[],
   ): Promise<string> {
+    this.assertKeys();
     const images = files.filter((f) => f.mimeType.startsWith('image/'));
     const fullPrompt = textPrompt + this.describeNonImageFiles(files);
 

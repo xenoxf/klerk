@@ -23,11 +23,8 @@ export type TaskTier = 'CHEAP' | 'BALANCED' | 'QUALITY';
 export class AiRouterService {
   private readonly logger = new Logger(AiRouterService.name);
 
-  // Siempre modo ahorro: modelos baratos (verificados contra la API)
-  private readonly CHEAP_MODEL: Record<string, string> = {
-    groq: 'openai/gpt-oss-20b',
-    gemini: 'gemini-2.5-flash-lite',
-  };
+  // Modelos baratos por defecto (verificados contra la API).
+  // El modelo efectivo real lo decide cada provider (env > default).
 
   constructor(
     private readonly groqProvider: GroqProvider,
@@ -40,6 +37,13 @@ export class AiRouterService {
   getProvider(providerId?: string): AiProvider {
     if (providerId === 'gemini') return this.geminiProvider;
     return this.groqProvider;
+  }
+
+  /** Proveedores con keys reales configuradas. */
+  getAvailableProviders(): Array<'groq' | 'gemini'> {
+    return (['groq', 'gemini'] as const).filter((id) =>
+      this.getProvider(id).isAvailable(),
+    );
   }
 
   /**
@@ -67,23 +71,101 @@ export class AiRouterService {
   async resolveChatModel(
     userId?: number,
   ): Promise<{ provider: string; model: string }> {
-    const provider = await this.resolveProviderId(userId);
-    return { provider, model: this.CHEAP_MODEL[provider] };
+    const provider = await this.providerFor(undefined, userId);
+    return { provider: provider.providerId, model: provider.modelName };
+  }
+
+  /**
+   * Orden de intento: preferido del usuario primero, el otro después.
+   * Solo incluye proveedores con keys reales.
+   */
+  private async orderedProviders(
+    providerId?: string,
+    userId?: number,
+  ): Promise<AiProvider[]> {
+    let first: 'groq' | 'gemini';
+    if (providerId === 'groq' || providerId === 'gemini') {
+      first = providerId;
+    } else {
+      first = await this.resolveProviderId(userId);
+    }
+    const second = first === 'groq' ? 'gemini' : 'groq';
+    const ordered = [this.getProvider(first), this.getProvider(second)];
+    const usable = ordered.filter((p) => p.isAvailable());
+    if (usable.length === 0) {
+      throw new Error(
+        'Ningún proveedor de IA disponible: configura GROQ_API_KEY o GEMINI_API_KEY en el .env',
+      );
+    }
+    if (usable[0] !== ordered[0]) {
+      this.logger.warn(
+        `${ordered[0].providerId} sin keys o caído en preferencia: usando ${usable[0].providerId}`,
+      );
+    }
+    return usable;
   }
 
   private async providerFor(
     providerId?: string,
     userId?: number,
   ): Promise<AiProvider> {
-    if (providerId === 'groq' || providerId === 'gemini') {
-      return this.getProvider(providerId);
+    return (await this.orderedProviders(providerId, userId))[0];
+  }
+
+  /** Ejecuta con fallback automático al otro proveedor si el primero falla. */
+  private async withFallback<T>(
+    op: (p: AiProvider) => Promise<T>,
+    providerId?: string,
+    userId?: number,
+  ): Promise<T> {
+    const candidates = await this.orderedProviders(providerId, userId);
+    let lastError: unknown = null;
+    for (const p of candidates) {
+      try {
+        return await op(p);
+      } catch (e) {
+        lastError = e;
+        this.logger.warn(
+          `${p.providerId} falló, intentando siguiente proveedor: ${e instanceof Error ? e.message : e}`,
+        );
+      }
     }
-    return this.getProvider(await this.resolveProviderId(userId));
+    throw lastError;
+  }
+
+  /**
+   * Stream con fallback: si el preferido falla ANTES de emitir nada,
+   * se reintenta con el otro desde cero. Si ya emitió, se propaga.
+   */
+  private async *streamWithFallback(
+    op: (p: AiProvider) => AsyncGenerator<ChatStreamChunk>,
+    providerId?: string,
+    userId?: number,
+  ): AsyncGenerator<ChatStreamChunk> {
+    const candidates = await this.orderedProviders(providerId, userId);
+    let lastError: unknown = null;
+    for (const p of candidates) {
+      let yielded = false;
+      try {
+        for await (const c of op(p)) {
+          yielded = true;
+          yield c;
+        }
+        return;
+      } catch (e) {
+        lastError = e;
+        if (yielded) throw e;
+        this.logger.warn(
+          `${p.providerId} falló en stream, intentando siguiente: ${e instanceof Error ? e.message : e}`,
+        );
+      }
+    }
+    throw lastError;
   }
 
   getModelForTask(_tier: TaskTier): string {
-    // Siempre modo ahorro: usar modelo más barato
-    return this.CHEAP_MODEL.groq;
+    // Siempre modo ahorro: modelo barato del provider por defecto
+    return this.groqProvider.modelName;
   }
 
   classifyTask(_input: {
@@ -103,7 +185,11 @@ export class AiRouterService {
     providerId?: string,
     userId?: number,
   ): Promise<ChatResponse> {
-    return (await this.providerFor(providerId, userId)).chat(msg, history);
+    return this.withFallback(
+      (p) => p.chat(msg, history),
+      providerId,
+      userId,
+    );
   }
 
   async *chatStream(
@@ -112,9 +198,10 @@ export class AiRouterService {
     providerId?: string,
     userId?: number,
   ): AsyncGenerator<ChatStreamChunk> {
-    yield* (await this.providerFor(providerId, userId)).chatStream(
-      msg,
-      history,
+    yield* this.streamWithFallback(
+      (p) => p.chatStream(msg, history),
+      providerId,
+      userId,
     );
   }
 
@@ -126,11 +213,12 @@ export class AiRouterService {
     providerId?: string,
     userId?: number,
   ): Promise<ChatResponse> {
-    const provider = await this.providerFor(providerId, userId);
-    if (!provider.supportsVision()) {
-      throw new BadRequestException('Este provider no soporta archivos');
-    }
-    return provider.chatWithFile(msg, fileBase64, mimeType, history);
+    return this.withFallback(async (p) => {
+      if (!p.supportsVision()) {
+        throw new BadRequestException('Este provider no soporta archivos');
+      }
+      return p.chatWithFile(msg, fileBase64, mimeType, history);
+    }, providerId, userId);
   }
 
   async *chatWithFileStream(
@@ -140,11 +228,15 @@ export class AiRouterService {
     providerId?: string,
     userId?: number,
   ): AsyncGenerator<ChatStreamChunk> {
-    const provider = await this.providerFor(providerId, userId);
-    if (!provider.supportsVision()) {
-      throw new BadRequestException('Este provider no soporta archivos');
-    }
-    yield* provider.chatWithFileStream(msg, files, history);
+    const op = async function* (
+      p: AiProvider,
+    ): AsyncGenerator<ChatStreamChunk> {
+      if (!p.supportsVision()) {
+        throw new BadRequestException('Este provider no soporta archivos');
+      }
+      yield* p.chatWithFileStream(msg, files, history);
+    };
+    yield* this.streamWithFallback(op, providerId, userId);
   }
 
   async generateExam(
@@ -154,10 +246,10 @@ export class AiRouterService {
     providerId?: string,
     userId?: number,
   ): Promise<ExamResponse> {
-    return (await this.providerFor(providerId, userId)).generateExam(
-      topic,
-      num,
-      diff,
+    return this.withFallback(
+      (p) => p.generateExam(topic, num, diff),
+      providerId,
+      userId,
     );
   }
 
@@ -168,10 +260,10 @@ export class AiRouterService {
     providerId?: string,
     userId?: number,
   ): Promise<ExamResponse> {
-    return (await this.providerFor(providerId, userId)).generateIcfesExam(
-      topic,
-      num,
-      diff,
+    return this.withFallback(
+      (p) => p.generateIcfesExam(topic, num, diff),
+      providerId,
+      userId,
     );
   }
 
@@ -182,10 +274,10 @@ export class AiRouterService {
     providerId?: string,
     userId?: number,
   ): Promise<NoteResponse> {
-    return (await this.providerFor(providerId, userId)).generateNote(
-      topic,
-      num,
-      detail,
+    return this.withFallback(
+      (p) => p.generateNote(topic, num, detail),
+      providerId,
+      userId,
     );
   }
 
@@ -195,9 +287,10 @@ export class AiRouterService {
     providerId?: string,
     userId?: number,
   ): Promise<CardResponse> {
-    return (await this.providerFor(providerId, userId)).generateFlashcards(
-      topic,
-      num,
+    return this.withFallback(
+      (p) => p.generateFlashcards(topic, num),
+      providerId,
+      userId,
     );
   }
 
@@ -206,6 +299,6 @@ export class AiRouterService {
     providerId?: string,
     userId?: number,
   ): Promise<string> {
-    return (await this.providerFor(providerId, userId)).generateTitle(msg);
+    return this.withFallback((p) => p.generateTitle(msg), providerId, userId);
   }
 }

@@ -30,6 +30,10 @@ export class GroqProvider implements AiProvider {
     return true;
   }
 
+  isAvailable(): boolean {
+    return this.groqService.hasUsableKeys();
+  }
+
   async chat(msg: string, history?: Content[]): Promise<ChatResponse> {
     const result = await this.groqService.generateEducationalChatResponse(
       msg,
