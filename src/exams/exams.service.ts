@@ -11,7 +11,7 @@ import { Exam } from './entities/exam.entity';
 import { ExamQuestion } from './entities/examQuestion.entity';
 import { ExamOption } from './entities/exam-option.entity';
 import { GenerateExamDto } from './dto/generate-exam.dto';
-import { GeminiService, ExamResponse } from '../gemini/gemini.service';
+import { GroqService, ExamResponse } from '../groq/groq.service';
 import { CreditsService, calculateExamCost } from '../credits/credits.service';
 import { LikesService } from '../likes/likes.service';
 import { UpdateExamDto } from './dto/update-exam.dto';
@@ -28,7 +28,7 @@ export class ExamsService {
     @InjectRepository(ExamQuestion)
     private questionRepo: Repository<ExamQuestion>,
     @InjectRepository(ExamOption) private optionRepo: Repository<ExamOption>,
-    private readonly geminiService: GeminiService,
+    private readonly groqService: GroqService,
     private readonly creditsService: CreditsService,
     private readonly likesService: LikesService,
   ) {}
@@ -62,13 +62,13 @@ export class ExamsService {
 
     let response: ExamResponse;
     if (examType === 'icfes') {
-      response = await this.geminiService.generateIcfesExam(
+      response = await this.groqService.generateIcfesExam(
         input.reference,
         input.numberOfQuestions,
         input.difficulty,
       );
     } else {
-      response = await this.geminiService.generateExam(
+      response = await this.groqService.generateExam(
         input.reference,
         input.numberOfQuestions,
         input.difficulty,
@@ -176,14 +176,14 @@ export class ExamsService {
 
     let response: ExamResponse;
     if (input.type === 'icfes') {
-      response = await this.geminiService.generateIcfesExamFromFile(
+      response = await this.groqService.generateIcfesExamFromFile(
         input.files,
         input.reference,
         input.numberOfQuestions,
         input.difficulty,
       );
     } else {
-      response = await this.geminiService.generateExamFromFile(
+      response = await this.groqService.generateExamFromFile(
         input.files,
         input.reference,
         input.numberOfQuestions,

@@ -486,6 +486,17 @@ Eres Junior, una tutora IA enfocada en el aprendizaje activo y la claridad absol
     If invalid, provide specific error messages and suggestions for fixing.
     If valid, confirm it meets all requirements.
   `,
+  // ==================== AGENT ROUTER ====================
+  AGENT_ROUTER_SYSTEM: `Eres un enrutador de intención para un tutor IA llamado Junior. Tu trabajo es analizar el mensaje del usuario y decidir si necesita ejecutar herramientas o puede responder directamente.
+
+REGLAS:
+- Si el usuario pide CREAR un examen, flashcards, o notas → devuelve herramientas.
+- Si el usuario pide buscar su contenido (exámenes, notas, flashcards que tiene guardados) → herramienta search_my_content.
+- Si el usuario pide ver sus estadísticas de progreso → herramienta get_attempt_stats.
+- Si el usuario pide explicar algo, resolver una duda, debatir, o saludar → respuesta directa.
+- Máximo 3 herramientas por mensaje.
+- Para generar exámenes o flashcards, limita a máximo 10 preguntas/cartas.
+- Devuelve SOLO JSON: {"needsTools": bool, "tools": [{"name": "...", "args": {...}}], "directAnswer": bool, "confidence": number}`,
 };
 
 // Helper para manejo de errores y retry

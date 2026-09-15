@@ -3,9 +3,10 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import { Message } from './entities/message.entity';
 import { Chat } from './entities/chat.entity';
-import { GeminiService } from '../gemini/gemini.service';
+import { AgentService } from '../agent/agent.service';
+import { AiRouterService } from '../ai/ai-router.service';
 import { CreditsService } from '../credits/credits.service';
-import { Content } from '@google/generative-ai';
+import { Content } from '../groq/groq.service';
 
 @Injectable()
 export class MessagesService {
@@ -14,13 +15,14 @@ export class MessagesService {
   constructor(
     @InjectRepository(Message) private messageRepo: Repository<Message>,
     @InjectRepository(Chat) private chatRepo: Repository<Chat>,
-    private readonly geminiService: GeminiService,
+    private readonly agentService: AgentService,
+    private readonly aiRouter: AiRouterService,
     private readonly creditsService: CreditsService,
   ) {}
 
   // Generar título del chat basado en el primer mensaje
   private async generateChatTitle(prompt: string): Promise<string> {
-    return await this.geminiService.generateChatTitleFromMessage(prompt);
+    return await this.aiRouter.generateTitle(prompt, 'groq');
   }
 
   // Streaming SSE endpoint for chat
@@ -107,19 +109,15 @@ export class MessagesService {
     let aiError: Error | null = null;
 
     try {
-      const aiStream =
-        this.geminiService.generateEducationalChatResponseStreamWithFile(
-          input.prompt,
-          input.files.map((f) => ({
-            fileBase64: f.fileBase64,
-            mimeType: f.mimeType,
-          })),
-          conversationHistory.length > 0 ? conversationHistory : undefined,
-        );
+      const aiStream = this.aiRouter.chatWithFileStream(
+        input.prompt,
+        input.files.map((f) => ({ fileBase64: f.fileBase64, mimeType: f.mimeType })),
+        conversationHistory.length > 0 ? conversationHistory : undefined,
+      );
 
       for await (const chunk of aiStream) {
-        fullResponse += chunk;
-        yield `data: ${JSON.stringify({ type: 'chunk', content: chunk })}\n\n`;
+        fullResponse += chunk.content;
+        yield `data: ${JSON.stringify({ type: 'chunk', content: chunk.content })}\n\n`;
       }
     } catch (error) {
       aiError = error as Error;
@@ -152,6 +150,8 @@ export class MessagesService {
       fileType: fileTypes,
       fileData: fileData,
       filePath: filePaths,
+      modelUsed: 'llama-3.1-8b-instant',
+      provider: 'groq',
     });
     await this.messageRepo.save(userMessage);
 
@@ -240,22 +240,44 @@ export class MessagesService {
     yield `data: ${JSON.stringify({ type: 'credits', remaining: creditStatus.remaining, total: creditStatus.total })}\n\n`;
 
     let fullResponse = '';
+    let toolCalls: any[] = [];
+    const modelUsed = 'llama-3.1-8b-instant';
+    const provider = 'groq';
     let aiError: Error | null = null;
 
     try {
-      const aiStream = this.geminiService.generateEducationalChatResponseStream(
+      const agentStream = this.agentService.executeAgentChat(
         input.prompt,
-        conversationHistory.length > 0 ? conversationHistory : undefined,
+        conversationHistory.length > 0 ? conversationHistory : [],
+        userId,
       );
 
-      for await (const chunk of aiStream) {
-        fullResponse += chunk;
-        yield `data: ${JSON.stringify({ type: 'chunk', content: chunk })}\n\n`;
+      for await (const raw of agentStream) {
+        const line = raw.replace(/^data:\s*/, '').trim();
+        if (!line) continue;
+        let parsed: any;
+        try {
+          parsed = JSON.parse(line);
+        } catch {
+          continue;
+        }
+        if (
+          parsed.type === 'chunk' ||
+          parsed.type === 'tool' ||
+          parsed.type === 'action'
+        ) {
+          yield raw;
+        }
+        if (parsed.type === 'chunk' && parsed.content) {
+          fullResponse += parsed.content;
+        }
+        if (parsed.type === 'tool' && parsed.toolName) {
+          toolCalls.push({ name: parsed.toolName, status: parsed.status });
+        }
       }
     } catch (error) {
       aiError = error as Error;
-      this.logger.error(`AI stream failed: ${aiError?.message}`);
-      // Don't rethrow - we'll save whatever response we have
+      this.logger.error(`Agent stream failed: ${aiError?.message}`);
     }
 
     // If AI failed completely, provide a friendly fallback
@@ -266,7 +288,7 @@ export class MessagesService {
       yield `data: ${JSON.stringify({ type: 'chunk', content: fullResponse })}\n\n`;
     }
 
-    // Save the message (even if it's a fallback response)
+    // Save the message with tool tracking
     const createdAt = new Date().toISOString();
     const userMessage = this.messageRepo.create({
       prompt: input.prompt,
@@ -275,6 +297,9 @@ export class MessagesService {
       userId,
       chatId: chat!.id,
       createdAt,
+      toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
+      modelUsed: modelUsed || 'llama-3.1-8b-instant',
+      provider: provider || 'groq',
     });
     await this.messageRepo.save(userMessage);
 
@@ -368,11 +393,7 @@ export class MessagesService {
     let aiResponse = '';
 
     try {
-      const response = await this.geminiService.generateEducationalChatResponse(
-        input.prompt,
-        undefined,
-        conversationHistory.length > 0 ? conversationHistory : undefined,
-      );
+      const response = await this.aiRouter.chat(input.prompt, conversationHistory.length > 0 ? conversationHistory : undefined);
       aiResponse = response.response;
     } catch (error) {
       Logger.error(
@@ -391,6 +412,8 @@ export class MessagesService {
       userId,
       chatId: chat!.id,
       createdAt,
+      modelUsed: 'llama-3.1-8b-instant',
+      provider: 'groq',
     });
     const savedMessage = await this.messageRepo.save(userMessage);
 
@@ -458,6 +481,9 @@ export class MessagesService {
         'message.fileType',
         'message.fileData',
         'message.filePath',
+        'message.toolCalls',
+        'message.modelUsed',
+        'message.provider',
       ])
       .where('message.chatId = :chatId', { chatId })
       .orderBy('message.createdAt', 'ASC')
@@ -481,6 +507,9 @@ export class MessagesService {
               .map((p) => (p ? `/uploads/${p}` : ''))
               .join('||')
           : null,
+        toolCalls: msg.toolCalls ?? null,
+        modelUsed: msg.modelUsed ?? null,
+        provider: msg.provider ?? null,
       })),
     };
   }

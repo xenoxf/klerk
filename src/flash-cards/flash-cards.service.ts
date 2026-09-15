@@ -12,7 +12,7 @@ import {
   CreditsService,
   calculateFlashcardCost,
 } from '../credits/credits.service';
-import { GeminiService, CardResponse } from '../gemini/gemini.service';
+import { GroqService, CardResponse } from '../groq/groq.service';
 import { LikesService } from '../likes/likes.service';
 import {
   isPublicAccess,
@@ -28,7 +28,7 @@ export class FlashCardsService {
     @InjectRepository(FlashCard)
     private flashCardRepo: Repository<FlashCard>,
     private creditsService: CreditsService,
-    private geminiService: GeminiService,
+    private groqService: GroqService,
     private likesService: LikesService,
   ) {}
 
@@ -53,7 +53,7 @@ export class FlashCardsService {
       dynamicCost,
     );
 
-    const response: CardResponse = await this.geminiService.generateFlashcards(
+    const response: CardResponse = await this.groqService.generateFlashcards(
       input.reference,
       input.quantity,
     );
@@ -128,7 +128,7 @@ export class FlashCardsService {
     );
 
     const response: CardResponse =
-      await this.geminiService.generateFlashcardsFromFile(
+      await this.groqService.generateFlashcardsFromFile(
         input.files,
         input.reference,
         input.quantity,

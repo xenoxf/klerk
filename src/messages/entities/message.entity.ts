@@ -43,6 +43,15 @@ export class Message {
   @Column({ nullable: true })
   filePath?: string;
 
+  @Column({ type: 'jsonb', nullable: true })
+  toolCalls?: any;
+
+  @Column({ nullable: true })
+  modelUsed?: string;
+
+  @Column({ nullable: true })
+  provider?: string;
+
   @ManyToOne(() => Chat, (chat) => chat.messages, { onDelete: 'CASCADE' })
   chat: Chat;
 }

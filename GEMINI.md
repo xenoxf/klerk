@@ -132,34 +132,34 @@ klerk/
 
 ### Installation
 ```bash
-npm install
+pnpm install
 ```
 
 ### Development
 ```bash
-npm run start:dev        # Hot-reload dev server (nest start --watch)
-npm run start:debug      # Debug mode with --debug --watch
+pnpm run start:dev        # Hot-reload dev server (nest start --watch)
+pnpm run start:debug      # Debug mode with --debug --watch
 ```
 
 ### Production
 ```bash
-npm run build            # Compile TypeScript to dist/ (tsc -p tsconfig.build.json)
-npm run start:prod       # Run compiled JS (node dist/main)
+pnpm run build            # Compile TypeScript to dist/ (tsc -p tsconfig.build.json)
+pnpm run start:prod       # Run compiled JS (node dist/main)
 ```
 
 ### Testing
 ```bash
-npm run test             # Run unit tests (Jest)
-npm run test:watch       # Watch mode
-npm run test:cov         # Coverage report
-npm run test:debug       # Debug mode (node --inspect-brk)
-npm run test:e2e         # E2E tests (jest --config ./test/jest-e2e.json)
+pnpm run test             # Run unit tests (Jest)
+pnpm run test:watch       # Watch mode
+pnpm run test:cov         # Coverage report
+pnpm run test:debug       # Debug mode (node --inspect-brk)
+pnpm run test:e2e         # E2E tests (jest --config ./test/jest-e2e.json)
 ```
 
 ### Linting & Formatting
 ```bash
-npm run lint             # ESLint with auto-fix
-npm run format           # Prettier formatting
+pnpm run lint             # ESLint with auto-fix
+pnpm run format           # Prettier formatting
 ```
 
 **Server listens on:** `0.0.0.0:2300` (controlled by `PORT` in `.env`)
@@ -618,7 +618,7 @@ Contains detailed system prompts for each AI generation type.
 - **Framework:** Jest with ts-jest
 - **Test files:** `*.spec.ts` files in `src/` directory
 - **Config:** Jest config in `package.json`
-- **Coverage:** `npm run test:cov` generates coverage in `../coverage` directory
+- **Coverage:** `pnpm run test:cov` generates coverage in `../coverage` directory
 - **E2E tests:** Separate config in `test/jest-e2e.json`
 - **Test patterns:** Unit tests exist for app.controller; other modules may need test files created
 

@@ -1,7 +1,8 @@
 {
   "name": "klerk",
   "version": "0.1.0",
-  "description": "API educativa con IA: exámenes, flashcards, notas y chat en tiempo real (NestJS + Gemini).",
+  "description": "API educativa con IA: exámenes, flashcards, notas y chat en tiempo real (NestJS + Groq y Gemini).",
+  "packageManager": "pnpm@11.24.0",
   "author": "",
   "private": false,
   "license": "AGPL-3.0",

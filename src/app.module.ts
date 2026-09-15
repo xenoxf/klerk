@@ -8,6 +8,10 @@ import { ExamsModule } from './exams/exams.module';
 import { FlashCardsModule } from './flash-cards/flash-cards.module';
 import { NotesModule } from './notes/notes.module';
 import { MessagesModule } from './messages/messages.module';
+import { AiModule } from './ai/ai.module';
+import { AgentModule } from './agent/agent.module';
+import { SearchModule } from './search/search.module';
+import { GroqModule } from './groq/groq.module';
 import { GeminiModule } from './gemini/gemini.module';
 import { GlobalChatModule } from './global-chat/global-chat.module';
 import { CreditsModule } from './credits/credits.module';
@@ -18,21 +22,16 @@ import { ThrottlerModule } from '@nestjs/throttler';
 
 @Module({
   imports: [
-    // Configuración del módulo de configuración
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: '.env', // Especifica explícitamente el archivo .env
+      envFilePath: '.env',
     }),
-
-    // Rate Limiting con Throttler (seguridad adicional)
     ThrottlerModule.forRoot([
       {
-        ttl: 60000, // 1 minuto
-        limit: 10, // 10 peticiones por minuto por IP
+        ttl: 60000,
+        limit: 10,
       },
     ]),
-
-    // Configuración de TypeORM
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
@@ -47,18 +46,20 @@ import { ThrottlerModule } from '@nestjs/throttler';
             ? { rejectUnauthorized: false }
             : false,
         autoLoadEntities: true,
-        synchronize: true, // ⚠️ Solo en desarrollo - cambiar a false en producción
-        // logging: true, // Agrega logging para ver las consultas SQL
+        synchronize: true,
       }),
       inject: [ConfigService],
     }),
-
     AuthModule,
     UsersModule,
     ExamsModule,
     FlashCardsModule,
     NotesModule,
     MessagesModule,
+    AiModule,
+    AgentModule,
+    SearchModule,
+    GroqModule,
     GeminiModule,
     GlobalChatModule,
     CreditsModule,

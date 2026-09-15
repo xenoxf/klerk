@@ -126,7 +126,7 @@ Todas las variables sensibles viven en `.env` (ver `.env.example`). El proyecto 
 
 ## 11. Despliegue sugerido
 
-1. `npm ci && npm run build`
+1. `pnpm install --frozen-lockfile && pnpm build`
 2. Variables de entorno completas en el proveedor (Render, Railway, VPS + PM2...).
 3. `NODE_ENV=production`, `synchronize=false` y migraciones de TypeORM.
 4. Reverse proxy (Nginx/Caddy) con HTTPS; `BACKEND_URL` apuntando al dominio público.

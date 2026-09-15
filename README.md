@@ -1,6 +1,6 @@
 # Klerk API
 
-API backend de una plataforma educativa impulsada por IA (Google Gemini): genera **exámenes, flashcards y notas** a partir de un tema o archivo, con chat educativo en streaming, créditos diarios y sistema de compartir contenido.
+API backend de una plataforma educativa impulsada por IA (Groq y Gemini): genera **exámenes, flashcards y notas** a partir de un tema o archivo, con chat educativo en streaming, créditos diarios y sistema de compartir contenido.
 
 > Construida con **NestJS**, **TypeORM + PostgreSQL** y **Gemini API**.
 
@@ -42,7 +42,7 @@ API backend de una plataforma educativa impulsada por IA (Google Gemini): genera
 ```bash
 git clone <url-del-repo>
 cd klerk
-npm install
+pnpm install
 ```
 
 2. Crea tu archivo de entorno:
@@ -68,9 +68,9 @@ cp .env.example .env
 ## ▶️ Ejecución
 
 ```bash
-npm run start:dev    # desarrollo con watch
-npm run build        # compilar a dist/
-npm run start:prod   # producción
+pnpm run start:dev    # desarrollo con watch
+pnpm run build        # compilar a dist/
+pnpm run start:prod   # producción
 ```
 
 El servidor escucha en `http://localhost:2300` (configurable con `PORT`).
@@ -109,10 +109,10 @@ La lista completa está en [GEMINI.md](./GEMINI.md) y los detalles técnicos en 
 ## 🧪 Tests y calidad
 
 ```bash
-npm run test       # unit tests (Jest)
-npm run test:e2e   # tests e2e
-npm run lint       # ESLint
-npm run format     # Prettier
+pnpm run test       # unit tests (Jest)
+pnpm run test:e2e   # tests e2e
+pnpm run lint       # ESLint
+pnpm run format     # Prettier
 ```
 
 ## 📄 Licencia

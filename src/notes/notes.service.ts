@@ -9,7 +9,7 @@ import { Repository, In } from 'typeorm';
 import { Note } from './entities/note.entity';
 import { NoteContent } from './entities/note-content.entity';
 import { CreditsService, calculateNoteCost } from '../credits/credits.service';
-import { GeminiService, NoteResponse } from '../gemini/gemini.service';
+import { GroqService, NoteResponse } from '../groq/groq.service';
 import { LikesService } from '../likes/likes.service';
 import {
   isPublicAccess,
@@ -25,7 +25,7 @@ export class NotesService {
     @InjectRepository(NoteContent)
     private noteContentRepo: Repository<NoteContent>,
     private creditsService: CreditsService,
-    private geminiService: GeminiService,
+    private groqService: GroqService,
     private likesService: LikesService,
   ) {}
 
@@ -79,7 +79,7 @@ export class NotesService {
     const level = input.levelOfDetail ?? 'medio';
     const acceso = normalizeAccess(input.acceso);
 
-    const response: NoteResponse = await this.geminiService.generateNote(
+    const response: NoteResponse = await this.groqService.generateNote(
       promptText,
       numberOfNotes,
       level,
