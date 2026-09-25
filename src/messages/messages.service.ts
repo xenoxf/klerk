@@ -4,9 +4,8 @@ import { Repository, In } from 'typeorm';
 import { Message } from './entities/message.entity';
 import { Chat } from './entities/chat.entity';
 import { AgentService } from '../agent/agent.service';
-import { AiRouterService } from '../ai/ai-router.service';
 import { CreditsService } from '../credits/credits.service';
-import { Content } from '../groq/groq.service';
+import { Content, GroqService } from '../groq/groq.service';
 
 @Injectable()
 export class MessagesService {
@@ -16,17 +15,17 @@ export class MessagesService {
     @InjectRepository(Message) private messageRepo: Repository<Message>,
     @InjectRepository(Chat) private chatRepo: Repository<Chat>,
     private readonly agentService: AgentService,
-    private readonly aiRouter: AiRouterService,
+    private readonly groqService: GroqService,
     private readonly creditsService: CreditsService,
   ) {}
 
   // Generar título del chat basado en el primer mensaje
-  // Usa el provider elegido por el usuario en Mi IA
+  // Proveedor fijo: Groq
   private async generateChatTitle(
     prompt: string,
     userId?: number,
   ): Promise<string> {
-    return await this.aiRouter.generateTitle(prompt, undefined, userId);
+    return await this.groqService.generateChatTitleFromMessage(prompt);
   }
 
   // Streaming SSE endpoint for chat
@@ -116,17 +115,16 @@ export class MessagesService {
     let aiError: Error | null = null;
 
     try {
-      const aiStream = this.aiRouter.chatWithFileStream(
-        input.prompt,
-        input.files.map((f) => ({ fileBase64: f.fileBase64, mimeType: f.mimeType })),
-        conversationHistory.length > 0 ? conversationHistory : undefined,
-        undefined,
-        userId,
-      );
+      const aiStream =
+        this.groqService.generateEducationalChatResponseStreamWithFile(
+          input.prompt,
+          input.files.map((f) => ({ fileBase64: f.fileBase64, mimeType: f.mimeType })),
+          conversationHistory.length > 0 ? conversationHistory : undefined,
+        );
 
-      for await (const chunk of aiStream) {
-        fullResponse += chunk.content;
-        yield `data: ${JSON.stringify({ type: 'chunk', content: chunk.content })}\n\n`;
+      for await (const content of aiStream) {
+        fullResponse += content;
+        yield `data: ${JSON.stringify({ type: 'chunk', content })}\n\n`;
       }
     } catch (error) {
       aiError = error as Error;
@@ -148,7 +146,7 @@ export class MessagesService {
       .join('||');
     const filePaths = input.files.map((f) => f.filePath).join('||');
 
-    const fileChatModel = await this.aiRouter.resolveChatModel(userId);
+    const fileChatModel = { provider: 'groq', model: 'openai/gpt-oss-20b' };
     const userMessage = this.messageRepo.create({
       prompt: input.prompt || '[Archivo(s) subido(s)]',
       response: fullResponse,
@@ -251,9 +249,9 @@ export class MessagesService {
 
     let fullResponse = '';
     let toolCalls: any[] = [];
-    // Provider/modelo reales según el Centro IA del usuario
-    const { provider, model: modelUsed } =
-      await this.aiRouter.resolveChatModel(userId);
+    // Proveedor fijo: Groq
+    const provider = 'groq';
+    const modelUsed = 'openai/gpt-oss-20b';
     let aiError: Error | null = null;
 
     try {
@@ -413,18 +411,14 @@ export class MessagesService {
     });
 
     let aiResponse = '';
-    let aiProvider = 'groq';
-    let aiModel = 'openai/gpt-oss-20b';
+    const aiProvider = 'groq';
+    const aiModel = 'openai/gpt-oss-20b';
 
     try {
-      const resolved = await this.aiRouter.resolveChatModel(userId);
-      aiProvider = resolved.provider;
-      aiModel = resolved.model;
-      const response = await this.aiRouter.chat(
+      const response = await this.groqService.generateEducationalChatResponse(
         input.prompt,
-        conversationHistory.length > 0 ? conversationHistory : undefined,
         undefined,
-        userId,
+        conversationHistory.length > 0 ? conversationHistory : undefined,
       );
       aiResponse = response.response;
     } catch (error) {

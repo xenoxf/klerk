@@ -12,7 +12,6 @@ import { ExamQuestion } from './entities/examQuestion.entity';
 import { ExamOption } from './entities/exam-option.entity';
 import { GenerateExamDto } from './dto/generate-exam.dto';
 import { GroqService, ExamResponse } from '../groq/groq.service';
-import { ExamResponse as GeneratedExam } from '../ai/ai-provider.interface';
 import { CreditsService, calculateExamCost } from '../credits/credits.service';
 import { LikesService } from '../likes/likes.service';
 import { UpdateExamDto } from './dto/update-exam.dto';
@@ -355,7 +354,7 @@ export class ExamsService {
    * No consume créditos: el agente ya cobró antes de llamar.
    */
   async saveGeneratedExam(
-    response: GeneratedExam,
+    response: ExamResponse,
     meta: { difficulty?: string; type?: 'quiz' | 'icfes'; acceso?: string },
     userId: number,
   ) {

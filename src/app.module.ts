@@ -8,7 +8,6 @@ import { ExamsModule } from './exams/exams.module';
 import { FlashCardsModule } from './flash-cards/flash-cards.module';
 import { NotesModule } from './notes/notes.module';
 import { MessagesModule } from './messages/messages.module';
-import { AiModule } from './ai/ai.module';
 import { AgentModule } from './agent/agent.module';
 import { SearchModule } from './search/search.module';
 import { GroqModule } from './groq/groq.module';
@@ -56,7 +55,6 @@ import { ThrottlerModule } from '@nestjs/throttler';
     FlashCardsModule,
     NotesModule,
     MessagesModule,
-    AiModule,
     AgentModule,
     SearchModule,
     GroqModule,

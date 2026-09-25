@@ -1,6 +1,5 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
-import { AiRouterService } from '../ai/ai-router.service';
-import { Content } from '../ai/ai-provider.interface';
+import { GroqService, Content } from '../groq/groq.service';
 import { CreditsService } from '../credits/credits.service';
 import { ExamsService } from '../exams/exams.service';
 import { FlashCardsService } from '../flash-cards/flash-cards.service';
@@ -41,7 +40,7 @@ export class AgentService {
   private readonly MAX_QUESTIONS_AGENT = 10;
 
   constructor(
-    private readonly aiRouter: AiRouterService,
+    private readonly groqService: GroqService,
     private readonly creditsService: CreditsService,
     private readonly examsService: ExamsService,
     private readonly flashCardsService: FlashCardsService,
@@ -55,12 +54,8 @@ export class AgentService {
   ): Promise<AgentClassification> {
     const routerPrompt = this.buildRouterPrompt(prompt, history);
     try {
-      const result = await this.aiRouter.chat(
-        routerPrompt,
-        undefined,
-        undefined,
-        userId,
-      );
+      const result =
+        await this.groqService.generateEducationalChatResponse(routerPrompt);
       return this.parseAgentResponse(result.response);
     } catch (e) {
       this.logger.error(`Intent classification failed: ${e}`);
@@ -139,13 +134,11 @@ Si es respuesta directa: {"needsTools": false, "tools": [], "directAnswer": true
     const classification = await this.classifyIntent(prompt, history, userId);
 
     if (!classification.needsTools || classification.tools.length === 0) {
-      for await (const c of this.aiRouter.chatStream(
+      for await (const content of this.groqService.generateEducationalChatResponseStream(
         prompt,
         history,
-        undefined,
-        userId,
       )) {
-        yield sse({ type: 'chunk', content: c.content });
+        yield sse({ type: 'chunk', content });
       }
       return;
     }
@@ -180,13 +173,11 @@ Si es respuesta directa: {"needsTools": false, "tools": [], "directAnswer": true
     }
 
     const synthPrompt = this.buildSynthesisPrompt(prompt, toolResults);
-    for await (const c of this.aiRouter.chatStream(
+    for await (const content of this.groqService.generateEducationalChatResponseStream(
       synthPrompt,
       history,
-      undefined,
-      userId,
     )) {
-      yield sse({ type: 'chunk', content: c.content });
+      yield sse({ type: 'chunk', content });
     }
 
     this.logger.log(`Agent chat done: ${toolResults.length} tools`);
@@ -220,20 +211,8 @@ Si es respuesta directa: {"needsTools": false, "tools": [], "directAnswer": true
         }
         const exam =
           type === 'icfes'
-            ? await this.aiRouter.generateIcfesExam(
-                reference,
-                num,
-                diff,
-                undefined,
-                userId,
-              )
-            : await this.aiRouter.generateExam(
-                reference,
-                num,
-                diff,
-                undefined,
-                userId,
-              );
+            ? await this.groqService.generateIcfesExam(reference, num, diff)
+            : await this.groqService.generateExam(reference, num, diff);
         // Persistir en la biblioteca del usuario
         let examId: number | undefined;
         if (userId) {
@@ -275,11 +254,9 @@ Si es respuesta directa: {"needsTools": false, "tools": [], "directAnswer": true
             cost,
           );
         }
-        const cards = await this.aiRouter.generateFlashcards(
+        const cards = await this.groqService.generateFlashcards(
           reference,
           quantity,
-          undefined,
-          userId,
         );
         // Persistir en la biblioteca del usuario
         let cardId: number | undefined;
@@ -328,12 +305,10 @@ Si es respuesta directa: {"needsTools": false, "tools": [], "directAnswer": true
             cost,
           );
         }
-        const notes = await this.aiRouter.generateNote(
+        const notes = await this.groqService.generateNote(
           reference,
           num,
           detail,
-          undefined,
-          userId,
         );
         // Persistir en la biblioteca del usuario
         let noteId: number | undefined;

@@ -5,7 +5,7 @@ import { MessagesService } from './messages.service';
 import { Chat } from './entities/chat.entity';
 import { Message } from './entities/message.entity';
 import { AgentModule } from '../agent/agent.module';
-import { AiModule } from '../ai/ai.module';
+import { GroqModule } from '../groq/groq.module';
 import { CreditsModule } from '../credits/credits.module';
 import { FileStorageService } from '../common/file-storage.service';
 
@@ -13,7 +13,7 @@ import { FileStorageService } from '../common/file-storage.service';
   imports: [
     TypeOrmModule.forFeature([Chat, Message]),
     AgentModule,
-    AiModule,
+    GroqModule,
     CreditsModule,
   ],
   controllers: [MessagesController],
