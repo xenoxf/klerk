@@ -44,13 +44,18 @@ export class UsersService {
   async createLocal(data: {
     email: string;
     password?: string;
+    /**
+     * Hash bcrypt ya calculado (flujo de pre-registro con email verificado).
+     * Se guarda tal cual, SIN volver a hashear (doble hash rompería el login).
+     */
+    passwordHash?: string;
     name?: string;
     providerId?: string;
     picture?: string;
   }) {
-    const hashedPassword = data.password
-      ? await bcrypt.hash(data.password, 10)
-      : null;
+    const hashedPassword =
+      data.passwordHash ??
+      (data.password ? await bcrypt.hash(data.password, 10) : null);
 
     const user = this.userRepo.create({
       email: data.email,

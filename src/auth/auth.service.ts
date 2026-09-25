@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
+import { MailService } from './mail.service';
 import { CreateAuthDto } from './dto/create-auth.dto';
 import { LoginAuthDto } from './dto/login-auth.dto';
 import * as bcrypt from 'bcryptjs';
@@ -30,6 +31,7 @@ export class AuthService {
   constructor(
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
+    private readonly mailService: MailService,
   ) {}
 
   /** 🔐 Generar JWT access token (duración de 24h para buena UX) */
@@ -72,32 +74,44 @@ export class AuthService {
   async preRegister(dto: CreateAuthDto) {
     await this.validateUniqueEmail(dto.email);
 
+    // NUNCA poner la contraseña en claro en el JWT: un JWT firmado NO está
+    // cifrado, su payload es legible por cualquiera (solo va en base64).
+    // Se guarda únicamente su hash bcrypt.
+    const passwordHash = await bcrypt.hash(dto.password, 10);
+
     const token = this.jwtService.sign(
       {
         email: dto.email,
         name: dto.name,
-        password: dto.password,
+        passwordHash,
         purpose: 'email-verification',
       },
       { expiresIn: '15m' },
     );
 
+    let emailSent = false;
     try {
+      await this.mailService.sendVerificationEmail(dto.email, token, dto.name);
+      emailSent = true;
       this.logger.log(`Email de verificación enviado a: ${dto.email}`);
-
-      return {
-        message: 'Te enviamos un correo para verificar tu email.',
-        emailSent: true,
-        token, // útil para pruebas locales
-      };
     } catch (err) {
       this.logger.error(`Error enviando email a ${dto.email}:`, err);
 
-      throw new InternalServerErrorException({
-        message: 'No se pudo enviar el correo de verificación.',
-        emailSent: false,
-      });
+      if (process.env.NODE_ENV === 'production') {
+        throw new InternalServerErrorException({
+          message: 'No se pudo enviar el correo de verificación.',
+          emailSent: false,
+        });
+      }
     }
+
+    return {
+      message: 'Te enviamos un correo para verificar tu email.',
+      emailSent,
+      // El token solo se expone fuera de producción (pruebas locales).
+      // En producción viaja únicamente dentro del email de verificación.
+      ...(process.env.NODE_ENV === 'production' ? {} : { token }),
+    };
   }
 
   /** 2️⃣ Verificar token de email */
@@ -130,7 +144,18 @@ export class AuthService {
       if (payload.purpose !== 'email-verification') {
         throw new BadRequestException('Token inválido para este propósito.');
       }
-    } catch {
+
+      // Falla cerrada: no se aceptan tokens legacy con `password` en claro.
+      // Solo vale el hash bcrypt generado por preRegister.
+      if (
+        !payload.passwordHash ||
+        typeof payload.passwordHash !== 'string' ||
+        !payload.passwordHash.startsWith('$2')
+      ) {
+        throw new BadRequestException('Token inválido o expirado.');
+      }
+    } catch (error) {
+      if (error instanceof BadRequestException) throw error;
       throw new BadRequestException('Token inválido o expirado.');
     }
 
@@ -139,7 +164,7 @@ export class AuthService {
     const user = await this.usersService.createLocal({
       email: payload.email,
       name: payload.name ?? payload.email,
-      password: payload.password,
+      passwordHash: payload.passwordHash,
     });
 
     const accessToken = this.generateAccessToken(user);
